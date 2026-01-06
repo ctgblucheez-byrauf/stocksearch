@@ -176,14 +176,21 @@
 <div id="toast">Message</div>
 
 <script>
-    // --- 1. CONFIGURATION ---
+    // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+    // We use unique names (sbClient, qrCodeScanner) to avoid conflicts with previous code
     const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
     
-    let supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    let html5QrCode = null;
-    let isScanning = false;
-    let currentMode = 'barcode'; // 'barcode' or 'style'
+    // Check if Supabase library is loaded before using it
+    if (window.supabase) {
+        var sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        console.error("Supabase library failed to load.");
+    }
+
+    var qrCodeScanner = null;
+    var isScanning = false;
+    var currentMode = 'barcode';
 
     // --- 2. AUDIO BEEP ---
     function playBeep() {
@@ -208,8 +215,8 @@
         document.getElementById('tab-style').classList.toggle('active', mode === 'style');
 
         // Update Inputs
-        const input = document.getElementById('searchInput');
-        const scanBtn = document.getElementById('scanBtn');
+        var input = document.getElementById('searchInput');
+        var scanBtn = document.getElementById('scanBtn');
 
         if (mode === 'barcode') {
             input.placeholder = "Enter Barcode or Scan...";
@@ -227,10 +234,10 @@
     }
 
     function showToast(msg) {
-        const t = document.getElementById('toast');
+        var t = document.getElementById('toast');
         t.textContent = msg;
         t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 3000);
+        setTimeout(function() { t.classList.remove('show'); }, 3000);
     }
 
     // --- 4. SCANNER LOGIC ---
@@ -240,12 +247,12 @@
     }
 
     async function startScanner() {
-        const wrapper = document.getElementById('reader-wrapper');
-        const btn = document.getElementById('scanBtn');
+        var wrapper = document.getElementById('reader-wrapper');
+        var btn = document.getElementById('scanBtn');
 
         try {
-            html5QrCode = new Html5Qrcode("reader");
-            await html5QrCode.start(
+            qrCodeScanner = new Html5Qrcode("reader");
+            await qrCodeScanner.start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 250, height: 150 } },
                 onScanSuccess
@@ -262,11 +269,11 @@
     }
 
     async function stopScanner() {
-        if (html5QrCode && isScanning) {
-            await html5QrCode.stop();
+        if (qrCodeScanner && isScanning) {
+            await qrCodeScanner.stop();
             isScanning = false;
             document.getElementById('reader-wrapper').style.display = 'none';
-            const btn = document.getElementById('scanBtn');
+            var btn = document.getElementById('scanBtn');
             btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6.75 7.5h10.5m-10.5 0A2.25 2.25 0 004.5 9.75v8.25a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25v-8.25a2.25 2.25 0 00-2.25-2.25m-10.5 0V6a2.25 2.25 0 012.25-2.25h6a2.25 2.25 0 012.25 2.25v1.5"/></svg> Scan`;
             btn.classList.remove('active');
         }
@@ -288,23 +295,28 @@
 
     // --- 5. SEARCH LOGIC ---
     async function performSearch() {
-        const query = document.getElementById('searchInput').value.trim();
+        if (!sbClient) {
+            showToast("Database not connected");
+            return;
+        }
+
+        var query = document.getElementById('searchInput').value.trim();
         if (!query) return showToast("Please enter a value");
 
-        const resultsArea = document.getElementById('resultsArea');
+        var resultsArea = document.getElementById('resultsArea');
         resultsArea.innerHTML = '<div class="empty-state">Searching...</div>';
 
-        let data, error;
+        var data, error;
 
         try {
             if (currentMode === 'barcode') {
                 // Exact match for barcode
-                const res = await supabase.from('inventory').select('*').eq('barcode', query);
+                var res = await sbClient.from('inventory').select('*').eq('barcode', query);
                 data = res.data;
                 error = res.error;
             } else {
                 // Partial match for style code
-                const res = await supabase.from('inventory').select('*').ilike('style_code', `%${query}%`);
+                var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${query}%`);
                 data = res.data;
                 error = res.error;
             }
@@ -319,7 +331,7 @@
     }
 
     function renderResults(items) {
-        const area = document.getElementById('resultsArea');
+        var area = document.getElementById('resultsArea');
         area.innerHTML = '';
 
         if (!items || items.length === 0) {
@@ -327,9 +339,9 @@
             return;
         }
 
-        items.forEach(item => {
-            const imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`;
-            const card = document.createElement('div');
+        items.forEach(function(item) {
+            var imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`;
+            var card = document.createElement('div');
             card.className = 'product-card';
             card.innerHTML = `
                 <div class="product-img">
