@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stock Search System</title>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- HTML5-QRCode Library for Camera Scanning -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        body { margin: 0; background-color: var(--bg); color: var(--text); padding-bottom: 40px; }
+
+        /* Header */
+        header { background: var(--primary); color: white; padding: 1rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 50; }
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+
+        /* Container */
+        main { padding: 1rem; max-width: 600px; margin: 0 auto; }
+
+        /* Search Card */
+        .search-card { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        .tab { flex: 1; text-align: center; padding-bottom: 0.75rem; font-weight: 600; color: var(--secondary); cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Inputs & Buttons */
+        .input-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            min-width: 200px;
+        }
+        input[type="text"]:focus { outline: none; border-color: var(--primary); }
+
+        button {
+            padding: 0.8rem 1.2rem;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .btn-scan { background-color: var(--secondary); color: white; display: none; /* Hidden by default */ }
+        .btn-scan:hover { background-color: #475569; }
+        .btn-scan.active { background-color: var(--primary); }
+
+        .btn-search { background-color: var(--primary); color: white; }
+        .btn-search:hover { background-color: var(--primary-dark); }
+
+        /* Camera Viewport */
+        #reader-wrapper {
+            margin-top: 1rem;
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: none;
+            background: black;
+        }
+        #reader { width: 100%; }
+
+        /* Results List */
+        .results-list { display: grid; gap: 1rem; }
+        
+        .product-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: flex;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .product-img {
+            width: 100px;
+            height: 100px;
+            background: #e2e8f0;
+            flex-shrink: 0;
+        }
+        .product-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        .product-info { padding: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .product-name { margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 700; color: var(--text); }
+        .product-meta { font-size: 0.85rem; color: var(--secondary); margin-bottom: 0.25rem; }
+        .product-price { margin-top: auto; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+
+        .empty-state { text-align: center; padding: 2rem; color: var(--secondary); }
+
+        /* Status Toast */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: 0.3s;
+            z-index: 100;
+            white-space: nowrap;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* SVG Icons */
+        svg { width: 20px; height: 20px; fill: currentColor; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Stock Search</h1>
+</header>
+
+<main>
+    <section class="search-card">
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchMode('barcode')" id="tab-barcode">Barcode</div>
+            <div class="tab" onclick="switchMode('style')" id="tab-style">Style Code</div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="input-group">
+            <input type="text" id="searchInput" placeholder="Enter Barcode..." autocomplete="off">
+            
+            <!-- Scan Button (Only visible in Barcode Mode) -->
+            <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">
+                <svg viewBox="0 0 24 24"><path d="M6.75 7.5h10.5m-10.5 0A2.25 2.25 0 004.5 9.75v8.25a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25v-8.25a2.25 2.25 0 00-2.25-2.25m-10.5 0V6a2.25 2.25 0 012.25-2.25h6a2.25 2.25 0 012.25 2.25v1.5"/></svg>
+                Scan
+            </button>
+            
+            <!-- Search Button -->
+            <button class="btn-search" onclick="performSearch()">
+                <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Search
+            </button>
+        </div>
+
+        <!-- Camera Area -->
+        <div id="reader-wrapper">
+            <div id="reader"></div>
+        </div>
+    </section>
+
+    <!-- Results Area -->
+    <div id="resultsArea" class="results-list"></div>
+</main>
+
+<div id="toast">Message</div>
+
+<script>
+    // --- 1. CONFIGURATION ---
+    const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+    
+    let supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let html5QrCode = null;
+    let isScanning = false;
+    let currentMode = 'barcode'; // 'barcode' or 'style'
+
+    // --- 2. AUDIO BEEP ---
+    function playBeep() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1000, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+    }
+
+    // --- 3. UI LOGIC ---
+    function switchMode(mode) {
+        currentMode = mode;
+        
+        // Update Tabs
+        document.getElementById('tab-barcode').classList.toggle('active', mode === 'barcode');
+        document.getElementById('tab-style').classList.toggle('active', mode === 'style');
+
+        // Update Inputs
+        const input = document.getElementById('searchInput');
+        const scanBtn = document.getElementById('scanBtn');
+
+        if (mode === 'barcode') {
+            input.placeholder = "Enter Barcode or Scan...";
+            scanBtn.style.display = 'flex'; // Show Scan Button
+        } else {
+            input.placeholder = "Enter Style Code...";
+            scanBtn.style.display = 'none'; // Hide Scan Button
+            if (isScanning) stopScanner(); // Force stop scanner if switching modes
+        }
+
+        // Clear results
+        document.getElementById('resultsArea').innerHTML = '';
+        input.value = '';
+        input.focus();
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // --- 4. SCANNER LOGIC ---
+    async function toggleScanner() {
+        if (isScanning) stopScanner();
+        else startScanner();
+    }
+
+    async function startScanner() {
+        const wrapper = document.getElementById('reader-wrapper');
+        const btn = document.getElementById('scanBtn');
+
+        try {
+            html5QrCode = new Html5Qrcode("reader");
+            await html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 150 } },
+                onScanSuccess
+            );
+            
+            isScanning = true;
+            wrapper.style.display = 'block';
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg> Stop`;
+            btn.classList.add('active');
+        } catch (err) {
+            console.error(err);
+            showToast("Camera error: " + err);
+        }
+    }
+
+    async function stopScanner() {
+        if (html5QrCode && isScanning) {
+            await html5QrCode.stop();
+            isScanning = false;
+            document.getElementById('reader-wrapper').style.display = 'none';
+            const btn = document.getElementById('scanBtn');
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6.75 7.5h10.5m-10.5 0A2.25 2.25 0 004.5 9.75v8.25a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25v-8.25a2.25 2.25 0 00-2.25-2.25m-10.5 0V6a2.25 2.25 0 012.25-2.25h6a2.25 2.25 0 012.25 2.25v1.5"/></svg> Scan`;
+            btn.classList.remove('active');
+        }
+    }
+
+    function onScanSuccess(decodedText) {
+        // 1. Beep
+        playBeep();
+
+        // 2. Stop Scanner
+        stopScanner();
+
+        // 3. Fill Input
+        document.getElementById('searchInput').value = decodedText;
+
+        // 4. Auto Trigger Search
+        performSearch();
+    }
+
+    // --- 5. SEARCH LOGIC ---
+    async function performSearch() {
+        const query = document.getElementById('searchInput').value.trim();
+        if (!query) return showToast("Please enter a value");
+
+        const resultsArea = document.getElementById('resultsArea');
+        resultsArea.innerHTML = '<div class="empty-state">Searching...</div>';
+
+        let data, error;
+
+        try {
+            if (currentMode === 'barcode') {
+                // Exact match for barcode
+                const res = await supabase.from('inventory').select('*').eq('barcode', query);
+                data = res.data;
+                error = res.error;
+            } else {
+                // Partial match for style code
+                const res = await supabase.from('inventory').select('*').ilike('style_code', `%${query}%`);
+                data = res.data;
+                error = res.error;
+            }
+
+            if (error) throw error;
+            renderResults(data);
+
+        } catch (err) {
+            console.error(err);
+            resultsArea.innerHTML = `<div class="empty-state" style="color:red">Error: ${err.message}</div>`;
+        }
+    }
+
+    function renderResults(items) {
+        const area = document.getElementById('resultsArea');
+        area.innerHTML = '';
+
+        if (!items || items.length === 0) {
+            area.innerHTML = '<div class="empty-state">No results found.<br><small>(Check RLS Policy if data exists)</small></div>';
+            return;
+        }
+
+        items.forEach(item => {
+            const imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`;
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <div class="product-img">
+                    <a href="${imgUrl}" target="_blank"><img src="${imgUrl}" alt="Product"></a>
+                </div>
+                <div class="product-info">
+                    <div class="product-name">${item.name}</div>
+                    <div class="product-meta">
+                        <span>Style: ${item.style_code}</span> | 
+                        <span>${item.color || '-'} / ${item.size || '-'}</span>
+                    </div>
+                    <div class="product-price">MRP: $${item.mrp || '0.00'}</div>
+                </div>
+            `;
+            area.appendChild(card);
+        });
+        showToast(`Found ${items.length} items`);
+    }
+
+    // Handle Enter Key
+    document.getElementById('searchInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') performSearch();
+    });
+
+</script>
+</body>
+</html>
