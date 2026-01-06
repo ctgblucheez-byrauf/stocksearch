@@ -66,7 +66,7 @@
             font-size: 0.95rem;
         }
 
-        .btn-scan { background-color: var(--secondary); color: white; display: none; /* Hidden by default */ }
+        .btn-scan { background-color: var(--secondary); color: white; display: none; }
         .btn-scan:hover { background-color: #475569; }
         .btn-scan.active { background-color: var(--primary); }
 
@@ -90,23 +90,61 @@
             background: var(--surface);
             border-radius: var(--radius);
             overflow: hidden;
-            display: flex;
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
+            display: flex;
+            flex-direction: row;
         }
 
         .product-img {
             width: 100px;
-            height: 100px;
-            background: #e2e8f0;
+            height: auto;
             flex-shrink: 0;
+            background: #e2e8f0;
         }
-        .product-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .product-img img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 120px; }
 
         .product-info { padding: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        
         .product-name { margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 700; color: var(--text); }
-        .product-meta { font-size: 0.85rem; color: var(--secondary); margin-bottom: 0.25rem; }
-        .product-price { margin-top: auto; font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+        .product-meta { font-size: 0.85rem; color: var(--secondary); margin-bottom: 0.5rem; }
+
+        /* Price and Balance Row */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+        }
+        .info-mrp { color: var(--primary); font-size: 1.1rem; }
+        .info-bal { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 0.9rem; }
+
+        /* Dropdown Button */
+        .btn-toggle {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            width: 100%;
+            justify-content: center;
+            margin-top: auto;
+        }
+        .btn-toggle:hover { background: #f1f5f9; }
+
+        /* Dropdown Content */
+        .extra-details {
+            display: none;
+            padding: 10px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+        .detail-item { margin-bottom: 5px; word-break: break-all; }
+        .detail-label { font-weight: 600; color: #475569; }
+        .link-text { color: var(--primary); text-decoration: none; }
+        .link-text:hover { text-decoration: underline; }
 
         .empty-state { text-align: center; padding: 2rem; color: var(--secondary); }
 
@@ -150,7 +188,7 @@
         <div class="input-group">
             <input type="text" id="searchInput" placeholder="Enter Barcode..." autocomplete="off">
             
-            <!-- Scan Button (Only visible in Barcode Mode) -->
+            <!-- Scan Button -->
             <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">
                 <svg viewBox="0 0 24 24"><path d="M6.75 7.5h10.5m-10.5 0A2.25 2.25 0 004.5 9.75v8.25a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25v-8.25a2.25 2.25 0 00-2.25-2.25m-10.5 0V6a2.25 2.25 0 012.25-2.25h6a2.25 2.25 0 012.25 2.25v1.5"/></svg>
                 Scan
@@ -177,11 +215,9 @@
 
 <script>
     // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
-    // We use unique names (sbClient, qrCodeScanner) to avoid conflicts with previous code
     const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
     
-    // Check if Supabase library is loaded before using it
     if (window.supabase) {
         var sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     } else {
@@ -220,11 +256,11 @@
 
         if (mode === 'barcode') {
             input.placeholder = "Enter Barcode or Scan...";
-            scanBtn.style.display = 'flex'; // Show Scan Button
+            scanBtn.style.display = 'flex'; 
         } else {
             input.placeholder = "Enter Style Code...";
-            scanBtn.style.display = 'none'; // Hide Scan Button
-            if (isScanning) stopScanner(); // Force stop scanner if switching modes
+            scanBtn.style.display = 'none'; 
+            if (isScanning) stopScanner(); 
         }
 
         // Clear results
@@ -280,16 +316,9 @@
     }
 
     function onScanSuccess(decodedText) {
-        // 1. Beep
         playBeep();
-
-        // 2. Stop Scanner
         stopScanner();
-
-        // 3. Fill Input
         document.getElementById('searchInput').value = decodedText;
-
-        // 4. Auto Trigger Search
         performSearch();
     }
 
@@ -310,12 +339,10 @@
 
         try {
             if (currentMode === 'barcode') {
-                // Exact match for barcode
                 var res = await sbClient.from('inventory').select('*').eq('barcode', query);
                 data = res.data;
                 error = res.error;
             } else {
-                // Partial match for style code
                 var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${query}%`);
                 data = res.data;
                 error = res.error;
@@ -330,6 +357,7 @@
         }
     }
 
+    // --- 6. RENDER LOGIC (UPDATED) ---
     function renderResults(items) {
         var area = document.getElementById('resultsArea');
         area.innerHTML = '';
@@ -343,9 +371,11 @@
             var imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`;
             var card = document.createElement('div');
             card.className = 'product-card';
+            
+            // Removed $ from MRP, Added Balance
             card.innerHTML = `
                 <div class="product-img">
-                    <a href="${imgUrl}" target="_blank"><img src="${imgUrl}" alt="Product"></a>
+                    <img src="${imgUrl}" alt="Product">
                 </div>
                 <div class="product-info">
                     <div class="product-name">${item.name}</div>
@@ -353,12 +383,45 @@
                         <span>Style: ${item.style_code}</span> | 
                         <span>${item.color || '-'} / ${item.size || '-'}</span>
                     </div>
-                    <div class="product-price">MRP: $${item.mrp || '0.00'}</div>
+                    
+                    <!-- Price & Balance Row -->
+                    <div class="info-row">
+                        <div class="info-mrp">MRP: ${item.mrp || '0.00'}</div>
+                        <div class="info-bal">Bal: ${item.balance || 0}</div>
+                    </div>
+
+                    <!-- Dropdown Toggle -->
+                    <button class="btn-toggle" onclick="toggleDetails(this)">
+                        See More ▼
+                    </button>
+
+                    <!-- Hidden Details Section -->
+                    <div class="extra-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Barcode:</span> ${item.barcode}
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Image Link:</span> 
+                            <a href="${imgUrl}" target="_blank" class="link-text">${imgUrl}</a>
+                        </div>
+                    </div>
                 </div>
             `;
             area.appendChild(card);
         });
         showToast(`Found ${items.length} items`);
+    }
+
+    // Function to Toggle Dropdown
+    function toggleDetails(btn) {
+        var details = btn.nextElementSibling;
+        if (details.style.display === "none" || details.style.display === "") {
+            details.style.display = "block";
+            btn.innerHTML = "See Less ▲";
+        } else {
+            details.style.display = "none";
+            btn.innerHTML = "See More ▼";
+        }
     }
 
     // Handle Enter Key
