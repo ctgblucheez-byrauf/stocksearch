@@ -31,7 +31,7 @@
         header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; }
 
         /* Container */
-        main { padding: 1rem; max-width: 600px; margin: 0 auto; }
+        main { padding: 1rem; max-width: 800px; margin: 0 auto; }
 
         /* Search Card */
         .search-card { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
@@ -83,16 +83,46 @@
         }
         #reader { width: 100%; }
 
-        /* Results List */
-        .results-list { display: grid; gap: 1rem; }
-        
+        /* --- FILTER BAR (New) --- */
+        .filter-bar {
+            background: var(--surface);
+            padding: 1rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+            display: none; /* Hidden by default */
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            border: 1px solid var(--border);
+        }
+
+        .filter-select {
+            flex: 1;
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: var(--bg);
+            min-width: 120px;
+        }
+
+        .btn-clear {
+            background: #f1f5f9;
+            color: var(--text);
+            padding: 0.6rem 1rem;
+        }
+        .btn-clear:hover { background: #e2e8f0; }
+
+        /* --- RESULTS STYLES --- */
+        .results-list { display: flex; flex-direction: column; gap: 1rem; }
+
+        /* 1. CARD STYLE (For Barcode Mode) */
         .product-card {
             background: var(--surface);
             border-radius: var(--radius);
             overflow: hidden;
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
-            /* Removed flex row layout, now block */
             display: block; 
         }
 
@@ -101,7 +131,6 @@
         .product-name { margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 700; color: var(--text); }
         .product-meta { font-size: 0.85rem; color: var(--secondary); margin-bottom: 0.5rem; }
 
-        /* Price and Balance Row */
         .info-row {
             display: flex;
             justify-content: space-between;
@@ -112,7 +141,7 @@
         .info-mrp { color: var(--primary); font-size: 1.1rem; }
         .info-bal { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 0.9rem; }
 
-        /* Dropdown Button */
+        /* Dropdown */
         .btn-toggle {
             background: transparent;
             color: var(--primary);
@@ -125,7 +154,6 @@
         }
         .btn-toggle:hover { background: #f1f5f9; }
 
-        /* Dropdown Content */
         .extra-details {
             display: none;
             padding: 10px;
@@ -137,6 +165,37 @@
         .detail-label { font-weight: 600; color: #475569; }
         .link-text { color: var(--primary); text-decoration: none; }
         .link-text:hover { text-decoration: underline; }
+
+        /* 2. TABLE STYLE (For Style Code Mode) */
+        .table-container {
+            overflow-x: auto; /* Horizontal scroll for mobile */
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px; /* Prevent squishing */
+        }
+
+        .results-table th, .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .results-table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+            white-space: nowrap;
+        }
+        
+        .results-table tr:hover { background-color: #f1f5f9; }
 
         .empty-state { text-align: center; padding: 2rem; color: var(--secondary); }
 
@@ -199,6 +258,17 @@
         </div>
     </section>
 
+    <!-- FILTER BAR (Visible only for Style Mode) -->
+    <div id="filter-section" class="filter-bar">
+        <select id="filter-color" class="filter-select" onchange="applyFilters()">
+            <option value="all">All Colors</option>
+        </select>
+        <select id="filter-size" class="filter-select" onchange="applyFilters()">
+            <option value="all">All Sizes</option>
+        </select>
+        <button class="btn-clear" onclick="clearFilters()">Clear</button>
+    </div>
+
     <!-- Results Area -->
     <div id="resultsArea" class="results-list"></div>
 </main>
@@ -219,6 +289,7 @@
     var qrCodeScanner = null;
     var isScanning = false;
     var currentMode = 'barcode';
+    var originalStyleData = []; // Store full style results for filtering
 
     // --- 2. AUDIO BEEP ---
     function playBeep() {
@@ -245,13 +316,16 @@
         // Update Inputs
         var input = document.getElementById('searchInput');
         var scanBtn = document.getElementById('scanBtn');
+        var filterSection = document.getElementById('filter-section');
 
         if (mode === 'barcode') {
             input.placeholder = "Enter Barcode or Scan...";
             scanBtn.style.display = 'flex'; 
+            filterSection.style.display = 'none'; // Hide filters in barcode mode
         } else {
             input.placeholder = "Enter Style Code...";
             scanBtn.style.display = 'none'; 
+            filterSection.style.display = 'none'; // Hide filters initially
             if (isScanning) stopScanner(); 
         }
 
@@ -349,58 +423,171 @@
         }
     }
 
-    // --- 6. RENDER LOGIC (NO IMAGE FIELD) ---
+    // --- 6. RENDER & FILTER LOGIC ---
     function renderResults(items) {
         var area = document.getElementById('resultsArea');
-        area.innerHTML = '';
+        var filterSection = document.getElementById('filter-section');
 
         if (!items || items.length === 0) {
             area.innerHTML = '<div class="empty-state">No results found.<br><small>(Check RLS Policy if data exists)</small></div>';
+            filterSection.style.display = 'none';
             return;
         }
 
-        items.forEach(function(item) {
-            var imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`;
-            var card = document.createElement('div');
-            card.className = 'product-card';
+        // --- MODE: STYLE CODE (TABLE VIEW) ---
+        if (currentMode === 'style') {
+            // Store data for filtering
+            originalStyleData = items;
             
-            // REMOVED: <div class="product-img">...</div>
-            // KEPT: Image Link inside dropdown below
-            
-            card.innerHTML = `
-                <div class="product-info">
-                    <div class="product-name">${item.name}</div>
-                    <div class="product-meta">
-                        <span>Style: ${item.style_code}</span> | 
-                        <span>${item.color || '-'} / ${item.size || '-'}</span>
-                    </div>
-                    
-                    <!-- Price & Balance Row -->
-                    <div class="info-row">
-                        <div class="info-mrp">MRP: ${item.mrp || '0.00'}</div>
-                        <div class="info-bal">Bal: ${item.balance || 0}</div>
-                    </div>
+            // Populate Dropdowns
+            populateFilters(items);
 
-                    <!-- Dropdown Toggle -->
-                    <button class="btn-toggle" onclick="toggleDetails(this)">
-                        See More ▼
-                    </button>
+            // Show Filter Bar
+            filterSection.style.display = 'flex';
 
-                    <!-- Hidden Details Section -->
-                    <div class="extra-details">
-                        <div class="detail-item">
-                            <span class="detail-label">Barcode:</span> ${item.barcode}
+            // Render Full Table
+            renderTable(items);
+            showToast(`Found ${items.length} items`);
+        } 
+        
+        // --- MODE: BARCODE (CARD VIEW) ---
+        else {
+            filterSection.style.display = 'none';
+            items.forEach(function(item) {
+                var imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`;
+                var card = document.createElement('div');
+                card.className = 'product-card';
+                
+                card.innerHTML = `
+                    <div class="product-info">
+                        <div class="product-name">${item.name}</div>
+                        <div class="product-meta">
+                            <span>Style: ${item.style_code}</span> | 
+                            <span>${item.color || '-'} / ${item.size || '-'}</span>
                         </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Image Link:</span> 
-                            <a href="${imgUrl}" target="_blank" class="link-text">${imgUrl}</a>
+                        
+                        <div class="info-row">
+                            <div class="info-mrp">MRP: ${item.mrp || '0.00'}</div>
+                            <div class="info-bal">Bal: ${item.balance || 0}</div>
+                        </div>
+
+                        <button class="btn-toggle" onclick="toggleDetails(this)">
+                            See More ▼
+                        </button>
+
+                        <div class="extra-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Barcode:</span> ${item.barcode}
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Image Link:</span> 
+                                <a href="${imgUrl}" target="_blank" class="link-text">${imgUrl}</a>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
-            area.appendChild(card);
+                `;
+                area.appendChild(card);
+            });
+            showToast(`Found ${items.length} items`);
+        }
+    }
+
+    // Helper: Populate Select Options
+    function populateFilters(items) {
+        var colorSelect = document.getElementById('filter-color');
+        var sizeSelect = document.getElementById('filter-size');
+
+        // Clear existing options (keep first "all")
+        colorSelect.innerHTML = '<option value="all">All Colors</option>';
+        sizeSelect.innerHTML = '<option value="all">All Sizes</option>';
+
+        // Get unique values
+        var colors = [...new Set(items.map(i => i.color).filter(c => c))];
+        var sizes = [...new Set(items.map(i => i.size).filter(s => s))];
+
+        // Sort alphabetically
+        colors.sort();
+        sizes.sort();
+
+        // Add to DOM
+        colors.forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            colorSelect.appendChild(opt);
         });
-        showToast(`Found ${items.length} items`);
+
+        sizes.forEach(function(s) {
+            var opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            sizeSelect.appendChild(opt);
+        });
+    }
+
+    // Apply Filters
+    function applyFilters() {
+        var c = document.getElementById('filter-color').value;
+        var s = document.getElementById('filter-size').value;
+
+        var filtered = originalStyleData.filter(function(item) {
+            var colorMatch = (c === 'all') || (item.color === c);
+            var sizeMatch = (s === 'all') || (item.size === s);
+            return colorMatch && sizeMatch;
+        });
+
+        renderTable(filtered);
+    }
+
+    // Clear Filters
+    function clearFilters() {
+        document.getElementById('filter-color').value = 'all';
+        document.getElementById('filter-size').value = 'all';
+        applyFilters(); // This reverts to originalStyleData
+    }
+
+    // Helper: Render Table HTML
+    function renderTable(items) {
+        var area = document.getElementById('resultsArea');
+        area.innerHTML = '';
+
+        if (items.length === 0) {
+            area.innerHTML = '<div class="empty-state">No items match your filters.</div>';
+            return;
+        }
+
+        var tableContainer = document.createElement('div');
+        tableContainer.className = 'table-container';
+        
+        var tableHTML = `
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Barcode</th>
+                        <th>Color/Size</th>
+                        <th>MRP</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        items.forEach(function(item) {
+            tableHTML += `
+                <tr>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.barcode}</td>
+                    <td>${item.color || '-'} / ${item.size || '-'}</td>
+                    <td>${item.mrp || '0.00'}</td>
+                    <td style="color:#166534; font-weight:bold">${item.balance || 0}</td>
+                </tr>
+            `;
+        });
+
+        tableHTML += `</tbody></table>`;
+        tableContainer.innerHTML = tableHTML;
+        area.appendChild(tableContainer);
     }
 
     // Function to Toggle Dropdown
