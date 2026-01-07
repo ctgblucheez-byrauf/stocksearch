@@ -92,19 +92,11 @@
             overflow: hidden;
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
-            display: flex;
-            flex-direction: row;
+            /* Removed flex row layout, now block */
+            display: block; 
         }
 
-        .product-img {
-            width: 100px;
-            height: auto;
-            flex-shrink: 0;
-            background: #e2e8f0;
-        }
-        .product-img img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 120px; }
-
-        .product-info { padding: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .product-info { padding: 1rem; }
         
         .product-name { margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 700; color: var(--text); }
         .product-meta { font-size: 0.85rem; color: var(--secondary); margin-bottom: 0.5rem; }
@@ -357,7 +349,7 @@
         }
     }
 
-    // --- 6. RENDER LOGIC (UPDATED) ---
+    // --- 6. RENDER LOGIC (NO IMAGE FIELD) ---
     function renderResults(items) {
         var area = document.getElementById('resultsArea');
         area.innerHTML = '';
@@ -372,11 +364,10 @@
             var card = document.createElement('div');
             card.className = 'product-card';
             
-            // Removed $ from MRP, Added Balance
+            // REMOVED: <div class="product-img">...</div>
+            // KEPT: Image Link inside dropdown below
+            
             card.innerHTML = `
-                <div class="product-img">
-                    <img src="${imgUrl}" alt="Product">
-                </div>
                 <div class="product-info">
                     <div class="product-name">${item.name}</div>
                     <div class="product-meta">
