@@ -83,14 +83,14 @@
         }
         #reader { width: 100%; }
 
-        /* --- FILTER BAR (New) --- */
+        /* --- FILTER BAR --- */
         .filter-bar {
             background: var(--surface);
             padding: 1rem;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
             margin-bottom: 1rem;
-            display: none; /* Hidden by default */
+            display: none;
             gap: 0.5rem;
             flex-wrap: wrap;
             border: 1px solid var(--border);
@@ -166,9 +166,31 @@
         .link-text { color: var(--primary); text-decoration: none; }
         .link-text:hover { text-decoration: underline; }
 
-        /* 2. TABLE STYLE (For Style Code Mode) */
+        /* --- INNER TABLE FOR VARIANTS --- */
+        .variant-table-container {
+            margin-top: 15px;
+            border-top: 1px dashed var(--border);
+            padding-top: 10px;
+        }
+        .variant-title { font-weight: 700; color: var(--secondary); margin-bottom: 8px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .mini-table th, .mini-table td {
+            text-align: left;
+            padding: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+        .mini-table th { background: #e2e8f0; color: var(--text); }
+        .mini-table td:last-child { text-align: right; font-weight: bold; }
+
+
+        /* 2. MAIN TABLE STYLE (For Style Code Mode) */
         .table-container {
-            overflow-x: auto; /* Horizontal scroll for mobile */
+            overflow-x: auto;
             background: var(--surface);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
@@ -178,7 +200,7 @@
         .results-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px; /* Prevent squishing */
+            min-width: 600px;
         }
 
         .results-table th, .results-table td {
@@ -289,7 +311,7 @@
     var qrCodeScanner = null;
     var isScanning = false;
     var currentMode = 'barcode';
-    var originalStyleData = []; // Store full style results for filtering
+    var originalStyleData = []; 
 
     // --- 2. AUDIO BEEP ---
     function playBeep() {
@@ -309,11 +331,9 @@
     function switchMode(mode) {
         currentMode = mode;
         
-        // Update Tabs
         document.getElementById('tab-barcode').classList.toggle('active', mode === 'barcode');
         document.getElementById('tab-style').classList.toggle('active', mode === 'style');
 
-        // Update Inputs
         var input = document.getElementById('searchInput');
         var scanBtn = document.getElementById('scanBtn');
         var filterSection = document.getElementById('filter-section');
@@ -321,15 +341,14 @@
         if (mode === 'barcode') {
             input.placeholder = "Enter Barcode or Scan...";
             scanBtn.style.display = 'flex'; 
-            filterSection.style.display = 'none'; // Hide filters in barcode mode
+            filterSection.style.display = 'none';
         } else {
             input.placeholder = "Enter Style Code...";
             scanBtn.style.display = 'none'; 
-            filterSection.style.display = 'none'; // Hide filters initially
+            filterSection.style.display = 'none';
             if (isScanning) stopScanner(); 
         }
 
-        // Clear results
         document.getElementById('resultsArea').innerHTML = '';
         input.value = '';
         input.focus();
@@ -429,28 +448,21 @@
         var filterSection = document.getElementById('filter-section');
 
         if (!items || items.length === 0) {
-            area.innerHTML = '<div class="empty-state">No results found.<br><small>(Check RLS Policy if data exists)</small></div>';
+            area.innerHTML = '<div class="empty-state">No results found.<br><small>(Or Input Style Code or Barcode Correctly)</small></div>';
             filterSection.style.display = 'none';
             return;
         }
 
         // --- MODE: STYLE CODE (TABLE VIEW) ---
         if (currentMode === 'style') {
-            // Store data for filtering
             originalStyleData = items;
-            
-            // Populate Dropdowns
             populateFilters(items);
-
-            // Show Filter Bar
             filterSection.style.display = 'flex';
-
-            // Render Full Table
             renderTable(items);
             showToast(`Found ${items.length} items`);
         } 
         
-        // --- MODE: BARCODE (CARD VIEW) ---
+        // --- MODE: BARCODE (CARD VIEW WITH RELATED TABLE) ---
         else {
             filterSection.style.display = 'none';
             items.forEach(function(item) {
@@ -471,7 +483,8 @@
                             <div class="info-bal">Bal: ${item.balance || 0}</div>
                         </div>
 
-                        <button class="btn-toggle" onclick="toggleDetails(this)">
+                        <!-- BUTTON NOW HOLDS STYLE CODE DATA -->
+                        <button class="btn-toggle" data-style="${item.style_code || ''}" onclick="toggleDetails(this)">
                             See More ▼
                         </button>
 
@@ -483,6 +496,11 @@
                                 <span class="detail-label">Image Link:</span> 
                                 <a href="${imgUrl}" target="_blank" class="link-text">${imgUrl}</a>
                             </div>
+                            
+                            <!-- New Area for Related Variants Table -->
+                            <div class="related-table-area">
+                                <div style="text-align:center; color:#64748b; font-size:0.8rem;">Loading related items...</div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -492,73 +510,117 @@
         }
     }
 
-    // Helper: Populate Select Options
+    // --- 7. LOGIC FOR VARIANTS TABLE IN DROPDOWN ---
+    async function toggleDetails(btn) {
+        var details = btn.nextElementSibling;
+        var tableArea = details.querySelector('.related-table-area');
+        var styleCode = btn.getAttribute('data-style');
+
+        // Toggle visibility
+        if (details.style.display === "none" || details.style.display === "") {
+            details.style.display = "block";
+            btn.innerHTML = "See Less ▲";
+
+            // If we have a style code and haven't loaded variants yet, fetch them
+            if (styleCode && !details.classList.contains('loaded')) {
+                await loadRelatedVariants(styleCode, tableArea);
+                details.classList.add('loaded'); // Mark as loaded to prevent re-fetching
+            }
+        } else {
+            details.style.display = "none";
+            btn.innerHTML = "See More ▼";
+        }
+    }
+
+    async function loadRelatedVariants(styleCode, container) {
+        if (!styleCode) {
+            container.innerHTML = '<div style="padding:5px; color:var(--secondary)">No Style Code found.</div>';
+            return;
+        }
+
+        try {
+            var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${styleCode}%`);
+            if (res.error) throw res.error;
+            var variants = res.data;
+
+            if (!variants || variants.length === 0) {
+                container.innerHTML = '<div style="padding:5px; color:var(--secondary)">No other variants found.</div>';
+                return;
+            }
+
+            // Render Mini Table
+            var html = `
+                <div class="variant-table-container">
+                    <div class="variant-title">All ${styleCode} Variants</div>
+                    <table class="mini-table">
+                        <thead>
+                            <tr>
+                                <th>Barcode</th>
+                                <th>Color</th>
+                                <th>Size</th>
+                                <th>Bal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            variants.forEach(function(v) {
+                html += `
+                    <tr>
+                        <td>${v.barcode}</td>
+                        <td>${v.color || '-'}</td>
+                        <td>${v.size || '-'}</td>
+                        <td>${v.balance || 0}</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
+
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = '<div style="padding:5px; color:red">Failed to load variants.</div>';
+        }
+    }
+
+    // --- 8. HELPER FUNCTIONS FOR STYLE SEARCH ---
     function populateFilters(items) {
         var colorSelect = document.getElementById('filter-color');
         var sizeSelect = document.getElementById('filter-size');
-
-        // Clear existing options (keep first "all")
         colorSelect.innerHTML = '<option value="all">All Colors</option>';
         sizeSelect.innerHTML = '<option value="all">All Sizes</option>';
-
-        // Get unique values
         var colors = [...new Set(items.map(i => i.color).filter(c => c))];
         var sizes = [...new Set(items.map(i => i.size).filter(s => s))];
-
-        // Sort alphabetically
-        colors.sort();
-        sizes.sort();
-
-        // Add to DOM
-        colors.forEach(function(c) {
-            var opt = document.createElement('option');
-            opt.value = c;
-            opt.textContent = c;
-            colorSelect.appendChild(opt);
-        });
-
-        sizes.forEach(function(s) {
-            var opt = document.createElement('option');
-            opt.value = s;
-            opt.textContent = s;
-            sizeSelect.appendChild(opt);
-        });
+        colors.sort(); sizes.sort();
+        colors.forEach(function(c) { colorSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+        sizes.forEach(function(s) { sizeSelect.innerHTML += `<option value="${s}">${s}</option>`; });
     }
 
-    // Apply Filters
     function applyFilters() {
         var c = document.getElementById('filter-color').value;
         var s = document.getElementById('filter-size').value;
-
         var filtered = originalStyleData.filter(function(item) {
-            var colorMatch = (c === 'all') || (item.color === c);
-            var sizeMatch = (s === 'all') || (item.size === s);
-            return colorMatch && sizeMatch;
+            return (c === 'all' || item.color === c) && (s === 'all' || item.size === s);
         });
-
         renderTable(filtered);
     }
 
-    // Clear Filters
     function clearFilters() {
         document.getElementById('filter-color').value = 'all';
         document.getElementById('filter-size').value = 'all';
-        applyFilters(); // This reverts to originalStyleData
+        applyFilters();
     }
 
-    // Helper: Render Table HTML
     function renderTable(items) {
         var area = document.getElementById('resultsArea');
         area.innerHTML = '';
-
         if (items.length === 0) {
             area.innerHTML = '<div class="empty-state">No items match your filters.</div>';
             return;
         }
-
         var tableContainer = document.createElement('div');
         tableContainer.className = 'table-container';
-        
         var tableHTML = `
             <table class="results-table">
                 <thead>
@@ -572,7 +634,6 @@
                 </thead>
                 <tbody>
         `;
-
         items.forEach(function(item) {
             tableHTML += `
                 <tr>
@@ -584,22 +645,9 @@
                 </tr>
             `;
         });
-
         tableHTML += `</tbody></table>`;
         tableContainer.innerHTML = tableHTML;
         area.appendChild(tableContainer);
-    }
-
-    // Function to Toggle Dropdown
-    function toggleDetails(btn) {
-        var details = btn.nextElementSibling;
-        if (details.style.display === "none" || details.style.display === "") {
-            details.style.display = "block";
-            btn.innerHTML = "See Less ▲";
-        } else {
-            details.style.display = "none";
-            btn.innerHTML = "See More ▼";
-        }
     }
 
     // Handle Enter Key
