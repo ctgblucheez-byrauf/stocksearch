@@ -86,12 +86,12 @@
         
         #reader {
             width: 100%;
-            min-height: 350px; /* Essential: Height fixes scanner visibility */
+            min-height: 350px; /* Ensures camera is visible */
             background-color: #000;
             object-fit: cover;
         }
 
-        /* Hide the library's default link */
+        /* Hide the library's link */
         #reader a { display: none !important; }
 
         /* --- FILTER BAR --- */
@@ -374,7 +374,7 @@
         setTimeout(function() { t.classList.remove('show'); }, 3000);
     }
 
-    // --- 4. SCANNER LOGIC (UPDATED FOR UNCLEAR BARCODES) ---
+    // --- 4. SCANNER LOGIC (STABLE CONFIGURATION) ---
     async function toggleScanner() {
         if (isScanning) {
             stopScanner();
@@ -407,18 +407,15 @@
             // Create a new instance
             html5QrCode = new Html5Qrcode("reader");
 
-            // --- UPDATED CONFIGURATION FOR UNCLEAR BARCODES ---
+            // --- STABLE CONFIGURATION ---
+            // We removed "focusMode" because it caused crashes on some devices.
+            // We increased FPS to 15 for speed (faster than default).
+            // We set Box to 300x250 which is safe for all screen sizes.
             await html5QrCode.start(
+                { facingMode: "environment" },
                 {
-                    facingMode: "environment",
-                    // Continuous focus helps when the code is blurry or close up
-                    focusMode: "continuous" 
-                },
-                {
-                    // Increased FPS: More checks per second = higher chance to catch it
-                    fps: 20,            
-                    // Larger Scanning Box: Easier to align even if tilted
-                    qrbox: { width: 400, height: 300 }, 
+                    fps: 15,            // Fast checks per second
+                    qrbox: { width: 300, height: 250 }, // Safe, decent size
                     aspectRatio: 1.0
                 },
                 onScanSuccess,
@@ -430,8 +427,8 @@
             isScanning = true;
 
         } catch (err) {
-            console.error(err);
-            showToast("Camera error: " + err);
+            console.error("Camera Start Error:", err);
+            showToast("Camera error: Check permissions");
             // Reset UI on error
             stopScanner(); 
         }
