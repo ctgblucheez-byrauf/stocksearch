@@ -64,24 +64,35 @@
             align-items: center;
             gap: 0.5rem;
             font-size: 0.95rem;
+            transition: background 0.2s;
         }
 
-        .btn-scan { background-color: var(--secondary); color: white; display: none; }
+        .btn-scan { background-color: var(--secondary); color: white; }
         .btn-scan:hover { background-color: #475569; }
         .btn-scan.active { background-color: var(--primary); }
 
         .btn-search { background-color: var(--primary); color: white; }
         .btn-search:hover { background-color: var(--primary-dark); }
 
-        /* Camera Viewport */
+        /* Camera Viewport - FIX: Added min-height and background */
         #reader-wrapper {
             margin-top: 1rem;
             border-radius: var(--radius);
             overflow: hidden;
             display: none;
             background: black;
+            border: 2px solid var(--border);
         }
-        #reader { width: 100%; }
+        
+        #reader {
+            width: 100%;
+            min-height: 350px; /* Essential for the camera to be visible */
+            background-color: #000;
+            object-fit: cover;
+        }
+
+        /* Hide the library's link */
+        #reader a { display: none !important; }
 
         /* --- FILTER BAR --- */
         .filter-bar {
@@ -308,7 +319,7 @@
         console.error("Supabase library failed to load.");
     }
 
-    var qrCodeScanner = null;
+    var html5QrCode = null; // Global instance
     var isScanning = false;
     var currentMode = 'barcode';
     var originalStyleData = []; 
@@ -331,6 +342,9 @@
     function switchMode(mode) {
         currentMode = mode;
         
+        // Stop scanner if running and switching to manual
+        if (isScanning) stopScanner();
+
         document.getElementById('tab-barcode').classList.toggle('active', mode === 'barcode');
         document.getElementById('tab-style').classList.toggle('active', mode === 'style');
 
@@ -346,7 +360,6 @@
             input.placeholder = "Enter Style Code...";
             scanBtn.style.display = 'none'; 
             filterSection.style.display = 'none';
-            if (isScanning) stopScanner(); 
         }
 
         document.getElementById('resultsArea').innerHTML = '';
@@ -361,43 +374,72 @@
         setTimeout(function() { t.classList.remove('show'); }, 3000);
     }
 
-    // --- 4. SCANNER LOGIC ---
+    // --- 4. SCANNER LOGIC (FIXED) ---
     async function toggleScanner() {
-        if (isScanning) stopScanner();
-        else startScanner();
+        if (isScanning) {
+            stopScanner();
+        } else {
+            startScanner();
+        }
     }
 
     async function startScanner() {
         var wrapper = document.getElementById('reader-wrapper');
         var btn = document.getElementById('scanBtn');
 
+        // Prevent double clicks
+        if (isScanning) return;
+
+        wrapper.style.display = 'block';
+        btn.classList.add('active');
+        btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg> Stop`;
+
         try {
-            qrCodeScanner = new Html5Qrcode("reader");
-            await qrCodeScanner.start(
+            // If an old instance exists, clear it completely to avoid "Camera already in use" errors
+            if (html5QrCode) {
+                try {
+                    await html5QrCode.clear();
+                } catch (err) {
+                    console.log("Clearing previous scanner instance");
+                }
+            }
+
+            // Create a new instance
+            html5QrCode = new Html5Qrcode("reader");
+
+            await html5QrCode.start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 250, height: 150 } },
-                onScanSuccess
+                onScanSuccess,
+                (errorMessage) => {
+                    // parse error, ignore to keep console clean
+                }
             );
             
             isScanning = true;
-            wrapper.style.display = 'block';
-            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg> Stop`;
-            btn.classList.add('active');
+
         } catch (err) {
             console.error(err);
             showToast("Camera error: " + err);
+            // Reset UI on error
+            stopScanner(); 
         }
     }
 
     async function stopScanner() {
-        if (qrCodeScanner && isScanning) {
-            await qrCodeScanner.stop();
-            isScanning = false;
-            document.getElementById('reader-wrapper').style.display = 'none';
-            var btn = document.getElementById('scanBtn');
-            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6.75 7.5h10.5m-10.5 0A2.25 2.25 0 004.5 9.75v8.25a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25v-8.25a2.25 2.25 0 00-2.25-2.25m-10.5 0V6a2.25 2.25 0 012.25-2.25h6a2.25 2.25 0 012.25 2.25v1.5"/></svg> Scan`;
-            btn.classList.remove('active');
+        if (html5QrCode && isScanning) {
+            try {
+                await html5QrCode.stop();
+                await html5QrCode.clear(); // IMPORTANT: Clears the video element from DOM
+            } catch (err) {
+                console.error("Error stopping scanner", err);
+            }
         }
+        isScanning = false;
+        document.getElementById('reader-wrapper').style.display = 'none';
+        var btn = document.getElementById('scanBtn');
+        btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6.75 7.5h10.5m-10.5 0A2.25 2.25 0 004.5 9.75v8.25a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25v-8.25a2.25 2.25 0 00-2.25-2.25m-10.5 0V6a2.25 2.25 0 012.25-2.25h6a2.25 2.25 0 012.25 2.25v1.5"/></svg> Scan`;
+        btn.classList.remove('active');
     }
 
     function onScanSuccess(decodedText) {
