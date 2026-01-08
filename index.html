@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stock Search System</title>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- HTML5-QRCode Library for Camera Scanning -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        body { margin: 0; background-color: var(--bg); color: var(--text); padding-bottom: 40px; }
+
+        /* Header */
+        header { background: var(--primary); color: white; padding: 1rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 50; }
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+
+        /* Container */
+        main { padding: 1rem; max-width: 800px; margin: 0 auto; }
+
+        /* Search Card */
+        .search-card { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        .tab { flex: 1; text-align: center; padding-bottom: 0.75rem; font-weight: 600; color: var(--secondary); cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Inputs & Buttons */
+        .input-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            min-width: 200px;
+        }
+        input[type="text"]:focus { outline: none; border-color: var(--primary); }
+
+        button {
+            padding: 0.8rem 1.2rem;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .btn-scan { background-color: var(--secondary); color: white; display: none; }
+        .btn-scan:hover { background-color: #475569; }
+        .btn-scan.active { background-color: var(--primary); }
+
+        .btn-search { background-color: var(--primary); color: white; }
+        .btn-search:hover { background-color: var(--primary-dark); }
+
+        /* Camera Viewport */
+        #reader-wrapper {
+            margin-top: 1rem;
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: none;
+            background: black;
+        }
+        #reader { width: 100%; }
+
+        /* --- FILTER BAR --- */
+        .filter-bar {
+            background: var(--surface);
+            padding: 1rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+            display: none;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            border: 1px solid var(--border);
+        }
+
+        .filter-select {
+            flex: 1;
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: var(--bg);
+            min-width: 120px;
+        }
+
+        .btn-clear {
+            background: #f1f5f9;
+            color: var(--text);
+            padding: 0.6rem 1rem;
+        }
+        .btn-clear:hover { background: #e2e8f0; }
+
+        /* --- RESULTS STYLES --- */
+        .results-list { display: flex; flex-direction: column; gap: 1rem; }
+
+        /* 1. CARD STYLE (For Barcode Mode) */
+        .product-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: block; 
+        }
+
+        .product-info { padding: 1rem; }
+        
+        .product-name { margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 700; color: var(--text); }
+        .product-meta { font-size: 0.85rem; color: var(--secondary); margin-bottom: 0.5rem; }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+        }
+        .info-mrp { color: var(--primary); font-size: 1.1rem; }
+        .info-bal { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 0.9rem; }
+
+        /* Dropdown */
+        .btn-toggle {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            width: 100%;
+            justify-content: center;
+            margin-top: auto;
+        }
+        .btn-toggle:hover { background: #f1f5f9; }
+
+        .extra-details {
+            display: none;
+            padding: 10px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+        .detail-item { margin-bottom: 5px; word-break: break-all; }
+        .detail-label { font-weight: 600; color: #475569; }
+        .link-text { color: var(--primary); text-decoration: none; }
+        .link-text:hover { text-decoration: underline; }
+
+        /* --- INNER TABLE FOR VARIANTS --- */
+        .variant-table-container {
+            margin-top: 15px;
+            border-top: 1px dashed var(--border);
+            padding-top: 10px;
+        }
+        .variant-title { font-weight: 700; color: var(--secondary); margin-bottom: 8px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .mini-table th, .mini-table td {
+            text-align: left;
+            padding: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+        .mini-table th { background: #e2e8f0; color: var(--text); }
+        .mini-table td:last-child { text-align: right; font-weight: bold; }
+
+
+        /* 2. MAIN TABLE STYLE (For Style Code Mode) */
+        .table-container {
+            overflow-x: auto;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        .results-table th, .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .results-table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+            white-space: nowrap;
+        }
+        
+        .results-table tr:hover { background-color: #f1f5f9; }
+
+        .empty-state { text-align: center; padding: 2rem; color: var(--secondary); }
+
+        /* Status Toast */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: 0.3s;
+            z-index: 100;
+            white-space: nowrap;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* SVG Icons */
+        svg { width: 20px; height: 20px; fill: currentColor; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Stock Search</h1>
+</header>
+
+<main>
+    <section class="search-card">
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchMode('barcode')" id="tab-barcode">Barcode</div>
+            <div class="tab" onclick="switchMode('style')" id="tab-style">Style Code</div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="input-group">
+            <input type="text" id="searchInput" placeholder="Enter Barcode..." autocomplete="off">
+            
+            <!-- Scan Button -->
+            <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">
+                <svg viewBox="0 0 24 24"><path d="M6.75 7.5h10.5m-10.5 0A2.25 2.25 0 004.5 9.75v8.25a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25v-8.25a2.25 2.25 0 00-2.25-2.25m-10.5 0V6a2.25 2.25 0 012.25-2.25h6a2.25 2.25 0 012.25 2.25v1.5"/></svg>
+                Scan
+            </button>
+            
+            <!-- Search Button -->
+            <button class="btn-search" onclick="performSearch()">
+                <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Search
+            </button>
+        </div>
+
+        <!-- Camera Area -->
+        <div id="reader-wrapper">
+            <div id="reader"></div>
+        </div>
+    </section>
+
+    <!-- FILTER BAR (Visible only for Style Mode) -->
+    <div id="filter-section" class="filter-bar">
+        <select id="filter-color" class="filter-select" onchange="applyFilters()">
+            <option value="all">All Colors</option>
+        </select>
+        <select id="filter-size" class="filter-select" onchange="applyFilters()">
+            <option value="all">All Sizes</option>
+        </select>
+        <button class="btn-clear" onclick="clearFilters()">Clear</button>
+    </div>
+
+    <!-- Results Area -->
+    <div id="resultsArea" class="results-list"></div>
+</main>
+
+<div id="toast">Message</div>
+
+<script>
+    // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+    const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+    
+    if (window.supabase) {
+        var sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        console.error("Supabase library failed to load.");
+    }
+
+    var qrCodeScanner = null;
+    var isScanning = false;
+    var currentMode = 'barcode';
+    var originalStyleData = []; 
+    var audioContext = null; // Added for robust audio
+
+    // --- 2. ROBUST AUDIO BEEP SYSTEM ---
+    // Initializes audio on the first user interaction (Click Start)
+    function initAudio() {
+        if (!audioContext) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioContext = new AudioContext();
+        }
+        // Resume if suspended (common browser behavior)
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+    }
+
+    function playBeep() {
+        if (!audioContext) initAudio();
+
+        const osc = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        osc.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        osc.type = 'sine'; // Sine wave is clearer
+        osc.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+        osc.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 0.1); // Drop pitch for "ding"
+
+        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Louder volume
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+        osc.start();
+        osc.stop(audioContext.currentTime + 0.15);
+    }
+
+    // --- 3. UI LOGIC ---
+    function switchMode(mode) {
+        currentMode = mode;
+        
+        document.getElementById('tab-barcode').classList.toggle('active', mode === 'barcode');
+        document.getElementById('tab-style').classList.toggle('active', mode === 'style');
+
+        var input = document.getElementById('searchInput');
+        var scanBtn = document.getElementById('scanBtn');
+        var filterSection = document.getElementById('filter-section');
+
+        if (mode === 'barcode') {
+            input.placeholder = "Enter Barcode or Scan...";
+            scanBtn.style.display = 'flex'; 
+            filterSection.style.display = 'none';
+        } else {
+            input.placeholder = "Enter Style Code...";
+            scanBtn.style.display = 'none'; 
+            filterSection.style.display = 'none';
+            if (isScanning) stopScanner(); 
+        }
+
+        document.getElementById('resultsArea').innerHTML = '';
+        input.value = '';
+        input.focus();
+    }
+
+    function showToast(msg) {
+        var t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(function() { t.classList.remove('show'); }, 3000);
+    }
+
+    // --- 4. FAST SCANNER LOGIC ---
+    async function toggleScanner() {
+        if (isScanning) stopScanner();
+        else startScanner();
+    }
+
+    async function startScanner() {
+        var wrapper = document.getElementById('reader-wrapper');
+        var btn = document.getElementById('scanBtn');
+
+        try {
+            // --- FAST SETTINGS ---
+            initAudio(); // Initialize audio engine immediately on click
+            qrCodeScanner = new Html5Qrcode("reader");
+            
+            // Config for speed: FPS 20, Larger Box 300x300
+            await qrCodeScanner.start(
+                { facingMode: "environment" },
+                { fps: 20, qrbox: { width: 300, height: 300 } },
+                onScanSuccess
+            );
+            
+            isScanning = true;
+            wrapper.style.display = 'block';
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg> Stop`;
+            btn.classList.add('active');
+        } catch (err) {
+            console.error(err);
+            showToast("Camera error: " + err);
+        }
+    }
+
+    async function stopScanner() {
+        if (qrCodeScanner && isScanning) {
+            await qrCodeScanner.stop();
+            isScanning = false;
+            document.getElementById('reader-wrapper').style.display = 'none';
+            var btn = document.getElementById('scanBtn');
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6.75 7.5h10.5m-10.5 0A2.25 2.25 0 004.5 9.75v8.25a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25v-8.25a2.25 2.25 0 00-2.25-2.25m-10.5 0V6a2.25 2.25 0 012.25-2.25h6a2.25 2.25 0 012.25 2.25v1.5"/></svg> Scan`;
+            btn.classList.remove('active');
+        }
+    }
+
+    function onScanSuccess(decodedText) {
+        playBeep();
+        stopScanner();
+        document.getElementById('searchInput').value = decodedText;
+        performSearch();
+    }
+
+    // --- 5. SEARCH LOGIC ---
+    async function performSearch() {
+        if (!sbClient) {
+            showToast("Database not connected");
+            return;
+        }
+
+        var query = document.getElementById('searchInput').value.trim();
+        if (!query) return showToast("Please enter a value");
+
+        var resultsArea = document.getElementById('resultsArea');
+        resultsArea.innerHTML = '<div class="empty-state">Searching...</div>';
+
+        var data, error;
+
+        try {
+            if (currentMode === 'barcode') {
+                var res = await sbClient.from('inventory').select('*').eq('barcode', query);
+                data = res.data;
+                error = res.error;
+            } else {
+                var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${query}%`);
+                data = res.data;
+                error = res.error;
+            }
+
+            if (error) throw error;
+            renderResults(data);
+
+        } catch (err) {
+            console.error(err);
+            resultsArea.innerHTML = `<div class="empty-state" style="color:red">Error: ${err.message}</div>`;
+        }
+    }
+
+    // --- 6. RENDER & FILTER LOGIC ---
+    function renderResults(items) {
+        var area = document.getElementById('resultsArea');
+        var filterSection = document.getElementById('filter-section');
+
+        if (!items || items.length === 0) {
+            area.innerHTML = '<div class="empty-state">No results found.<br><small>(Or Input Style Code or Barcode Correctly)</small></div>';
+            filterSection.style.display = 'none';
+            return;
+        }
+
+        // --- MODE: STYLE CODE (TABLE VIEW) ---
+        if (currentMode === 'style') {
+            originalStyleData = items;
+            populateFilters(items);
+            filterSection.style.display = 'flex';
+            renderTable(items);
+            showToast(`Found ${items.length} items`);
+        } 
+        
+        // --- MODE: BARCODE (CARD VIEW WITH RELATED TABLE) ---
+        else {
+            filterSection.style.display = 'none';
+            items.forEach(function(item) {
+                var imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`;
+                var card = document.createElement('div');
+                card.className = 'product-card';
+                
+                card.innerHTML = `
+                    <div class="product-info">
+                        <div class="product-name">${item.name}</div>
+                        <div class="product-meta">
+                            <span>Style: ${item.style_code}</span> | 
+                            <span>${item.color || '-'} / ${item.size || '-'}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="info-mrp">MRP: ${item.mrp || '0.00'}</div>
+                            <div class="info-bal">Bal: ${item.balance || 0}</div>
+                        </div>
+
+                        <!-- BUTTON NOW HOLDS STYLE CODE DATA -->
+                        <button class="btn-toggle" data-style="${item.style_code || ''}" onclick="toggleDetails(this)">
+                            See More ▼
+                        </button>
+
+                        <div class="extra-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Barcode:</span> ${item.barcode}
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Image Link:</span> 
+                                <a href="${imgUrl}" target="_blank" class="link-text">${imgUrl}</a>
+                            </div>
+                            
+                            <!-- New Area for Related Variants Table -->
+                            <div class="related-table-area">
+                                <div style="text-align:center; color:#64748b; font-size:0.8rem;">Loading related items...</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                area.appendChild(card);
+            });
+            showToast(`Found ${items.length} items`);
+        }
+    }
+
+    // --- 7. LOGIC FOR VARIANTS TABLE IN DROPDOWN ---
+    async function toggleDetails(btn) {
+        var details = btn.nextElementSibling;
+        var tableArea = details.querySelector('.related-table-area');
+        var styleCode = btn.getAttribute('data-style');
+
+        // Toggle visibility
+        if (details.style.display === "none" || details.style.display === "") {
+            details.style.display = "block";
+            btn.innerHTML = "See Less ▲";
+
+            // If we have a style code and haven't loaded variants yet, fetch them
+            if (styleCode && !details.classList.contains('loaded')) {
+                await loadRelatedVariants(styleCode, tableArea);
+                details.classList.add('loaded'); // Mark as loaded to prevent re-fetching
+            }
+        } else {
+            details.style.display = "none";
+            btn.innerHTML = "See More ▼";
+        }
+    }
+
+    async function loadRelatedVariants(styleCode, container) {
+        if (!styleCode) {
+            container.innerHTML = '<div style="padding:5px; color:var(--secondary)">No Style Code found.</div>';
+            return;
+        }
+
+        try {
+            var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${styleCode}%`);
+            if (res.error) throw res.error;
+            var variants = res.data;
+
+            if (!variants || variants.length === 0) {
+                container.innerHTML = '<div style="padding:5px; color:var(--secondary)">No other variants found.</div>';
+                return;
+            }
+
+            // Render Mini Table
+            var html = `
+                <div class="variant-table-container">
+                    <div class="variant-title">All ${styleCode} Variants</div>
+                    <table class="mini-table">
+                        <thead>
+                            <tr>
+                                <th>Barcode</th>
+                                <th>Color</th>
+                                <th>Size</th>
+                                <th>Bal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            variants.forEach(function(v) {
+                html += `
+                    <tr>
+                        <td>${v.barcode}</td>
+                        <td>${v.color || '-'}</td>
+                        <td>${v.size || '-'}</td>
+                        <td>${v.balance || 0}</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
+
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = '<div style="padding:5px; color:red">Failed to load variants.</div>';
+        }
+    }
+
+    // --- 8. HELPER FUNCTIONS FOR STYLE SEARCH ---
+    function populateFilters(items) {
+        var colorSelect = document.getElementById('filter-color');
+        var sizeSelect = document.getElementById('filter-size');
+        colorSelect.innerHTML = '<option value="all">All Colors</option>';
+        sizeSelect.innerHTML = '<option value="all">All Sizes</option>';
+        var colors = [...new Set(items.map(i => i.color).filter(c => c))];
+        var sizes = [...new Set(items.map(i => i.size).filter(s => s))];
+        colors.sort(); sizes.sort();
+        colors.forEach(function(c) { colorSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+        sizes.forEach(function(s) { sizeSelect.innerHTML += `<option value="${s}">${s}</option>`; });
+    }
+
+    function applyFilters() {
+        var c = document.getElementById('filter-color').value;
+        var s = document.getElementById('filter-size').value;
+        var filtered = originalStyleData.filter(function(item) {
+            return (c === 'all' || item.color === c) && (s === 'all' || item.size === s);
+        });
+        renderTable(filtered);
+    }
+
+    function clearFilters() {
+        document.getElementById('filter-color').value = 'all';
+        document.getElementById('filter-size').value = 'all';
+        applyFilters();
+    }
+
+    function renderTable(items) {
+        var area = document.getElementById('resultsArea');
+        area.innerHTML = '';
+        if (items.length === 0) {
+            area.innerHTML = '<div class="empty-state">No items match your filters.</div>';
+            return;
+        }
+        var tableContainer = document.createElement('div');
+        tableContainer.className = 'table-container';
+        var tableHTML = `
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Barcode</th>
+                        <th>Color/Size</th>
+                        <th>MRP</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        items.forEach(function(item) {
+            tableHTML += `
+                <tr>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.barcode}</td>
+                    <td>${item.color || '-'} / ${item.size || '-'}</td>
+                    <td>${item.mrp || '0.00'}</td>
+                    <td style="color:#166534; font-weight:bold">${item.balance || 0}</td>
+                </tr>
+            `;
+        });
+        tableHTML += `</tbody></table>`;
+        tableContainer.innerHTML = tableHTML;
+        area.appendChild(tableContainer);
+    }
+
+    // Handle Enter Key
+    document.getElementById('searchInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') performSearch();
+    });
+
+</script>
+</body>
+</html>
