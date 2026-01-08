@@ -74,7 +74,7 @@
         .btn-search { background-color: var(--primary); color: white; }
         .btn-search:hover { background-color: var(--primary-dark); }
 
-        /* Camera Viewport - FIX: Added min-height and background */
+        /* Camera Viewport */
         #reader-wrapper {
             margin-top: 1rem;
             border-radius: var(--radius);
@@ -86,12 +86,12 @@
         
         #reader {
             width: 100%;
-            min-height: 350px; /* Essential for the camera to be visible */
+            min-height: 350px; /* Essential: Height fixes scanner visibility */
             background-color: #000;
             object-fit: cover;
         }
 
-        /* Hide the library's link */
+        /* Hide the library's default link */
         #reader a { display: none !important; }
 
         /* --- FILTER BAR --- */
@@ -374,7 +374,7 @@
         setTimeout(function() { t.classList.remove('show'); }, 3000);
     }
 
-    // --- 4. SCANNER LOGIC (FIXED) ---
+    // --- 4. SCANNER LOGIC (UPDATED FOR UNCLEAR BARCODES) ---
     async function toggleScanner() {
         if (isScanning) {
             stopScanner();
@@ -395,7 +395,7 @@
         btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg> Stop`;
 
         try {
-            // If an old instance exists, clear it completely to avoid "Camera already in use" errors
+            // If an old instance exists, clear it completely
             if (html5QrCode) {
                 try {
                     await html5QrCode.clear();
@@ -407,9 +407,20 @@
             // Create a new instance
             html5QrCode = new Html5Qrcode("reader");
 
+            // --- UPDATED CONFIGURATION FOR UNCLEAR BARCODES ---
             await html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 150 } },
+                {
+                    facingMode: "environment",
+                    // Continuous focus helps when the code is blurry or close up
+                    focusMode: "continuous" 
+                },
+                {
+                    // Increased FPS: More checks per second = higher chance to catch it
+                    fps: 20,            
+                    // Larger Scanning Box: Easier to align even if tilted
+                    qrbox: { width: 400, height: 300 }, 
+                    aspectRatio: 1.0
+                },
                 onScanSuccess,
                 (errorMessage) => {
                     // parse error, ignore to keep console clean
