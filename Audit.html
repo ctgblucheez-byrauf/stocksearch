@@ -66,7 +66,7 @@
         }
         
         .merged-list-container { 
-            background: #f0fdf4; /* Green tint to differentiate */
+            background: #f0fdf4; /* Green tint */
             border-radius: var(--radius); 
             overflow: hidden; 
             box-shadow: var(--shadow); 
@@ -80,7 +80,7 @@
             width: 100%;
         }
         
-        /* Table Header Sticky */
+        /* Table Styles */
         .audit-list-table { width: 100%; border-collapse: collapse; min-width: 800px; }
         .audit-list-table th { 
             position: sticky; 
@@ -200,7 +200,7 @@
                 </div>
             </div>
 
-            <!-- Lists Wrapper -->
+            <!-- Lists Wrapper (Previous + Merged) -->
             <div class="lists-wrapper">
                 
                 <!-- Previous Audits List -->
@@ -476,36 +476,43 @@
 
     // 2. Fetch Merged Audits
     async function fetchMergedAudits() {
-        const { data, error } = await sb.from('merged_audits')
-            .select('*')
-            .order('created_at', { ascending: false });
+        // Check if table exists logic handled in code now to avoid crashing
+        try {
+            const { data, error } = await sb.from('merged_audits')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        if(error) return console.error(error);
+            if(error) throw error;
 
-        const tbody = document.getElementById('mergedListBody');
-        tbody.innerHTML = '';
+            const tbody = document.getElementById('mergedListBody');
+            tbody.innerHTML = '';
 
-        if(data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:20px;">No Merged Audits Yet</td></tr>';
-            return;
+            if(!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:20px;">No Merged Audits Yet</td></tr>';
+                return;
+            }
+
+            data.forEach(audit => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${audit.merged_name}</strong></td>
+                    <td>${audit.outlet_name || '-'}</td>
+                    <td>${audit.company_name || '-'}</td>
+                    <td>
+                        <span class="badge badge-merged">${audit.status}</span>
+                    </td>
+                    <td>
+                        <a class="action-link" href="report.html?id=${audit.id}">Report</a>
+                        ${audit.status === 'In Progress' ? `<a class="action-link delete" onclick="deleteMergedAudit('${audit.id}')">Delete</a>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error("Error fetching merged audits:", err);
+            const tbody = document.getElementById('mergedListBody');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red; padding:20px;">Error loading merged list.</td></tr>';
         }
-
-        data.forEach(audit => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${audit.merged_name}</strong></td>
-                <td>${audit.outlet_name || '-'}</td>
-                <td>${audit.company_name || '-'}</td>
-                <td>
-                    <span class="badge badge-merged">${audit.status}</span>
-                </td>
-                <td>
-                    <a class="action-link" href="report.html?id=${audit.id}">Report</a>
-                    ${audit.status === 'In Progress' ? `<a class="action-link delete" onclick="deleteMergedAudit('${audit.id}')">Delete</a>` : ''}
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
     }
 
     async function createNewAudit() {
@@ -517,42 +524,62 @@
 
         if(!name) return alert("Please enter Audit Name");
 
-        const { data, error } = await sb.from('audit_sessions').insert([{
-            audit_name: name,
-            company_name: company,
-            outlet_name: branch,
-            created_by: entry,
-            audit_date: date,
-            status: 'In Progress'
-        }]).select().single();
+        try {
+            const { data, error } = await sb.from('audit_sessions').insert([{
+                audit_name: name,
+                company_name: company,
+                outlet_name: branch,
+                created_by: entry,
+                audit_date: date,
+                status: 'In Progress'
+            }]).select().single();
 
-        if(error) return console.error(error);
-        loadAudit(data);
+            if(error) throw error;
+            loadAudit(data);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to create audit");
+        }
     }
 
+    // --- EDIT / RESUME AUDIT ---
     async function confirmEditAudit(id) {
         if(!confirm("Do you want to SAVE (Resume) and allow scanning?\n\nOK = Resume & Allow Scanning\nCancel = Discard Changes")) return;
+        
+        // User clicked OK -> Resume
         await resumeAudit(id);
     }
 
     async function resumeAudit(id) {
-        const { error } = await sb.from('audit_sessions').update({ status: 'In Progress' }).eq('id', id);
-        if(error) return alert("Failed to resume audit");
-        await loadAuditById(id);
+        try {
+            // Update status to In Progress
+            const { error } = await sb.from('audit_sessions').update({ status: 'In Progress' }).eq('id', id);
+            if(error) throw error;
+            
+            // Reload audit state which enables scanner and focuses input
+            await loadAuditById(id);
+        } catch (err) {
+            alert("Failed to resume audit: " + err.message);
+        }
     }
 
     async function deleteAudit(id) {
         if(!confirm("Are you sure? This cannot be undone.")) return;
         
-        // 1. Delete inventory rows
-        await sb.from('audit_inventory').delete().eq('audit_id', id);
-        // 2. Delete session
-        await sb.from('audit_sessions').delete().eq('id', id);
+        try {
+            // 1. Delete inventory rows
+            await sb.from('audit_inventory').delete().eq('audit_id', id);
+            // 2. Delete session
+            await sb.from('audit_sessions').delete().eq('id', id);
 
-        // Refresh Lists
-        await fetchPreviousAudits();
-        await fetchMergedAudits();
+            await fetchPreviousAudits();
+            await fetchMergedAudits();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete audit");
+        }
     }
+
 
     // --- MERGE LOGIC (FIXED) ---
     async function mergeSelectedAudits() {
@@ -562,6 +589,7 @@
             return;
         }
 
+        // 1. Prompt for details
         const auditName = prompt("Merged Audit Name:", "Merged Audit " + new Date().toLocaleDateString());
         const companyName = prompt("Company Name:", "Merged");
         const branchName = prompt("Branch Name:", "Merged");
@@ -572,109 +600,77 @@
         const ids = Array.from(checkboxes).map(cb => cb.value);
         const sourceIds = ids.join(',');
 
-        // 1. Fetch all inventory for selected audits
-        const { data: invData, error } = await sb.from('audit_inventory')
-            .select('*')
-            .in('audit_id', `(${ids.join(',')})`);
+        // 2. Fetch all inventory for selected audits
+        try {
+            const { data: invData, error } = await sb.from('audit_inventory')
+                .select('*')
+                .in('audit_id', `(${ids.join(',')})`);
 
-        if(error) return console.error(error);
+            if(error) throw error;
 
-        // 2. Aggregate by Barcode (Sum scanned_qty across audits)
-        const map = {};
-        invData.forEach(item => {
-            if(!map[item.barcode]) {
-                // Store basic info from first occurrence
-                map[item.barcode] = {
-                    barcode: item.barcode,
-                    name: item.name,
-                    style_code: item.style_code,
-                    color: item.color,
-                    size: item.size,
-                    balance: item.balance, // Assuming System Stock is static
-                    scanned_qty: 0
-                };
-            }
-            // Add scanned quantity
-            map[item.barcode].scanned_qty += item.scanned_qty;
-        });
+            // 3. Aggregate by Barcode (Sum scanned_qty across audits)
+            const map = {};
+            invData.forEach(item => {
+                if(!map[item.barcode]) {
+                    map[item.barcode] = {
+                        barcode: item.barcode,
+                        name: item.name,
+                        style_code: item.style_code,
+                        color: item.color,
+                        size: item.size,
+                        balance: item.balance, // System Stock is static
+                        scanned_qty: 0
+                    };
+                }
+                map[item.barcode].scanned_qty += item.scanned_qty;
+            });
 
-        const mergedRows = Object.values(map);
+            const mergedRows = Object.values(map);
 
-        // 3. Create New Audit Session in audit_sessions
-        // FIX: Do not pass ID. Let SQL DEFAULT handle it to avoid invalid UUID error.
-        const { data: newSession, error: sessionError } = await sb.from('audit_sessions').insert([{
-            merged_name: auditName,
-            company_name: companyName,
-            outlet_name: branchName,
-            created_by: margeBy,
-            status: 'In Progress', // Keep In Progress to allow name editing
-            audit_date: new Date()
-        }]).select().single();
+            // 4. Create New Audit Session in audit_sessions
+            const { data: newSession, error: sessionError } = await sb.from('audit_sessions').insert([{
+                audit_name: auditName,
+                company_name: companyName,
+                outlet_name: branchName,
+                created_by: margeBy,
+                status: 'In Progress', // Keep In Progress to allow name editing
+                audit_date: new Date()
+            }]).select().single();
 
-        if(sessionError) return alert("Failed to create merge session");
+            if(sessionError) throw sessionError;
 
-        // 4. Insert Merged Rows into merged_audits (For tracking)
-        // FIX: We need the ID for tracking in this table. 
-        // Since we rely on DB default for generation, we use .select().single() after insert to get the generated ID.
-        // But we can't easily do that because we are doing async inserts below.
-        // Workaround: We will use crypto.randomUUID() JUST to generate a string for the `merged_audits` tracking.
-        // But we will NOT pass it to `audit_sessions`.
-        const trackingId = crypto.randomUUID(); 
+            // 5. Insert Merged Rows into audit_inventory
+            // IMPORTANT: We MUST use the ID from audit_sessions (newSession.id) 
+            // This ensures the audit_id is a valid UUID generated by the database.
+            const rowsToInsert = mergedRows.map(r => ({
+                ...r,
+                audit_id: newSession.id,
+                last_scanned_at: new Date()
+            }));
 
-        await sb.from('merged_audits').insert([{
-            id: trackingId, // Explicitly generating UUID for this table to avoid issues
-            merged_name: auditName,
-            company_name: companyName,
-            outlet_name: branchName,
-            created_by: margeBy,
-            status: 'In Progress',
-            created_at: new Date(),
-            source_audit_ids: sourceIds
-        }]);
+            await sb.from('audit_inventory').insert(rowsToInsert);
 
-        // 5. Insert Merged Inventory Rows into audit_inventory
-        // IMPORTANT: We MUST use `newSession.id` (the ID from the first insert) for these rows so they belong to the right session.
-        // Since we used `trackingId` above, `newSession` object is incomplete.
-        // Let's do the `audit_sessions` insert again with .select().single() to get the ID.
-        // OR, simpler: Create the `merged_audits` row WITHOUT ID to get the default from SQL, then fetch it.
-        await sb.from('merged_audits').insert([{
-            merged_name: auditName,
-            company_name: companyName,
-            outlet_name: branchName,
-            created_by: margeBy,
-            status: 'In Progress',
-            created_at: new Date(),
-            source_audit_ids: sourceIds
-        }]);
-        
-        // Fetch the session to get the generated ID
-        const { data: fetchedSession } = await sb.from('audit_sessions')
-            .select('*')
-            .ilike('merged_name', `%${auditName}%`)
-            .eq('status', 'In Progress')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+            // 6. Insert Merged Rows into merged_audits (For tracking)
+            await sb.from('merged_audits').insert([{
+                id: newSession.id,
+                merged_name: auditName,
+                company_name: companyName,
+                outlet_name: branchName,
+                created_by: margeBy,
+                status: 'In Progress',
+                created_at: new Date(),
+                source_audit_ids: sourceIds
+            }]);
 
-        if(!fetchedSession) {
-            alert("Error: Failed to retrieve created session.");
-            return;
+            // 7. Delete Original Audits (Cascades delete to inventory)
+            await sb.from('audit_sessions').delete().in('id', `(${ids.join(',')})`);
+
+            alert("Audits Merged Successfully! Reloading lists...");
+            loadDashboard();
+        } catch (err) {
+            console.error("Merge Error:", err);
+            alert("Merge failed: " + err.message);
         }
-
-        // Insert Inventory Rows using fetchedSession.id
-        const rowsToInsert = mergedRows.map(r => ({
-            ...r,
-            audit_id: fetchedSession.id, // Use the ID from audit_sessions
-            last_scanned_at: new Date()
-        }));
-
-        await sb.from('audit_inventory').insert(rowsToInsert);
-
-        // 6. Delete Original Audits (Cascades delete to inventory)
-        await sb.from('audit_sessions').delete().in('id', `(${ids.join(',')})`);
-
-        alert("Audits Merged Successfully! Reloading lists...");
-        loadDashboard();
     }
 
 
@@ -687,19 +683,19 @@
         const closeBtn = document.querySelector('#auditInfoPanel button.btn-close');
         if(closeBtn) closeBtn.style.display = 'none';
 
-        const { error } = await sb.from('audit_sessions').update({ status: 'Closed' }).eq('id', currentAuditId);
+        try {
+            const { error } = await sb.from('audit_sessions').update({ status: 'Closed' }).eq('id', currentAuditId);
+            if (error) throw error;
 
-        if (error) {
-            console.error("Error closing audit:", error);
+            showToast("Audit Saved Successfully");
+            // Go back to dashboard after closing
+            setTimeout(() => loadDashboard(), 1000);
+        } catch (err) {
+            console.error("Error closing audit:", err);
             alert("Failed to close audit.");
             document.getElementById('scanSection').classList.remove('locked');
             if(closeBtn) closeBtn.style.display = 'inline-flex';
-            return;
         }
-
-        showToast("Audit Saved Successfully");
-        // Go back to dashboard after closing
-        setTimeout(() => loadDashboard(), 1000);
     }
 
     document.getElementById('scanInput').addEventListener('keypress', async (e) => {
@@ -718,22 +714,27 @@
             return;
         }
 
-        const { data: existing } = await sb.from('audit_inventory')
-            .select('*').eq('audit_id', currentAuditId).eq('barcode', barcode).maybeSingle();
+        try {
+            const { data: existing } = await sb.from('audit_inventory')
+                .select('*').eq('audit_id', currentAuditId).eq('barcode', barcode).maybeSingle();
 
-        if(existing) {
-            // Increment if already scanned
-            await sb.from('audit_inventory').update({ scanned_qty: existing.scanned_qty + 1, last_scanned_at: new Date() }).eq('id', existing.id);
-        } else {
-            // Insert new
-            await sb.from('audit_inventory').insert([{
-                audit_id: currentAuditId, barcode: master.barcode, name: master.name, style_code: master.style_code,
-                color: master.color, size: master.size, balance: master.balance, scanned_qty: 1
-            }]);
+            if(existing) {
+                // Increment if already scanned
+                await sb.from('audit_inventory').update({ scanned_qty: existing.scanned_qty + 1, last_scanned_at: new Date() }).eq('id', existing.id);
+            } else {
+                // Insert new
+                await sb.from('audit_inventory').insert([{
+                    audit_id: currentAuditId, barcode: master.barcode, name: master.name, style_code: master.style_code,
+                    color: master.color, size: master.size, balance: master.balance, scanned_qty: 1
+                }]);
+            }
+
+            showToast("Entry Successfully");
+            await fetchAuditData();
+        } catch (err) {
+            console.error("Scan Error:", err);
+            alert("Scan failed: " + err.message);
         }
-
-        showToast("Entry Successfully");
-        await fetchAuditData();
     }
 
     async function fetchAuditData() {
@@ -837,12 +838,14 @@
             alert("Please enter a valid number.");
             return;
         }
-        const { error } = await sb.from('audit_inventory').update({ scanned_qty: newQty, last_scanned_at: new Date() }).eq('id', id);
-        if (error) {
-            alert("Failed to update item.");
-        } else {
+        try {
+            const { error } = await sb.from('audit_inventory').update({ scanned_qty: newQty, last_scanned_at: new Date() }).eq('id', id);
+            if (error) throw error;
+
             showToast("Updated Successfully");
             fetchAuditData();
+        } catch (err) {
+            alert("Update failed: " + err.message);
         }
     }
 
@@ -855,30 +858,36 @@
             return;
         }
         let newQty = currentQty - qtyToRemove;
-        if (newQty <= 0) {
-            if (confirm("Delete entire row?")) {
-                await sb.from('audit_inventory').delete().eq('id', id);
-                showToast("Row Deleted");
-            }
-        } else {
-            const { error } = await sb.from('audit_inventory').update({ scanned_qty: newQty, last_scanned_at: new Date() }).eq('id', id);
-            if (error) {
-                alert("Failed to update.");
+        
+        try {
+            if (newQty <= 0) {
+                if (confirm("Delete entire row?")) {
+                    await sb.from('audit_inventory').delete().eq('id', id);
+                    showToast("Row Deleted");
+                }
             } else {
+                const { error } = await sb.from('audit_inventory').update({ scanned_qty: newQty, last_scanned_at: new Date() }).eq('id', id);
+                if (error) throw error;
                 showToast("Quantity Reduced");
             }
+            fetchAuditData();
+        } catch (err) {
+            alert("Update failed: " + err.message);
         }
-        await fetchAuditData();
     }
     
     // Delete from Merged Audits
     async function deleteMergedAudit(id) {
         if(!confirm("Are you sure? This cannot be undone.")) return;
-        
-        await sb.from('audit_inventory').delete().eq('audit_id', id);
-        await sb.from('merged_audits').delete().eq('id', id);
-        
-        await fetchMergedAudits();
+        try {
+            await sb.from('audit_inventory').delete().eq('audit_id', id);
+            await sb.from('merged_audits').delete().eq('id', id);
+            
+            await fetchMergedAudits();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete.");
+        }
     }
 
     function goToSummary() { window.location.href = `summ.html?id=${currentAuditId}`; }
