@@ -60,8 +60,13 @@
             flex-direction: column;
             border: 1px solid var(--border);
         }
+        .audit-list-wrapper {
+            overflow-x: auto; /* Horizontal Scroll */
+            width: 100%;
+        }
+        
         .merged-list-container { 
-            background: #f0fdf4; /* Slight green tint to differentiate */
+            background: #f0fdf4; /* Green tint to differentiate */
             border-radius: var(--radius); 
             overflow: hidden; 
             box-shadow: var(--shadow); 
@@ -70,22 +75,12 @@
             flex-direction: column;
             border: 1px solid var(--border);
         }
-        
-        .list-header { 
-            background: #f8fafc; 
-            padding: 15px; 
-            border-bottom: 1px solid var(--border); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            position: sticky; 
-            top: 0; 
-            z-index: 10;
-            flex-shrink: 0;
+        .merged-list-wrapper {
+            overflow-x: auto; /* Horizontal Scroll */
+            width: 100%;
         }
-        .list-title { font-weight: 700; color: var(--text); }
-
-        /* Table Styles */
+        
+        /* Table Header Sticky */
         .audit-list-table { width: 100%; border-collapse: collapse; min-width: 800px; }
         .audit-list-table th { 
             position: sticky; 
@@ -100,13 +95,7 @@
             text-transform: uppercase; 
             white-space: nowrap; 
         }
-        .audit-list-table td { 
-            padding: 12px; 
-            text-align: left; 
-            border-bottom: 1px solid var(--border); 
-            font-size: 0.9rem; 
-            white-space: nowrap;
-        }
+        .audit-list-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         
         .action-link { color: var(--primary); font-weight: 600; margin-right: 10px; cursor: pointer; text-decoration: none; white-space: nowrap; }
         .action-link.delete { color: #ef4444; }
@@ -141,7 +130,7 @@
         .history-bc { font-weight: bold; color: var(--primary); display: block; font-size: 0.9rem; }
         .history-bal { color: #64748b; font-size: 0.75rem; display: block; }
 
-        /* Table */
+        /* Table (Active Audit) */
         .table-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
@@ -211,7 +200,7 @@
                 </div>
             </div>
 
-            <!-- Lists Wrapper (Previous + Merged) -->
+            <!-- Lists Wrapper -->
             <div class="lists-wrapper">
                 
                 <!-- Previous Audits List -->
@@ -224,7 +213,7 @@
                         <table class="audit-list-table">
                             <thead>
                                 <tr>
-                                    <th style="width:40px;"></th> <!-- Checkbox -->
+                                    <th style="width:40px;">Select</th>
                                     <th>Audit Name</th>
                                     <th>Outlet</th>
                                     <th>Date</th>
@@ -244,7 +233,7 @@
                     <div class="list-header" style="padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight:700; color:var(--text);">Merged Audits List</span>
                     </div>
-                    <div class="audit-list-wrapper">
+                    <div class="merged-list-wrapper">
                         <table class="audit-list-table">
                             <thead>
                                 <tr>
@@ -404,7 +393,7 @@
         loadDashboard();
     }
 
-    // Load Dashboard View (Fetches both Previous and Merged)
+    // Load Dashboard View (Fetches both lists)
     async function loadDashboard() {
         currentAuditId = null;
         document.getElementById('dashboardPanel').style.display = 'block';
@@ -547,7 +536,6 @@
     }
 
     async function resumeAudit(id) {
-        // Update status to In Progress
         const { error } = await sb.from('audit_sessions').update({ status: 'In Progress' }).eq('id', id);
         if(error) return alert("Failed to resume audit");
         await loadAuditById(id);
@@ -561,8 +549,9 @@
         // 2. Delete session
         await sb.from('audit_sessions').delete().eq('id', id);
 
-        await fetchPreviousAudits(); // Reload dashboard
-        await fetchMergedAudits(); // Reload merged list
+        // Refresh Lists
+        await fetchPreviousAudits();
+        await fetchMergedAudits();
     }
 
     // --- MERGE LOGIC (FIXED) ---
@@ -573,7 +562,6 @@
             return;
         }
 
-        // 1. Prompt for details
         const auditName = prompt("Merged Audit Name:", "Merged Audit " + new Date().toLocaleDateString());
         const companyName = prompt("Company Name:", "Merged");
         const branchName = prompt("Branch Name:", "Merged");
@@ -584,47 +572,57 @@
         const ids = Array.from(checkboxes).map(cb => cb.value);
         const sourceIds = ids.join(',');
 
-        // 2. Fetch all inventory for selected audits
+        // 1. Fetch all inventory for selected audits
         const { data: invData, error } = await sb.from('audit_inventory')
             .select('*')
             .in('audit_id', `(${ids.join(',')})`);
 
         if(error) return console.error(error);
 
-        // 3. Aggregate by Barcode
+        // 2. Aggregate by Barcode (Sum scanned_qty across audits)
         const map = {};
         invData.forEach(item => {
             if(!map[item.barcode]) {
+                // Store basic info from first occurrence
                 map[item.barcode] = {
                     barcode: item.barcode,
                     name: item.name,
                     style_code: item.style_code,
                     color: item.color,
                     size: item.size,
-                    balance: item.balance, // System Stock is static
+                    balance: item.balance, // Assuming System Stock is static
                     scanned_qty: 0
                 };
             }
+            // Add scanned quantity
             map[item.barcode].scanned_qty += item.scanned_qty;
         });
 
         const mergedRows = Object.values(map);
 
-        // 4. Create New Audit Session in audit_sessions
+        // 3. Create New Audit Session in audit_sessions
+        // FIX: Do not pass ID. Let SQL DEFAULT handle it to avoid invalid UUID error.
         const { data: newSession, error: sessionError } = await sb.from('audit_sessions').insert([{
-            audit_name: auditName,
+            merged_name: auditName,
             company_name: companyName,
             outlet_name: branchName,
             created_by: margeBy,
-            status: 'In Progress', // Keep In Progress so you can edit the name after merge
+            status: 'In Progress', // Keep In Progress to allow name editing
             audit_date: new Date()
         }]).select().single();
 
         if(sessionError) return alert("Failed to create merge session");
 
-        // 5. Insert Merged Row into merged_audits (For tracking)
+        // 4. Insert Merged Rows into merged_audits (For tracking)
+        // FIX: We need the ID for tracking in this table. 
+        // Since we rely on DB default for generation, we use .select().single() after insert to get the generated ID.
+        // But we can't easily do that because we are doing async inserts below.
+        // Workaround: We will use crypto.randomUUID() JUST to generate a string for the `merged_audits` tracking.
+        // But we will NOT pass it to `audit_sessions`.
+        const trackingId = crypto.randomUUID(); 
+
         await sb.from('merged_audits').insert([{
-            id: newSession.id, // Use same ID for consistency
+            id: trackingId, // Explicitly generating UUID for this table to avoid issues
             merged_name: auditName,
             company_name: companyName,
             outlet_name: branchName,
@@ -634,31 +632,49 @@
             source_audit_ids: sourceIds
         }]);
 
-        // 6. Insert Merged Inventory Rows into audit_inventory
+        // 5. Insert Merged Inventory Rows into audit_inventory
+        // IMPORTANT: We MUST use `newSession.id` (the ID from the first insert) for these rows so they belong to the right session.
+        // Since we used `trackingId` above, `newSession` object is incomplete.
+        // Let's do the `audit_sessions` insert again with .select().single() to get the ID.
+        // OR, simpler: Create the `merged_audits` row WITHOUT ID to get the default from SQL, then fetch it.
+        await sb.from('merged_audits').insert([{
+            merged_name: auditName,
+            company_name: companyName,
+            outlet_name: branchName,
+            created_by: margeBy,
+            status: 'In Progress',
+            created_at: new Date(),
+            source_audit_ids: sourceIds
+        }]);
+        
+        // Fetch the session to get the generated ID
+        const { data: fetchedSession } = await sb.from('audit_sessions')
+            .select('*')
+            .ilike('merged_name', `%${auditName}%`)
+            .eq('status', 'In Progress')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if(!fetchedSession) {
+            alert("Error: Failed to retrieve created session.");
+            return;
+        }
+
+        // Insert Inventory Rows using fetchedSession.id
         const rowsToInsert = mergedRows.map(r => ({
             ...r,
-            audit_id: newSession.id, // Use the new session ID
+            audit_id: fetchedSession.id, // Use the ID from audit_sessions
             last_scanned_at: new Date()
         }));
 
         await sb.from('audit_inventory').insert(rowsToInsert);
 
-        // 7. Delete original audits from audit_sessions (This cascades delete to audit_inventory)
+        // 6. Delete Original Audits (Cascades delete to inventory)
         await sb.from('audit_sessions').delete().in('id', `(${ids.join(',')})`);
 
         alert("Audits Merged Successfully! Reloading lists...");
-        
-        // 8. Reload Dashboard (This will remove items from 'Previous' and show them in 'Merged')
         loadDashboard();
-    }
-
-    // Delete from Merged List
-    async function deleteMergedAudit(id) {
-        if(!confirm("Are you sure? This cannot be undone.")) return;
-        await sb.from('audit_inventory').delete().eq('audit_id', id);
-        await sb.from('merged_audits').delete().eq('id', id);
-        // Note: Deleting from merged_audits deletes the 'source' link, but since it's already merged, it's gone.
-        await fetchMergedAudits();
     }
 
 
@@ -853,6 +869,16 @@
             }
         }
         await fetchAuditData();
+    }
+    
+    // Delete from Merged Audits
+    async function deleteMergedAudit(id) {
+        if(!confirm("Are you sure? This cannot be undone.")) return;
+        
+        await sb.from('audit_inventory').delete().eq('audit_id', id);
+        await sb.from('merged_audits').delete().eq('id', id);
+        
+        await fetchMergedAudits();
     }
 
     function goToSummary() { window.location.href = `summ.html?id=${currentAuditId}`; }
