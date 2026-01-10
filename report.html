@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Audit Report</title>
+    
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Export Libraries -->
+    <!-- Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.full.min.js"></script>
+    
+    <!-- PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <style>
         :root {
@@ -26,6 +35,11 @@
 
         /* Layout */
         .sidebar { width: var(--sidebar-width); background-color: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; padding: 1.5rem 1rem; position: fixed; top: 0; bottom: 0; left: 0; z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { font-size: 1.25rem; font-weight: 700; margin-bottom: 2rem; color: white; padding-bottom: 1rem; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+        .sidebar a { color: #cbd5e1; text-decoration: none; padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 0.5rem; display: block; font-weight: 500; transition: all 0.2s; }
+        .sidebar a:hover { background-color: var(--primary); color: white; padding-left: 1.5rem; }
+        .sidebar a.active { background-color: #334155; color: white; }
+
         .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 0; width: calc(100% - var(--sidebar-width)); }
         .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; margin-right: 1rem; }
         .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
@@ -34,56 +48,56 @@
         header { background: var(--primary); color: white; padding: 1rem; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 50; justify-content: space-between; }
         header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; flex: 1; }
 
-        /* Content */
+        /* Main Content */
         main { padding: 1rem; max-width: 1200px; margin: 0 auto; }
 
-        /* Report Header */
-        .report-header { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem; border: 1px solid var(--border); }
+        /* Report Header & Export */
+        .report-header { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
         .report-title { margin: 0 0 1rem 0; font-size: 1.5rem; color: var(--primary); }
-        .report-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; color: var(--secondary); }
-        .meta-label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; }
-        .meta-value { font-size: 1rem; color: var(--text); }
         
-        /* Merged Source Section */
-        .merged-info-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius); padding: 1rem; margin-top: 1.5rem; display: none; }
-        .merged-info-title { font-weight: 700; color: #86efac; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-        .source-ids-text { font-family: monospace; background: #e2e8f0; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; word-break: break-all; }
+        .report-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 0.5rem; color: var(--secondary); }
+        .meta-label { font-size: 0.85rem; font-weight: 600; }
+        .meta-value { font-size: 1rem; color: var(--text); }
+
+        .export-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-excel { background-color: #10b981; color: white; padding: 0.6rem 1.2rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-excel:hover { background-color: #059669; }
+        
+        .btn-pdf { background-color: #64748b; color: white; padding: 0.6rem 1.2rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-pdf:hover { background-color: #475569; }
+
+        .back-link { color: var(--text); font-weight: 600; text-decoration: none; font-size: 0.9rem; cursor: pointer; }
+        .back-link:hover { color: var(--primary); }
 
         /* Stats */
-        .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
         .stat-card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; border-top: 4px solid var(--primary); }
-        .stat-val { font-size: 2rem; font-weight: 800; color: var(--primary); display: block; margin-bottom: 0.5rem; }
-        .stat-label { font-size: 0.9rem; color: var(--secondary); text-transform: uppercase; }
-        .stat-missing { border-color: #ef4444; } .stat-extra { border-color: #3b82f6; } .stat-ok { border-color: #22c55e; } .stat-sys { border-color: #8b5cf6; }
-
-        /* Filters */
-        .filter-section { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center; border: 1px solid var(--border); }
-        .filter-select { padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; font-size: 1rem; min-width: 200px; }
-        .badge-filter { padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
-        .badge-filter.active { background: var(--primary); color: white; }
+        .stat-val { font-size: 2rem; font-weight: 800; color: var(--primary); }
+        .stat-label { font-size: 0.9rem; color: var(--secondary); font-weight: 500; text-transform: uppercase; }
+        .stat-missing { border-color: #ef4444; color: #ef4444; }
+        .stat-extra { border-color: #3b82f6; color: #3b82f6; }
+        .stat-ok { border-color: #22c55e; color: #22c55e; }
+        .stat-sys { border-color: #8b5cf6; color: #8b5cf6; }
 
         /* Table */
-        .table-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-        th { background-color: #f8fafc; font-weight: 600; color: #475569; white-space: nowrap; }
-        .sticky-header { position: sticky; top: 0; z-index: 10; background-color: #f8fafc; }
+        .filter-section { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .filter-select { padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; font-size: 1rem; min-width: 200px; }
+        .badge-filter { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); white-space: nowrap; }
+        .badge-filter.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+        .table-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        th { background-color: #f8fafc; font-weight: 600; color: #475569; white-space: nowrap; }
+        
+        .badge { padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
         .badge-ok { background: #dcfce7; color: #166534; }
         .badge-missing { background: #fee2e2; color: #991b1b; }
         .badge-extra { background: #dbeafe; color: #1e40af; }
-        .badge-merged { background: #8b5cf6; color: white; }
 
-        .action-link { color: var(--primary); font-weight: 600; margin-right: 8px; text-decoration: none; cursor: pointer; }
-        .action-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 600; }
-        .btn-edit { background-color: #f59e0b; }
+        .action-btn { padding: 6px 12px; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer; color: white; font-weight: 600; }
+        .btn-edit { background-color: #f59e0b; margin-right: 5px; }
         .btn-delete { background-color: #ef4444; }
-        .btn-close { background-color: #10b981; padding: 10px 20px; display: inline-block; text-decoration: none; color: white; font-weight: 600; border-radius: 8px; cursor: pointer; }
-
-        /* Loader */
-        .loader { width: 20px; height: 20px; border: 2px solid #f3f4f6; border-bottom-color: #65a30d; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* Mobile */
         @media (max-width: 768px) {
@@ -91,8 +105,8 @@
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; width: 100%; }
             .menu-toggle { display: block; }
-            .stats-bar { grid-template-columns: 1fr 1fr; }
-            .report-meta { grid-template-columns: 1fr; }
+            .report-header { flex-direction: column; }
+            .export-actions { width: 100%; justify-content: center; }
         }
     </style>
 </head>
@@ -114,14 +128,14 @@
     <header>
         <div style="display:flex; align-items:center;">
             <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-            <h1>Audit Report</h1>
+            <h1 id="pageTitle">Audit Report</h1>
         </div>
-        <a href="Audit.html" class="btn-close">Back to Audit List</a>
+        <a class="back-link" href="Audit.html">Back to Audit List</a>
     </header>
 
     <main>
         <!-- Loading State -->
-        <div id="loadingState" style="text-align:center; padding: 3rem; display:none;">
+        <div id="loadingState" style="text-align:center; padding: 4rem; display:none;">
             <div class="loader"></div>
             <p style="margin-top: 1rem; color: var(--secondary);">Loading Report Data...</p>
         </div>
@@ -131,39 +145,32 @@
             
             <!-- Header Info -->
             <div class="report-header">
-                <h2 id="rTitle" class="report-title">Audit Name</h2>
-                <div class="report-meta">
-                    <div>
-                        <div class="meta-label">Company</div>
-                        <div class="meta-value" id="rCompany">-</div>
-                    </div>
-                    <div>
-                        <div class="meta-label">Outlet</div>
-                        <div class="meta-value" id="rOutlet">-</div>
-                    </div>
-                    <div>
-                        <div class="meta-label">Date</div>
-                        <div class="meta-value" id="rDate">-</div>
-                    </div>
-                    <div>
-                        <div class="meta-label">Created By</div>
-                        <div class="meta-value" id="rCreated">-</div>
-                    </div>
-                    <div>
-                        <div class="meta-label">Status</div>
-                        <div class="meta-value" id="rStatus">-</div>
+                <div style="flex: 1; flex-direction: column; gap: 0.25rem;">
+                    <h2 id="rTitle" class="report-title">Audit Name</h2>
+                    <div class="report-meta">
+                        <div>
+                            <div class="meta-label">Company</div>
+                            <div class="meta-value" id="rCompany">-</div>
+                        </div>
+                        <div>
+                            <div class="meta-label">Outlet</div>
+                            <div class="meta-value" id="rOutlet">-</div>
+                        </div>
+                        <div>
+                            <div class="meta-label">Date</div>
+                            <div class="meta-value" id="rDate">-</div>
+                        </div>
+                        <div>
+                            <div class="meta-label">Status</div>
+                            <div class="meta-value" id="rStatus">-</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Merged Audit Info (Only show if is_merged is true) -->
-                <div id="mergedInfoBox" class="merged-info-box">
-                    <div class="merged-info-title">
-                        <span>🔗</span> Merged Audit Info
-                    </div>
-                    <div style="margin-top: 1rem;">
-                        <span style="font-weight: 600; color: #64748b;">Source Audit IDs:</span>
-                        <div id="sourceIdsContainer" class="source-ids-text">Loading...</div>
-                    </div>
+                <!-- Export Buttons -->
+                <div class="export-actions">
+                    <button class="btn-excel" onclick="exportToExcel()">📊 Export Excel</button>
+                    <button class="btn-pdf" onclick="exportToPDF()">📄 Export PDF</button>
                 </div>
             </div>
 
@@ -173,9 +180,9 @@
                     <div class="stat-val" id="statSysTotal">0</div>
                     <div class="stat-label">Total System Stock</div>
                 </div>
-                <div class="stat-card stat-sys">
+                <div class="stat-card stat-ok">
                     <div class="stat-val" id="statTotalScans">0</div>
-                    <div class="stat-label">Total Scanned Qty</div>
+                    <div class="stat-label">Total Scanned</div>
                 </div>
                 <div class="stat-card stat-missing">
                     <div class="stat-val" id="statMissing">0</div>
@@ -203,21 +210,18 @@
                     <option value="Missing">Missing Only</option>
                     <option value="Extra">Extra Only</option>
                 </select>
-                <div style="margin-left:auto;">
-                    <button class="btn-close" onclick="goToEdit()">Edit Audit</button>
-                </div>
             </div>
 
             <!-- Table -->
             <div class="table-container">
-                <table>
-                    <thead class="sticky-header">
+                <table id="reportTable">
+                    <thead>
                         <tr>
                             <th style="width: 150px;">Barcode</th>
                             <th>Product Name</th>
                             <th>Color/Size</th>
                             <th>System Balance</th>
-                            <th>Scanned</th>
+                            <th>Scanned Qty</th>
                             <th>Missing</th>
                             <th>Extra</th>
                             <th>Status</th>
@@ -225,7 +229,7 @@
                         </tr>
                     </thead>
                     <tbody id="tableBody">
-                        <!-- Rows injected via JS -->
+                        <!-- Rows here -->
                     </tbody>
                 </table>
             </div>
@@ -240,23 +244,11 @@
 
     let currentAuditId = null;
     let auditData = [];
-    let sourceAuditIds = []; // Stores the list of IDs if it's a merged audit
+    let currentAuditInfo = {};
 
     // Init
     window.addEventListener('load', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const id = urlParams.get('id');
-        
-        if (!id) {
-            document.getElementById('loadingState').style.display = 'block';
-            document.getElementById('reportContent').style.display = 'none';
-            alert("No Audit ID provided. Returning to Dashboard.");
-            setTimeout(() => window.location.href = "Audit.html", 1000);
-            return;
-        }
-
-        // 1. Fetch Main Session Data
-        fetchAuditSession(id);
+        checkActiveAudit();
     });
 
     function toggleSidebar() {
@@ -266,46 +258,72 @@
 
     // --- DATA FETCHING ---
 
-    async function fetchAuditSession(id) {
+    async function checkActiveAudit() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        
+        if (!id) {
+            alert("No Audit ID found. Returning to dashboard.");
+            setTimeout(() => window.location.href = "Audit.html", 1000);
+            return;
+        }
+
+        await fetchAuditData(id);
+    }
+
+    async function fetchAuditData(id) {
         document.getElementById('loadingState').style.display = 'block';
         document.getElementById('reportContent').style.display = 'none';
 
         try {
-            const { data, error } = await sb.from('audit_sessions').select('*').eq('id', id).single();
-            if (error) throw error;
+            // 1. Fetch Session Info
+            const { data: session, error: sessionError } = await sb.from('audit_sessions')
+                .select('*')
+                .eq('id', id)
+                .single();
 
-            // Set Global ID
-            currentAuditId = data.id;
+            if (sessionError) throw sessionError;
 
-            // 2. Populate Header
-            document.getElementById('rTitle').innerText = data.audit_name;
-            document.getElementById('rCompany').innerText = data.company_name || '-';
-            document.getElementById('rOutlet').innerText = data.outlet_name || '-';
-            document.getElementById('rDate').innerText = new Date(data.audit_date).toLocaleDateString();
-            document.getElementById('rCreated').innerText = data.created_by || '-';
-            document.getElementById('rStatus').innerText = data.status;
+            // 2. Set Global Variables
+            currentAuditId = session.id;
+            currentAuditInfo = session;
 
-            // 3. Handle Merged Audit Logic
-            if (data.is_merged) {
-                document.getElementById('mergedInfoBox').style.display = 'block';
-                const ids = data.source_audit_ids ? data.source_audit_ids.split(',') : [];
-                
-                const container = document.getElementById('sourceIdsContainer');
-                if (ids.length > 0) {
-                    container.innerHTML = ids.map(id => `<span style="background:#e2e8f0; padding:2px 6px; margin:2px; border-radius:4px; display:inline-block;">${id.trim()}</span>`).join('');
-                } else {
-                    container.innerText = "No source IDs available.";
-                }
-            } else {
-                document.getElementById('mergedInfoBox').style.display = 'none';
-                container.innerHTML = '';
-            }
+            // 3. Populate Header
+            document.getElementById('rTitle').innerText = session.audit_name;
+            document.getElementById('rCompany').innerText = session.company_name || '-';
+            document.getElementById('rOutlet').innerText = session.outlet_name || '-';
+            document.getElementById('rDate').innerText = new Date(session.audit_date).toLocaleDateString();
+            document.getElementById('rStatus').innerText = session.status;
 
-            // 4. Fetch Inventory Data & Calculate Stats
-            await fetchInventoryData();
+            // 4. Fetch Inventory Data
+            const { data, error: invError } = await sb.from('audit_inventory')
+                .select('*')
+                .eq('audit_id', id)
+                .order('last_scanned_at', { ascending: false });
+
+            if (invError) throw invError;
+
+            // 5. Process Data
+            auditData = data.map(item => {
+                const bal = item.balance || 0;
+                const sc = item.scanned_qty || 0;
+                let mis = bal - sc;
+                let ext = sc - bal;
+                if (mis < 0) mis = 0;
+                if (ext < 0) ext = 0;
+                let st = 'OK';
+                if (mis > 0) st = 'Missing';
+                if (ext > 0) st = 'Extra';
+                return { ...item, missing_qty: mis, extra_qty: ext, status: st };
+            });
+
+            // 6. Update Stats & Render
+            updateStats();
+            renderTable();
 
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('reportContent').style.display = 'block';
+            document.getElementById('pageTitle').innerText = `Report: ${session.audit_name}`;
 
         } catch (err) {
             console.error("Report Load Error:", err);
@@ -313,46 +331,16 @@
         }
     }
 
-    async function fetchInventoryData() {
-        const { data, error } = await sb.from('audit_inventory')
-            .select('*')
-            .eq('audit_id', currentAuditId)
-            .order('last_scanned_at', { ascending: false }); // Show latest scans first
-
-        if (error) throw error;
-
-        // Process Data
-        auditData = data.map(item => {
-            const bal = item.balance || 0;
-            const sc = item.scanned_qty || 0;
-            
-            // Calculations
-            let mis = bal - sc;
-            let ext = sc - bal;
-            if (mis < 0) mis = 0;
-            if (ext < 0) ext = 0;
-
-            let st = 'OK';
-            if (mis > 0) st = 'Missing';
-            if (ext > 0) st = 'Extra';
-
-            return { ...item, missing_qty: mis, extra_qty: ext, status: st };
-        });
-
-        updateStats();
-        renderTable();
-    }
-
-    // --- UI RENDERING ---
+    // --- UI UPDATES ---
 
     function updateStats() {
+        const totalSys = auditData.reduce((a, i) => a + (i.balance || 0), 0);
         const totalScans = auditData.reduce((a, i) => a + i.scanned_qty, 0);
         const missing = auditData.reduce((a, i) => a + i.missing_qty, 0);
         const extra = auditData.reduce((a, i) => a + i.extra_qty, 0);
         const ok = auditData.filter(i => i.status === 'OK').length;
-        const sysStock = auditData.reduce((a, i) => a + (i.balance || 0), 0);
 
-        document.getElementById('statSysTotal').innerText = sysStock;
+        document.getElementById('statSysTotal').innerText = totalSys;
         document.getElementById('statTotalScans').innerText = totalScans;
         document.getElementById('statMissing').innerText = missing;
         document.getElementById('statExtra').innerText = extra;
@@ -375,12 +363,12 @@
         filtered.forEach(item => {
             const tr = document.createElement('tr');
             const badgeClass = item.status === 'Missing' ? 'badge-missing' : (item.status === 'Extra' ? 'badge-extra' : 'badge-ok');
-
+            
             tr.innerHTML = `
                 <td>${item.barcode}</td>
                 <td>${item.name}</td>
                 <td>${item.color || '-'} / ${item.size || '-'}</td>
-                <td>${item.balance || 0}</td>
+                <td>${item.balance}</td>
                 <td style="font-weight:bold; color:var(--primary);">${item.scanned_qty}</td>
                 <td style="color:red; font-weight:bold;">${item.missing_qty}</td>
                 <td style="color:blue; font-weight:bold;">${item.extra_qty}</td>
@@ -393,12 +381,142 @@
         });
     }
 
-    // --- INTERACTION LOGIC ---
+    // --- EXPORT LOGIC ---
+
+    // Export to Excel
+    function exportToExcel() {
+        if (auditData.length === 0) {
+            alert("No data to export.");
+            return;
+        }
+
+        const table = document.getElementById('reportTable');
+        const wb = XLSX.utils.table_to_book(table, { sheet: "Audit Report" });
+        XLSX.writeFile(wb, `Audit_Report_${currentAuditInfo.audit_name}.xlsx`);
+    }
+
+    // Export to PDF
+    function exportToPDF() {
+        if (auditData.length === 0) {
+            alert("No data to export.");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "landscape" });
+
+        // Define Columns
+        const barcodeWidth = 40;
+        const nameWidth = 80;
+        const colorWidth = 50;
+        const balanceWidth = 50;
+        const scannedWidth = 40;
+        const missingWidth = 40;
+        const extraWidth = 40;
+        const statusWidth = 40;
+
+        let yPosition = 20;
+
+        // Add Title
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Audit Report: ${currentAuditInfo.audit_name}`, 14, doc.internal.pageSize.width / 2, yPosition);
+        yPosition += 15;
+
+        // Add Subtitle Info
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Company: ${currentAuditInfo.company_name || '-'}`, 14, 14, yPosition); yPosition += 7;
+        doc.text(`Outlet: ${currentAuditInfo.outlet_name || '-'}`, 14, 14, yPosition); yPosition += 7;
+        doc.text(`Date: ${new Date(currentAuditInfo.audit_date).toLocaleDateString()}`, 14, 14, yPosition); yPosition += 7;
+        doc.text(`Status: ${currentAuditInfo.status}`, 14, 14, yPosition); yPosition += 10;
+
+        // Header Underline
+        doc.setLineWidth(0.5);
+        doc.line(14, 14, 198, yPosition);
+        yPosition += 5;
+
+        // Table Headers
+        doc.setFont("helvetica", "bold");
+        doc.text("Barcode", barcodeWidth, yPosition);
+        doc.text("Product Name", nameWidth, yPosition);
+        doc.text("Color/Size", colorWidth, yPosition);
+        doc.text("System Balance", balanceWidth, yPosition);
+        doc.text("Scanned Qty", scannedWidth, yPosition);
+        doc.text("Missing", missingWidth, yPosition);
+        doc.text("Extra", extraWidth, yPosition);
+        doc.text("Status", statusWidth, yPosition);
+        yPosition += 10;
+
+        // Table Rows
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+
+        // Filter data for PDF
+        const filterName = document.getElementById('productFilter').value;
+        const filterStatus = document.getElementById('statusFilter').value;
+        const filteredData = auditData.filter(item => {
+            const nameMatch = filterName === 'all' || item.name.includes(filterName);
+            const statusMatch = filterStatus === 'all' || item.status === filterStatus;
+            return nameMatch && statusMatch;
+        });
+
+        filteredData.forEach(item => {
+            // Barcode
+            doc.text(item.barcode, barcodeWidth, yPosition);
+            // Name
+            const nameParts = doc.splitTextToSize(item.name, nameWidth);
+            nameParts.forEach(part => doc.text(part, nameWidth, yPosition));
+            // Restore X for next column
+            let xCurrent = nameWidth;
+            if (xCurrent < nameWidth) xCurrent = nameWidth; 
+
+            // Color/Size
+            const detail = `${item.color || '-'} / ${item.size || '-'}`;
+            const detailParts = doc.splitTextToSize(detail, colorWidth);
+            detailParts.forEach(part => doc.text(part, colorWidth, yPosition));
+            xCurrent = colorWidth;
+            
+            // System Balance
+            doc.text(String(item.balance), balanceWidth, yPosition);
+            xCurrent += balanceWidth;
+            
+            // Scanned Qty
+            doc.text(String(item.scanned_qty), scannedWidth, yPosition);
+            xCurrent += scannedWidth;
+
+            // Missing
+            doc.text(String(item.missing_qty), missingWidth, yPosition);
+            xCurrent += missingWidth;
+
+            // Extra
+            doc.text(String(item.extra_qty), extraWidth, yPosition);
+            xCurrent += extraWidth;
+
+            // Status
+            let statusColor = [0, 0, 0];
+            if (item.status === 'OK') statusColor = [34, 197, 94]; // Green
+            if (item.status === 'Missing') statusColor = [239, 68, 68]; // Red
+            if (item.status === 'Extra') statusColor = [59, 130, 246]; // Blue
+            
+            doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+            doc.text(item.status, statusWidth, yPosition);
+            xCurrent += statusWidth;
+
+            // Restore X for next row
+            doc.setTextColor(0, 0, 0);
+            yPosition += 10;
+        });
+
+        doc.save(`Audit_Report_${currentAuditInfo.audit_name}.pdf`);
+    }
+
+
+    // --- ACTIONS ---
 
     async function editItem(id, currentQty) {
-        const input = prompt(`Enter new Scanned Qty for this item:`, currentQty);
+        const input = prompt(`Enter new Scanned Qty:`, currentQty);
         if (input === null) return;
-        
         const newQty = parseInt(input);
         if (isNaN(newQty) || newQty < 0) {
             alert("Please enter a valid positive number.");
@@ -411,12 +529,8 @@
             alert("Failed to update item.");
         } else {
             alert("Quantity Updated");
-            await fetchInventoryData(); // Refresh table
+            fetchAuditData(currentAuditId); // Refresh data
         }
-    }
-
-    function goToEdit() {
-        window.location.href = `Audit.html?id=${currentAuditId}`;
     }
 </script>
 </body>
