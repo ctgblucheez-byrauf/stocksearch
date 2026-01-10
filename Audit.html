@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inventory Audit System</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --sidebar-bg: #1e293b;
+            --sidebar-text: #f8fafc;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --sidebar-width: 250px;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { margin: 0; background-color: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        /* Sidebar & Layout */
+        .sidebar { width: var(--sidebar-width); background-color: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; padding: 1.5rem 1rem; position: fixed; top: 0; bottom: 0; left: 0; z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { font-size: 1.25rem; font-weight: 700; margin-bottom: 2rem; color: white; padding-bottom: 1rem; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+        .sidebar a { color: #cbd5e1; text-decoration: none; padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 0.5rem; display: block; font-weight: 500; transition: all 0.2s; }
+        .sidebar a:hover { background-color: var(--primary); color: white; padding-left: 1.5rem; }
+        .sidebar a.active { background-color: #334155; color: white; }
+
+        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 0; width: calc(100% - var(--sidebar-width)); }
+        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; margin-right: 1rem; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+
+        /* Header */
+        header { background: var(--primary); color: white; padding: 1rem; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 50; justify-content: space-between; }
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; flex: 1; }
+
+        /* Main Content */
+        main { padding: 1rem; max-width: 1200px; margin: 0 auto; }
+
+        /* Setup Card */
+        .setup-card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        input, select { padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; width: 100%; }
+        
+        /* Scanner Section */
+        .scanner-section { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; border: 2px solid transparent; }
+        .scanner-section.locked { border-color: #ef4444; opacity: 0.7; pointer-events: none; }
+        .scan-input { flex: 1; min-width: 250px; padding: 1rem; font-size: 1.1rem; border: 2px solid var(--primary); border-radius: var(--radius); }
+        #reader-wrapper { width: 300px; height: 250px; background: #000; border-radius: var(--radius); overflow: hidden; display: none; margin-left: auto; }
+        #reader { width: 100%; height: 100%; object-fit: cover; }
+        #reader a { display: none !important; }
+
+        .btn { padding: 0.8rem 1.2rem; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.9rem; color: white; text-decoration: none; }
+        .btn-scan { background-color: var(--secondary); }
+        .btn-new { background-color: var(--primary); }
+        .btn-close { background-color: #ef4444; }
+        .btn-nav { background-color: #0f172a; width: 100%; margin-bottom: 10px; }
+
+        /* Stats & Filter */
+        .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; border-left: 4px solid var(--primary); }
+        .stat-val { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+        .stat-label { font-size: 0.75rem; color: var(--secondary); }
+        .stat-red { border-color: #ef4444; } .stat-blue { border-color: #3b82f6; } .stat-green { border-color: #22c55e; } .stat-purple { border-color: #8b5cf6; }
+
+        .filter-area { background: var(--surface); padding: 1rem; border-radius: var(--radius); margin-bottom: 1rem; display: flex; gap: 10px; align-items: center; border: 1px solid var(--border); }
+        
+        /* History */
+        .history-bar { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1rem; overflow-x: auto; white-space: nowrap; display: flex; gap: 10px; align-items: center; border-bottom: 4px solid var(--primary); }
+        .history-item { display: inline-block; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.8rem; min-width: 220px; }
+        .history-bc { font-weight: bold; color: var(--primary); display: block; font-size: 0.9rem; }
+        .history-bal { color: #64748b; font-size: 0.75rem; display: block; }
+
+        /* Table */
+        .table-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; } /* Increased min-width for Action column */
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        th { background-color: #f8fafc; font-weight: 600; color: #475569; white-space: nowrap; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-ok { background: #dcfce7; color: #166534; }
+        .badge-missing { background: #fee2e2; color: #991b1b; }
+        .badge-extra { background: #dbeafe; color: #1e40af; }
+
+        .action-btn { padding: 4px 8px; font-size: 0.75rem; margin-right: 4px; cursor: pointer; border: none; border-radius: 4px; color: white; }
+        .btn-edit { background-color: #f59e0b; }
+        .btn-delete { background-color: #ef4444; }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); width: 250px; }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; width: 100%; }
+            .menu-toggle { display: block; }
+            .scanner-section { flex-direction: column; }
+            #reader-wrapper { margin: 0 auto; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header"><span>📦 Stock Manager</span></div>
+    <nav>
+        <a href="index.html">Search Stock</a>
+        <a href="Audit.html" class="active">Inventory Audit</a>
+        <a href="dis.html">Dis Product</a>
+    </nav>
+</div>
+
+<div class="main-content">
+    <header>
+        <div style="display:flex; align-items:center;">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h1>Inventory Audit</h1>
+        </div>
+    </header>
+
+    <main>
+        <!-- 1. AUDIT SETUP -->
+        <div class="setup-card" id="setupPanel">
+            <h3 style="margin-top:0;">Start New Audit</h3>
+            <div class="form-row">
+                <input type="text" id="auditName" placeholder="Audit Name">
+                <input type="text" id="companyName" placeholder="Company Name">
+                <input type="text" id="branchName" placeholder="Branch Name">
+                <input type="text" id="entryBy" placeholder="Entry By">
+                <input type="date" id="auditDate">
+            </div>
+            <div style="text-align:right;">
+                <button class="btn btn-new" onclick="createNewAudit()">Create Audit</button>
+            </div>
+        </div>
+
+        <!-- Current Audit Info -->
+        <div id="auditInfoPanel" style="display:none; margin-bottom:1.5rem; background: var(--primary); color:white; padding:1rem; border-radius:var(--radius); justify-content:space-between; align-items:center;">
+            <div>
+                <h2 id="displayAuditName" style="margin:0;">Audit Name</h2>
+                <small id="displayInfo">Branch - Date</small>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-close" onclick="closeAudit()">Close Audit</button>
+            </div>
+        </div>
+
+        <!-- 2. SCANNER -->
+        <div class="scanner-section" id="scanSection" style="display:none;">
+            <input type="text" id="scanInput" class="scan-input" placeholder="Scan Barcode..." autofocus autocomplete="off">
+            <button class="btn btn-scan" id="camBtn" onclick="toggleCamera()">📸 Cam</button>
+            <div id="reader-wrapper"><div id="reader"></div></div>
+        </div>
+
+        <!-- 3. LAST 10 SCANS (Added Balance) -->
+        <div class="history-bar" id="historyBar" style="display:none;">
+            <span style="font-weight:700; color:var(--primary); margin-right:10px;">LAST 10 SCANS:</span>
+            <div id="historyContainer" style="display:flex; gap:10px;"></div>
+        </div>
+
+        <!-- 4. STATS (Total Sys Stock Fixed) -->
+        <div class="stats-bar" id="statsBar" style="display:none;">
+            <div class="stat-card">
+                <div class="stat-val" id="statTotal">0</div>
+                <div class="stat-label">Total Scans</div>
+            </div>
+            <div class="stat-card stat-red">
+                <div class="stat-val" id="statMissing">0</div>
+                <div class="stat-label">Missing Qty</div>
+            </div>
+            <div class="stat-card stat-blue">
+                <div class="stat-val" id="statExtra">0</div>
+                <div class="stat-label">Extra Qty</div>
+            </div>
+            <div class="stat-card stat-green">
+                <div class="stat-val" id="statOk">0</div>
+                <div class="stat-label">Items OK</div>
+            </div>
+            <div class="stat-card stat-purple">
+                <div class="stat-val" id="statSysTotal">0</div>
+                <div class="stat-label">Total Sys Stock</div>
+            </div>
+        </div>
+
+        <!-- 5. NAVIGATION BUTTONS -->
+        <div style="margin-bottom: 1rem; display:grid; grid-template-columns: 1fr 1fr; gap:10px;" id="navButtons" style="display:none;">
+            <button class="btn btn-nav" onclick="goToSummary()">Summary (summ.html)</button>
+            <button class="btn btn-nav" style="background:#10b981;" onclick="goToReport()">Report (report.html)</button>
+        </div>
+
+        <!-- 6. FILTER (Dropdown moved above list) -->
+        <div class="filter-area" id="filterArea" style="display:none;">
+            <span style="font-weight:600; color:var(--secondary);">Filter By Product:</span>
+            <select id="productFilter" onchange="renderTable()" style="flex:1;">
+                <option value="all">All Scanned Products</option>
+            </select>
+        </div>
+
+        <!-- 7. MAIN LIST (Action Column Added) -->
+        <div id="tableSection" style="display:none;">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Barcode</th>
+                            <th>Name</th>
+                            <th>Color/Size</th>
+                            <th>Balance</th>
+                            <th>Scanned</th>
+                            <th>Missing</th>
+                            <th>Extra</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Rows here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentAuditId = null;
+    let auditData = []; 
+    let html5QrCode = null;
+    let isCameraOn = false;
+
+    // Init
+    window.addEventListener('load', () => {
+        document.getElementById('auditDate').valueAsDate = new Date();
+        checkActiveAudit();
+    });
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('overlay').classList.toggle('show');
+    }
+
+    // --- AUDIT SETUP ---
+    async function createNewAudit() {
+        const name = document.getElementById('auditName').value;
+        const company = document.getElementById('companyName').value;
+        const branch = document.getElementById('branchName').value;
+        const entry = document.getElementById('entryBy').value;
+        const date = document.getElementById('auditDate').value;
+
+        if(!name) return alert("Please enter Audit Name");
+
+        const { data, error } = await sb.from('audit_sessions').insert([{
+            audit_name: name,
+            company_name: company,
+            outlet_name: branch,
+            created_by: entry,
+            audit_date: date,
+            status: 'In Progress'
+        }]).select().single();
+
+        if(error) return console.error(error);
+        loadAudit(data);
+    }
+
+    async function checkActiveAudit() {
+        const { data } = await sb.from('audit_sessions')
+            .select('*').eq('status', 'In Progress').order('created_at', { ascending: false }).limit(1);
+        
+        if(data && data.length > 0) loadAudit(data[0]);
+    }
+
+    function loadAudit(session) {
+        currentAuditId = session.id;
+        localStorage.setItem('currentAuditId', session.id);
+        localStorage.setItem('currentAuditName', session.audit_name);
+
+        document.getElementById('setupPanel').style.display = 'none';
+        const panel = document.getElementById('auditInfoPanel');
+        panel.style.display = 'flex';
+        document.getElementById('displayAuditName').textContent = session.audit_name;
+        document.getElementById('displayInfo').textContent = `${session.outlet_name || '-'} - ${new Date(session.audit_date).toLocaleDateString()}`;
+        
+        document.getElementById('scanSection').style.display = 'flex';
+        document.getElementById('historyBar').style.display = 'flex';
+        document.getElementById('statsBar').style.display = 'grid';
+        document.getElementById('navButtons').style.display = 'grid';
+        document.getElementById('filterArea').style.display = 'flex';
+        document.getElementById('tableSection').style.display = 'block';
+
+        fetchAuditData();
+    }
+
+    async function closeAudit() {
+        if(!confirm("Are you sure you want to Close this Audit? Scanning will be disabled.")) return;
+        
+        document.getElementById('scanSection').classList.add('locked');
+        const closeBtn = document.querySelector('#auditInfoPanel button.btn-close');
+        if(closeBtn) closeBtn.style.display = 'none';
+
+        const { error } = await sb.from('audit_sessions').update({ status: 'Closed' }).eq('id', currentAuditId);
+
+        if (error) {
+            console.error("Error closing audit:", error);
+            alert("Failed to close audit.");
+            document.getElementById('scanSection').classList.remove('locked');
+            if(closeBtn) closeBtn.style.display = 'inline-flex';
+            return;
+        }
+
+        showToast("Audit Saved Successfully");
+    }
+
+    // --- SCAN LOGIC ---
+    document.getElementById('scanInput').addEventListener('keypress', async (e) => {
+        if(e.key === 'Enter') {
+            const barcode = e.target.value.trim();
+            if(!barcode) return;
+            await processScan(barcode);
+            e.target.value = '';
+        }
+    });
+
+    async function processScan(barcode) {
+        const { data: master, error } = await sb.from('inventory').select('*').eq('barcode', barcode).single();
+        if(error || !master) {
+            alert("Product not found in Inventory!");
+            return;
+        }
+
+        const { data: existing } = await sb.from('audit_inventory')
+            .select('*').eq('audit_id', currentAuditId).eq('barcode', barcode).maybeSingle();
+
+        if(existing) {
+            await sb.from('audit_inventory').update({ scanned_qty: existing.scanned_qty + 1, last_scanned_at: new Date() }).eq('id', existing.id);
+        } else {
+            await sb.from('audit_inventory').insert([{
+                audit_id: currentAuditId, barcode: master.barcode, name: master.name, style_code: master.style_code,
+                color: master.color, size: master.size, balance: master.balance, scanned_qty: 1
+            }]);
+        }
+
+        showToast("Entry Successfully");
+        await fetchAuditData();
+    }
+
+    async function fetchAuditData() {
+        const { data, error } = await sb.from('audit_inventory')
+            .select('*').eq('audit_id', currentAuditId).order('last_scanned_at', { ascending: false });
+
+        if(error) return console.error(error);
+        auditData = data.map(item => {
+            const bal = item.balance || 0;
+            const sc = item.scanned_qty || 0;
+            let mis = bal - sc;
+            let ext = sc - bal;
+            if(mis < 0) mis = 0;
+            if(ext < 0) ext = 0;
+            let st = 'OK';
+            if(mis > 0) st = 'Missing';
+            if(ext > 0) st = 'Extra';
+            return { ...item, missing_qty: mis, extra_qty: ext, status: st };
+        });
+
+        updateStats();
+        updateHistory();
+        updateFilterDropdown();
+        renderTable();
+    }
+
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.textContent = msg;
+        t.style.cssText = "position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:10px 20px; border-radius:50px; z-index:2000; animation: fadein 0.5s;";
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2000);
+    }
+
+    function updateStats() {
+        document.getElementById('statTotal').textContent = auditData.reduce((a,i)=>a+i.scanned_qty,0);
+        document.getElementById('statMissing').textContent = auditData.reduce((a,i)=>a+i.missing_qty,0);
+        document.getElementById('statExtra').textContent = auditData.reduce((a,i)=>a+i.extra_qty,0);
+        document.getElementById('statOk').textContent = auditData.filter(i=>i.status==='OK').length;
+        // Total Stock from Inventory Table (Sum of Balance)
+        document.getElementById('statSysTotal').textContent = auditData.reduce((a,i)=>a+(i.balance||0),0);
+    }
+
+    function updateHistory() {
+        const container = document.getElementById('historyContainer');
+        container.innerHTML = '';
+        auditData.slice(0,10).forEach(i => {
+            const d = document.createElement('div');
+            d.className = 'history-item';
+            // Added Balance here
+            d.innerHTML = `<span class="history-bc">${i.barcode}</span> ${i.name} <br><span class="history-bal">Qty: ${i.scanned_qty} | Bal: ${i.balance}</span>`;
+            container.appendChild(d);
+        });
+    }
+
+    function updateFilterDropdown() {
+        const sel = document.getElementById('productFilter');
+        const currentVal = sel.value;
+        const uniqueNames = [...new Set(auditData.map(i=>i.name))].sort();
+        sel.innerHTML = '<option value="all">All Scanned Products</option>';
+        uniqueNames.forEach(n => sel.innerHTML += `<option value="${n}">${n}</option>`);
+        sel.value = currentVal;
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        const filterName = document.getElementById('productFilter').value;
+
+        const filtered = auditData.filter(i => filterName === 'all' || i.name === filterName);
+
+        filtered.forEach(i => {
+            const badgeClass = i.status === 'Missing' ? 'badge-missing' : (i.status === 'Extra' ? 'badge-extra' : 'badge-ok');
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${i.barcode}</td>
+                <td>${i.name}</td>
+                <td>${i.color||'-'} / ${i.size||'-'}</td>
+                <td>${i.balance}</td>
+                <td>${i.scanned_qty}</td>
+                <td style="color:red">${i.missing_qty}</td>
+                <td style="color:blue">${i.extra_qty}</td>
+                <td><span class="badge ${badgeClass}">${i.status}</span></td>
+                <td>
+                    <button class="action-btn btn-edit" onclick="editItem(${i.id}, ${i.scanned_qty})">Edit</button>
+                    <button class="action-btn btn-delete" onclick="deleteItem(${i.id}, ${i.scanned_qty})">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // --- ACTION LOGIC ---
+    
+    async function editItem(id, currentQty) {
+        // Prompt user for new scanned count
+        let input = prompt(`Edit Scanned Qty for ID ${id}:`, currentQty);
+        if (input === null) return; // Cancelled
+
+        let newQty = parseInt(input);
+        
+        if (isNaN(newQty) || newQty < 0) {
+            alert("Please enter a valid number (0 or greater).");
+            return;
+        }
+
+        const { error } = await sb.from('audit_inventory').update({ scanned_qty: newQty, last_scanned_at: new Date() }).eq('id', id);
+        
+        if (error) {
+            console.error(error);
+            alert("Failed to update item.");
+        } else {
+            showToast("Updated Successfully");
+            fetchAuditData();
+        }
+    }
+
+    async function deleteItem(id, currentQty) {
+        // Prompt user for quantity to remove
+        // User said "if zero and click delete button delete row other wise do not allow to delete"
+        // We will ask "How many to remove?"
+        let input = prompt(`Enter quantity to remove (e.g. 1):`, "1");
+        if (input === null) return;
+
+        let qtyToRemove = parseInt(input);
+
+        if (isNaN(qtyToRemove) || qtyToRemove <= 0) {
+            alert("Please enter a valid quantity to remove.");
+            return;
+        }
+
+        // Calculate new quantity
+        let newQty = currentQty - qtyToRemove;
+
+        if (newQty <= 0) {
+            // If resulting is 0 or negative, ask to delete row entirely
+            if (confirm("This will delete the entire row. Are you sure?")) {
+                await sb.from('audit_inventory').delete().eq('id', id);
+                showToast("Row Deleted Successfully");
+            }
+        } else {
+            // Otherwise just update quantity
+            const { error } = await sb.from('audit_inventory').update({ scanned_qty: newQty, last_scanned_at: new Date() }).eq('id', id);
+            if (error) {
+                console.error(error);
+                alert("Failed to update.");
+            } else {
+                showToast("Quantity Reduced Successfully");
+            }
+        }
+        await fetchAuditData();
+    }
+
+    function goToSummary() { window.location.href = 'summ.html'; }
+    function goToReport() { window.location.href = 'report.html'; }
+
+    // Camera Toggle
+    async function toggleCamera() {
+        const wrapper = document.getElementById('reader-wrapper');
+        const btn = document.getElementById('camBtn');
+        if (isCameraOn) {
+            if(html5QrCode) { await html5QrCode.stop(); await html5QrCode.clear(); }
+            wrapper.style.display = 'none';
+            isCameraOn = false;
+            btn.textContent = '📸 Cam';
+        } else {
+            wrapper.style.display = 'block';
+            isCameraOn = true;
+            btn.textContent = '⏹ Stop';
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: { width: 250, height: 200 } }, async (t) => { await processScan(t); }, (e)=>{});
+        }
+    }
+</script>
+</body>
+</html>
