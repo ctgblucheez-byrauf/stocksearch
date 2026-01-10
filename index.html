@@ -182,6 +182,7 @@
         /* --- RESULTS STYLES --- */
         .results-list { display: flex; flex-direction: column; gap: 1rem; }
 
+        /* 1. CARD STYLE (For Barcode Mode) */
         .product-card { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); display: block; }
         .product-info { padding: 1rem; }
         
@@ -189,28 +190,11 @@
         .product-meta { font-size: 0.85rem; color: var(--secondary); margin-bottom: 0.5rem; }
 
         /* Updated Price Section */
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            color: var(--secondary);
-        }
-        
-        .price-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
+        .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--secondary); }
+        .price-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-weight: 600; font-size: 1.1rem; }
         .info-mrp { color: var(--text); }
         .info-total { color: var(--primary); font-size: 1.25rem; }
         .info-vat { font-size: 0.9rem; color: var(--secondary); font-weight: normal; }
-        
         .info-bal { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 0.9rem; font-weight: bold; }
 
         .btn-toggle { background: transparent; color: var(--primary); border: 1px solid var(--border); padding: 0.5rem; font-size: 0.85rem; width: 100%; justify-content: center; margin-top: auto; }
@@ -224,6 +208,15 @@
 
         .variant-table-container { margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 10px; }
         .variant-title { font-weight: 700; color: var(--secondary); margin-bottom: 8px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Subtotal Row Styling */
+        .subtotal-row {
+            background-color: #e2e8f0;
+            font-weight: 700;
+            border-top: 2px solid #94a3b8;
+            border-bottom: 2px solid #94a3b8;
+        }
+
         .mini-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         .mini-table th, .mini-table td { text-align: left; padding: 6px; border-bottom: 1px solid var(--border); }
         .mini-table th { background: #e2e8f0; color: var(--text); }
@@ -268,7 +261,7 @@
         <span>📦 Stock Manager</span>
     </div>
     <nav>
-        <a href="#" class="active">Search Stock</a>
+        <a href="index.html" class="active">Search Stock</a>
         <a href="Audit.html">Inventory Audit</a>
         <a href="dis.html">Dis Product</a>
     </nav>
@@ -352,7 +345,6 @@
         var name = (item.name || "").toLowerCase();
         var mrp = parseFloat(item.mrp) || 0;
         
-        // List of accessories for 7.5% VAT
         var accessories = [
             "tie", "belt", "cufflink", "poket square", "pocket square", 
             "wallet", "bag", "cap", "shocks", "accessories", 
@@ -363,7 +355,7 @@
             return name.includes(keyword);
         });
 
-        var rate = isAccessory ? 0.075 : 0.10; // 7.5% for accessories, 10% for others
+        var rate = isAccessory ? 0.075 : 0.10; 
         var vatAmount = mrp * rate;
         var totalAmount = mrp + vatAmount;
 
@@ -398,7 +390,6 @@
     function switchMode(mode) {
         currentMode = mode;
         
-        // Close sidebar on mobile if open
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('overlay').classList.remove('show');
 
@@ -568,8 +559,6 @@
             filterSection.style.display = 'none';
             items.forEach(function(item) {
                 var imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`;
-                
-                // --- CALCULATE VAT ---
                 var vatDetails = calculateVAT(item);
                 
                 var card = document.createElement('div');
@@ -630,7 +619,7 @@
         }
     }
 
-    // --- 7. VARIANTS TABLE ---
+    // --- 7. VARIANTS TABLE (WITH COLOR SUBTOTALS) ---
     async function toggleDetails(btn) {
         var details = btn.nextElementSibling;
         var tableArea = details.querySelector('.related-table-area');
@@ -666,6 +655,11 @@
                 return;
             }
 
+            // SORT BY COLOR ALPHABETICALLY TO ENSURE GROUPING
+            variants.sort(function(a, b) {
+                return (a.color || "").localeCompare(b.color || "");
+            });
+
             var html = `
                 <div class="variant-table-container">
                     <div class="variant-title">All ${styleCode} Variants</div>
@@ -681,16 +675,48 @@
                         <tbody>
             `;
 
+            var currentColor = '';
+            var currentTotal = 0;
+
             variants.forEach(function(v) {
+                var bal = v.balance || 0;
+                
+                // If color changes, print subtotal for previous color
+                if (v.color !== currentColor) {
+                    if (currentColor !== '') {
+                        html += `
+                            <tr class="subtotal-row">
+                                <td colspan="3" style="text-align:right;">Total ${currentColor}:</td>
+                                <td>${currentTotal}</td>
+                            </tr>
+                        `;
+                    }
+                    currentColor = v.color;
+                    currentTotal = 0;
+                }
+
+                // Print Item Row
                 html += `
                     <tr>
                         <td>${v.barcode}</td>
                         <td>${v.color || '-'}</td>
                         <td>${v.size || '-'}</td>
-                        <td>${v.balance || 0}</td>
+                        <td>${bal}</td>
                     </tr>
                 `;
+
+                currentTotal += bal;
             });
+
+            // Print Final Subtotal for the last color
+            if (currentColor !== '') {
+                html += `
+                    <tr class="subtotal-row">
+                        <td colspan="3" style="text-align:right;">Total ${currentColor}:</td>
+                        <td>${currentTotal}</td>
+                    </tr>
+                `;
+            }
 
             html += `</tbody></table></div>`;
             container.innerHTML = html;
@@ -701,7 +727,7 @@
         }
     }
 
-    // --- 8. TABLE FILTERS & RENDER ---
+    // --- 8. MAIN TABLE RENDER (STYLE CODE MODE) ---
     function populateFilters(items) {
         var colorSelect = document.getElementById('filter-color');
         var sizeSelect = document.getElementById('filter-size');
@@ -736,6 +762,12 @@
             area.innerHTML = '<div class="empty-state">No items match your filters.</div>';
             return;
         }
+
+        // Sort items by Color for grouping
+        items.sort(function(a, b) {
+            return (a.color || "").localeCompare(b.color || "");
+        });
+
         var tableContainer = document.createElement('div');
         tableContainer.className = 'table-container';
         var tableHTML = `
@@ -751,17 +783,50 @@
                 </thead>
                 <tbody>
         `;
+        
+        var currentColor = '';
+        var currentTotal = 0;
+
         items.forEach(function(item) {
+            var bal = item.balance || 0;
+
+            // Subtotal Logic for Main Table
+            if (item.color !== currentColor) {
+                if (currentColor !== '') {
+                    tableHTML += `
+                        <tr class="subtotal-row">
+                            <td colspan="4" style="text-align:right;">Total ${currentColor}:</td>
+                            <td>${currentTotal}</td>
+                        </tr>
+                    `;
+                }
+                currentColor = item.color;
+                currentTotal = 0;
+            }
+
             tableHTML += `
                 <tr>
                     <td><strong>${item.name}</strong></td>
                     <td>${item.barcode}</td>
                     <td>${item.color || '-'} / ${item.size || '-'}</td>
                     <td>${item.mrp || '0.00'}</td>
-                    <td style="color:#166534; font-weight:bold">${item.balance || 0}</td>
+                    <td style="color:#166534; font-weight:bold">${bal}</td>
                 </tr>
             `;
+
+            currentTotal += bal;
         });
+
+        // Final Subtotal
+        if (currentColor !== '') {
+            tableHTML += `
+                <tr class="subtotal-row">
+                    <td colspan="4" style="text-align:right;">Total ${currentColor}:</td>
+                    <td>${currentTotal}</td>
+                </tr>
+            `;
+        }
+
         tableHTML += `</tbody></table>`;
         tableContainer.innerHTML = tableHTML;
         area.appendChild(tableContainer);
