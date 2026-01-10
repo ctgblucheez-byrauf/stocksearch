@@ -81,7 +81,7 @@
         }
         
         /* Table Styles */
-        .audit-list-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        .audit-list-table { width: 100%; border-collapse: collapse; min-width: 900px; } /* Increased min-width slightly for new column */
         .audit-list-table th { 
             position: sticky; 
             top: 0; 
@@ -216,6 +216,7 @@
                                     <th style="width:40px;">Select</th>
                                     <th>Audit Name</th>
                                     <th>Outlet</th>
+                                    <th>Created By</th> <!-- ADDED COLUMN -->
                                     <th>Date</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -240,6 +241,7 @@
                                     <th>Merged Name</th>
                                     <th>Outlet</th>
                                     <th>Company</th>
+                                    <th>Created By</th> <!-- ADDED COLUMN -->
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -457,6 +459,7 @@
                 <td><input type="checkbox" class="audit-merge-check" value="${audit.id}"></td>
                 <td><strong>${audit.audit_name}</strong></td>
                 <td>${audit.outlet_name || '-'}</td>
+                <td>${audit.created_by || '-'}</td> <!-- ADDED ROW FOR CREATED BY -->
                 <td>${new Date(audit.audit_date).toLocaleDateString()}</td>
                 <td>
                     <span class="badge ${audit.status === 'Closed' ? 'badge-ok' : 'badge-extra'}">${audit.status}</span>
@@ -484,7 +487,7 @@
         tbody.innerHTML = '';
 
         if(data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:20px;">No Merged Audits Yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#64748b; padding:20px;">No Merged Audits Yet</td></tr>'; <!-- Updated colspan for new column -->
             return;
         }
 
@@ -494,6 +497,7 @@
                 <td><strong>${audit.audit_name}</strong></td>
                 <td>${audit.outlet_name || '-'}</td>
                 <td>${audit.company_name || '-'}</td>
+                <td>${audit.created_by || '-'}</td> <!-- ADDED ROW FOR MERGED BY -->
                 <td>
                     <span class="badge badge-merged">${audit.status}</span>
                 </td>
@@ -603,12 +607,11 @@
             console.log("[DEBUG MERGE] Aggregated Rows:", mergedRows);
 
             // 3. Create Session
-            // FIX: Removed 'source_audit_ids' from payload to prevent schema cache error.
             const sessionPayload = {
                 audit_name: auditName,
                 company_name: companyName,
                 outlet_name: branchName,
-                created_by: margeBy,
+                created_by: margeBy, // Stores "Merged By"
                 status: 'In Progress',
                 is_merged: true,
                 audit_date: new Date()
@@ -668,6 +671,7 @@
         }
 
         showToast("Audit Saved Successfully");
+        // Go back to dashboard after closing
         setTimeout(() => loadDashboard(), 1000);
     }
 
