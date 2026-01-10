@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Audit Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --sidebar-bg: #1e293b;
+            --sidebar-text: #f8fafc;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --sidebar-width: 250px;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { margin: 0; background-color: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        /* Layout */
+        .sidebar { width: var(--sidebar-width); background-color: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; padding: 1.5rem 1rem; position: fixed; top: 0; bottom: 0; left: 0; z-index: 1000; transition: transform 0.3s ease; }
+        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 0; width: calc(100% - var(--sidebar-width)); }
+        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; margin-right: 1rem; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+
+        /* Header */
+        header { background: var(--primary); color: white; padding: 1rem; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 50; justify-content: space-between; }
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; flex: 1; }
+
+        /* Content */
+        main { padding: 1rem; max-width: 1200px; margin: 0 auto; }
+
+        /* Report Header */
+        .report-header { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem; border: 1px solid var(--border); }
+        .report-title { margin: 0 0 1rem 0; font-size: 1.5rem; color: var(--primary); }
+        .report-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; color: var(--secondary); }
+        .meta-label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .meta-value { font-size: 1rem; color: var(--text); }
+        
+        /* Merged Source Section */
+        .merged-info-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius); padding: 1rem; margin-top: 1.5rem; display: none; }
+        .merged-info-title { font-weight: 700; color: #86efac; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .source-ids-text { font-family: monospace; background: #e2e8f0; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; word-break: break-all; }
+
+        /* Stats */
+        .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; border-top: 4px solid var(--primary); }
+        .stat-val { font-size: 2rem; font-weight: 800; color: var(--primary); display: block; margin-bottom: 0.5rem; }
+        .stat-label { font-size: 0.9rem; color: var(--secondary); text-transform: uppercase; }
+        .stat-missing { border-color: #ef4444; } .stat-extra { border-color: #3b82f6; } .stat-ok { border-color: #22c55e; } .stat-sys { border-color: #8b5cf6; }
+
+        /* Filters */
+        .filter-section { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center; border: 1px solid var(--border); }
+        .filter-select { padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; font-size: 1rem; min-width: 200px; }
+        .badge-filter { padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .badge-filter.active { background: var(--primary); color: white; }
+
+        /* Table */
+        .table-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        th { background-color: #f8fafc; font-weight: 600; color: #475569; white-space: nowrap; }
+        .sticky-header { position: sticky; top: 0; z-index: 10; background-color: #f8fafc; }
+
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+        .badge-ok { background: #dcfce7; color: #166534; }
+        .badge-missing { background: #fee2e2; color: #991b1b; }
+        .badge-extra { background: #dbeafe; color: #1e40af; }
+        .badge-merged { background: #8b5cf6; color: white; }
+
+        .action-link { color: var(--primary); font-weight: 600; margin-right: 8px; text-decoration: none; cursor: pointer; }
+        .action-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 600; }
+        .btn-edit { background-color: #f59e0b; }
+        .btn-delete { background-color: #ef4444; }
+        .btn-close { background-color: #10b981; padding: 10px 20px; display: inline-block; text-decoration: none; color: white; font-weight: 600; border-radius: 8px; cursor: pointer; }
+
+        /* Loader */
+        .loader { width: 20px; height: 20px; border: 2px solid #f3f4f6; border-bottom-color: #65a30d; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); width: 250px; }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; width: 100%; }
+            .menu-toggle { display: block; }
+            .stats-bar { grid-template-columns: 1fr 1fr; }
+            .report-meta { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header"><span>📦 Stock Manager</span></div>
+    <nav>
+        <a href="index.html">Search Stock</a>
+        <a href="Audit.html" class="active">Inventory Audit</a>
+        <a href="dis.html">Dis Product</a>
+    </nav>
+</div>
+
+<div class="main-content">
+    <header>
+        <div style="display:flex; align-items:center;">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h1>Audit Report</h1>
+        </div>
+        <a href="Audit.html" class="btn-close">Back to Audit List</a>
+    </header>
+
+    <main>
+        <!-- Loading State -->
+        <div id="loadingState" style="text-align:center; padding: 3rem; display:none;">
+            <div class="loader"></div>
+            <p style="margin-top: 1rem; color: var(--secondary);">Loading Report Data...</p>
+        </div>
+
+        <!-- Report Content (Hidden initially) -->
+        <div id="reportContent" style="display: none;">
+            
+            <!-- Header Info -->
+            <div class="report-header">
+                <h2 id="rTitle" class="report-title">Audit Name</h2>
+                <div class="report-meta">
+                    <div>
+                        <div class="meta-label">Company</div>
+                        <div class="meta-value" id="rCompany">-</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Outlet</div>
+                        <div class="meta-value" id="rOutlet">-</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Date</div>
+                        <div class="meta-value" id="rDate">-</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Created By</div>
+                        <div class="meta-value" id="rCreated">-</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Status</div>
+                        <div class="meta-value" id="rStatus">-</div>
+                    </div>
+                </div>
+
+                <!-- Merged Audit Info (Only show if is_merged is true) -->
+                <div id="mergedInfoBox" class="merged-info-box">
+                    <div class="merged-info-title">
+                        <span>🔗</span> Merged Audit Info
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <span style="font-weight: 600; color: #64748b;">Source Audit IDs:</span>
+                        <div id="sourceIdsContainer" class="source-ids-text">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-bar">
+                <div class="stat-card stat-sys">
+                    <div class="stat-val" id="statSysTotal">0</div>
+                    <div class="stat-label">Total System Stock</div>
+                </div>
+                <div class="stat-card stat-sys">
+                    <div class="stat-val" id="statTotalScans">0</div>
+                    <div class="stat-label">Total Scanned Qty</div>
+                </div>
+                <div class="stat-card stat-missing">
+                    <div class="stat-val" id="statMissing">0</div>
+                    <div class="stat-label">Missing Qty</div>
+                </div>
+                <div class="stat-card stat-extra">
+                    <div class="stat-val" id="statExtra">0</div>
+                    <div class="stat-label">Extra Qty</div>
+                </div>
+                <div class="stat-card stat-ok">
+                    <div class="stat-val" id="statOk">0</div>
+                    <div class="stat-label">Items OK</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-section">
+                <span style="font-weight: 600; color: var(--secondary);">Filter By:</span>
+                <select id="productFilter" class="filter-select" onchange="renderTable()">
+                    <option value="all">All Products</option>
+                </select>
+                <select id="statusFilter" class="filter-select" onchange="renderTable()">
+                    <option value="all">All Status</option>
+                    <option value="OK">OK Only</option>
+                    <option value="Missing">Missing Only</option>
+                    <option value="Extra">Extra Only</option>
+                </select>
+                <div style="margin-left:auto;">
+                    <button class="btn-close" onclick="goToEdit()">Edit Audit</button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+                <table>
+                    <thead class="sticky-header">
+                        <tr>
+                            <th style="width: 150px;">Barcode</th>
+                            <th>Product Name</th>
+                            <th>Color/Size</th>
+                            <th>System Balance</th>
+                            <th>Scanned</th>
+                            <th>Missing</th>
+                            <th>Extra</th>
+                            <th>Status</th>
+                            <th style="width: 80px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Rows injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentAuditId = null;
+    let auditData = [];
+    let sourceAuditIds = []; // Stores the list of IDs if it's a merged audit
+
+    // Init
+    window.addEventListener('load', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        
+        if (!id) {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('reportContent').style.display = 'none';
+            alert("No Audit ID provided. Returning to Dashboard.");
+            setTimeout(() => window.location.href = "Audit.html", 1000);
+            return;
+        }
+
+        // 1. Fetch Main Session Data
+        fetchAuditSession(id);
+    });
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('overlay').classList.toggle('show');
+    }
+
+    // --- DATA FETCHING ---
+
+    async function fetchAuditSession(id) {
+        document.getElementById('loadingState').style.display = 'block';
+        document.getElementById('reportContent').style.display = 'none';
+
+        try {
+            const { data, error } = await sb.from('audit_sessions').select('*').eq('id', id).single();
+            if (error) throw error;
+
+            // Set Global ID
+            currentAuditId = data.id;
+
+            // 2. Populate Header
+            document.getElementById('rTitle').innerText = data.audit_name;
+            document.getElementById('rCompany').innerText = data.company_name || '-';
+            document.getElementById('rOutlet').innerText = data.outlet_name || '-';
+            document.getElementById('rDate').innerText = new Date(data.audit_date).toLocaleDateString();
+            document.getElementById('rCreated').innerText = data.created_by || '-';
+            document.getElementById('rStatus').innerText = data.status;
+
+            // 3. Handle Merged Audit Logic
+            if (data.is_merged) {
+                document.getElementById('mergedInfoBox').style.display = 'block';
+                const ids = data.source_audit_ids ? data.source_audit_ids.split(',') : [];
+                
+                const container = document.getElementById('sourceIdsContainer');
+                if (ids.length > 0) {
+                    container.innerHTML = ids.map(id => `<span style="background:#e2e8f0; padding:2px 6px; margin:2px; border-radius:4px; display:inline-block;">${id.trim()}</span>`).join('');
+                } else {
+                    container.innerText = "No source IDs available.";
+                }
+            } else {
+                document.getElementById('mergedInfoBox').style.display = 'none';
+                container.innerHTML = '';
+            }
+
+            // 4. Fetch Inventory Data & Calculate Stats
+            await fetchInventoryData();
+
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('reportContent').style.display = 'block';
+
+        } catch (err) {
+            console.error("Report Load Error:", err);
+            document.getElementById('loadingState').innerHTML = `<p style="color:red">Error loading audit.</p>`;
+        }
+    }
+
+    async function fetchInventoryData() {
+        const { data, error } = await sb.from('audit_inventory')
+            .select('*')
+            .eq('audit_id', currentAuditId)
+            .order('last_scanned_at', { ascending: false }); // Show latest scans first
+
+        if (error) throw error;
+
+        // Process Data
+        auditData = data.map(item => {
+            const bal = item.balance || 0;
+            const sc = item.scanned_qty || 0;
+            
+            // Calculations
+            let mis = bal - sc;
+            let ext = sc - bal;
+            if (mis < 0) mis = 0;
+            if (ext < 0) ext = 0;
+
+            let st = 'OK';
+            if (mis > 0) st = 'Missing';
+            if (ext > 0) st = 'Extra';
+
+            return { ...item, missing_qty: mis, extra_qty: ext, status: st };
+        });
+
+        updateStats();
+        renderTable();
+    }
+
+    // --- UI RENDERING ---
+
+    function updateStats() {
+        const totalScans = auditData.reduce((a, i) => a + i.scanned_qty, 0);
+        const missing = auditData.reduce((a, i) => a + i.missing_qty, 0);
+        const extra = auditData.reduce((a, i) => a + i.extra_qty, 0);
+        const ok = auditData.filter(i => i.status === 'OK').length;
+        const sysStock = auditData.reduce((a, i) => a + (i.balance || 0), 0);
+
+        document.getElementById('statSysTotal').innerText = sysStock;
+        document.getElementById('statTotalScans').innerText = totalScans;
+        document.getElementById('statMissing').innerText = missing;
+        document.getElementById('statExtra').innerText = extra;
+        document.getElementById('statOk').innerText = ok;
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        const filterName = document.getElementById('productFilter').value;
+        const filterStatus = document.getElementById('statusFilter').value;
+
+        const filtered = auditData.filter(item => {
+            const nameMatch = filterName === 'all' || item.name.includes(filterName);
+            const statusMatch = filterStatus === 'all' || item.status === filterStatus;
+            return nameMatch && statusMatch;
+        });
+
+        filtered.forEach(item => {
+            const tr = document.createElement('tr');
+            const badgeClass = item.status === 'Missing' ? 'badge-missing' : (item.status === 'Extra' ? 'badge-extra' : 'badge-ok');
+
+            tr.innerHTML = `
+                <td>${item.barcode}</td>
+                <td>${item.name}</td>
+                <td>${item.color || '-'} / ${item.size || '-'}</td>
+                <td>${item.balance || 0}</td>
+                <td style="font-weight:bold; color:var(--primary);">${item.scanned_qty}</td>
+                <td style="color:red; font-weight:bold;">${item.missing_qty}</td>
+                <td style="color:blue; font-weight:bold;">${item.extra_qty}</td>
+                <td><span class="badge ${badgeClass}">${item.status}</span></td>
+                <td>
+                    <button class="action-btn btn-edit" onclick="editItem(${item.id}, ${item.scanned_qty})">Edit</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // --- INTERACTION LOGIC ---
+
+    async function editItem(id, currentQty) {
+        const input = prompt(`Enter new Scanned Qty for this item:`, currentQty);
+        if (input === null) return;
+        
+        const newQty = parseInt(input);
+        if (isNaN(newQty) || newQty < 0) {
+            alert("Please enter a valid positive number.");
+            return;
+        }
+
+        const { error } = await sb.from('audit_inventory').update({ scanned_qty: newQty }).eq('id', id);
+        
+        if (error) {
+            alert("Failed to update item.");
+        } else {
+            alert("Quantity Updated");
+            await fetchInventoryData(); // Refresh table
+        }
+    }
+
+    function goToEdit() {
+        window.location.href = `Audit.html?id=${currentAuditId}`;
+    }
+</script>
+</body>
+</html>
