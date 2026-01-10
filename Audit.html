@@ -48,7 +48,8 @@
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
         input, select { padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; width: 100%; }
         
-        /* Dashboard List - RESPONSIVE & SCROLLABLE */
+        /* Dashboard Lists Wrapper */
+        .lists-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .audit-list-container { 
             background: var(--surface); 
             border-radius: var(--radius); 
@@ -57,15 +58,34 @@
             margin-top: 20px; 
             display: flex;
             flex-direction: column;
-            /* Removed max-height to allow natural height, relying on overflow-x for scroll */
-            border: 1px solid var(--border); 
+            border: 1px solid var(--border);
         }
-        .audit-list-wrapper {
-            overflow-x: auto; /* Horizontal Scroll */
-            width: 100%;
+        .merged-list-container { 
+            background: #f0fdf4; /* Slight green tint to differentiate */
+            border-radius: var(--radius); 
+            overflow: hidden; 
+            box-shadow: var(--shadow); 
+            margin-top: 20px; 
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
         }
         
-        /* Table Header Sticky */
+        .list-header { 
+            background: #f8fafc; 
+            padding: 15px; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            position: sticky; 
+            top: 0; 
+            z-index: 10;
+            flex-shrink: 0;
+        }
+        .list-title { font-weight: 700; color: var(--text); }
+
+        /* Table Styles */
         .audit-list-table { width: 100%; border-collapse: collapse; min-width: 800px; }
         .audit-list-table th { 
             position: sticky; 
@@ -80,7 +100,13 @@
             text-transform: uppercase; 
             white-space: nowrap; 
         }
-        .audit-list-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .audit-list-table td { 
+            padding: 12px; 
+            text-align: left; 
+            border-bottom: 1px solid var(--border); 
+            font-size: 0.9rem; 
+            white-space: nowrap;
+        }
         
         .action-link { color: var(--primary); font-weight: 600; margin-right: 10px; cursor: pointer; text-decoration: none; white-space: nowrap; }
         .action-link.delete { color: #ef4444; }
@@ -115,7 +141,7 @@
         .history-bc { font-weight: bold; color: var(--primary); display: block; font-size: 0.9rem; }
         .history-bal { color: #64748b; font-size: 0.75rem; display: block; }
 
-        /* Table (Active Audit) */
+        /* Table */
         .table-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
@@ -125,6 +151,7 @@
         .badge-ok { background: #dcfce7; color: #166534; }
         .badge-missing { background: #fee2e2; color: #991b1b; }
         .badge-extra { background: #dbeafe; color: #1e40af; }
+        .badge-merged { background: #8b5cf6; color: white; }
 
         .action-btn { padding: 4px 8px; font-size: 0.75rem; margin-right: 4px; cursor: pointer; border: none; border-radius: 4px; color: white; }
         .btn-edit { background-color: #f59e0b; }
@@ -138,6 +165,7 @@
             .menu-toggle { display: block; }
             .scanner-section { flex-direction: column; }
             #reader-wrapper { margin: 0 auto; width: 100%; }
+            .lists-wrapper { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -183,29 +211,55 @@
                 </div>
             </div>
 
-            <!-- Previous Audits List (Horizontal Scroll) -->
-            <div class="audit-list-container">
-                <div class="audit-list-header" style="padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight:700; color:var(--text);">Previous Audits</span>
-                    <button class="btn btn-merge" onclick="mergeSelectedAudits()">Merge Selected</button>
+            <!-- Lists Wrapper (Previous + Merged) -->
+            <div class="lists-wrapper">
+                
+                <!-- Previous Audits List -->
+                <div class="audit-list-container">
+                    <div class="list-header" style="padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight:700; color:var(--text);">Previous Audits</span>
+                        <button class="btn btn-merge" onclick="mergeSelectedAudits()">Merge Selected</button>
+                    </div>
+                    <div class="audit-list-wrapper">
+                        <table class="audit-list-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;"></th> <!-- Checkbox -->
+                                    <th>Audit Name</th>
+                                    <th>Outlet</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditListBody">
+                                <!-- Rows injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="audit-list-wrapper">
-                    <table class="audit-list-table">
-                        <thead>
-                            <tr>
-                                <th style="width:40px;">Select</th> <!-- Checkbox -->
-                                <th>Audit Name</th>
-                                <th>Outlet</th>
-                                <th>Date</th>
-                                <th>Created By</th> <!-- NEW COLUMN -->
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="auditListBody">
-                            <!-- Rows injected via JS -->
-                        </tbody>
-                    </table>
+
+                <!-- Merged Audits List -->
+                <div class="merged-list-container">
+                    <div class="list-header" style="padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight:700; color:var(--text);">Merged Audits List</span>
+                    </div>
+                    <div class="audit-list-wrapper">
+                        <table class="audit-list-table">
+                            <thead>
+                                <tr>
+                                    <th>Merged Name</th>
+                                    <th>Outlet</th>
+                                    <th>Company</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mergedListBody">
+                                <!-- Rows injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -350,7 +404,7 @@
         loadDashboard();
     }
 
-    // Load Dashboard View
+    // Load Dashboard View (Fetches both Previous and Merged)
     async function loadDashboard() {
         currentAuditId = null;
         document.getElementById('dashboardPanel').style.display = 'block';
@@ -360,6 +414,7 @@
         localStorage.removeItem('currentAuditId');
         
         await fetchPreviousAudits();
+        await fetchMergedAudits();
     }
 
     // Load Active Audit View
@@ -399,6 +454,7 @@
 
     // --- DASHBOARD FUNCTIONS ---
     
+    // 1. Fetch Previous Audits
     async function fetchPreviousAudits() {
         const { data, error } = await sb.from('audit_sessions')
             .select('*')
@@ -416,7 +472,6 @@
                 <td><strong>${audit.audit_name}</strong></td>
                 <td>${audit.outlet_name || '-'}</td>
                 <td>${new Date(audit.audit_date).toLocaleDateString()}</td>
-                <td>${audit.created_by || '-'}</td> <!-- ADDED CREATED BY -->
                 <td>
                     <span class="badge ${audit.status === 'Closed' ? 'badge-ok' : 'badge-extra'}">${audit.status}</span>
                 </td>
@@ -424,6 +479,40 @@
                     <a class="action-link" href="report.html?id=${audit.id}">Report</a>
                     <a class="action-link" onclick="confirmEditAudit('${audit.id}')">${audit.status === 'Closed' ? 'Edit' : 'View'}</a>
                     ${audit.status === 'Closed' ? `<a class="action-link delete" onclick="deleteAudit('${audit.id}')">Delete</a>` : ''}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 2. Fetch Merged Audits
+    async function fetchMergedAudits() {
+        const { data, error } = await sb.from('merged_audits')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if(error) return console.error(error);
+
+        const tbody = document.getElementById('mergedListBody');
+        tbody.innerHTML = '';
+
+        if(data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:20px;">No Merged Audits Yet</td></tr>';
+            return;
+        }
+
+        data.forEach(audit => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${audit.merged_name}</strong></td>
+                <td>${audit.outlet_name || '-'}</td>
+                <td>${audit.company_name || '-'}</td>
+                <td>
+                    <span class="badge badge-merged">${audit.status}</span>
+                </td>
+                <td>
+                    <a class="action-link" href="report.html?id=${audit.id}">Report</a>
+                    ${audit.status === 'In Progress' ? `<a class="action-link delete" onclick="deleteMergedAudit('${audit.id}')">Delete</a>` : ''}
                 </td>
             `;
             tbody.appendChild(tr);
@@ -452,11 +541,8 @@
         loadAudit(data);
     }
 
-    // --- EDIT / RESUME AUDIT ---
     async function confirmEditAudit(id) {
         if(!confirm("Do you want to SAVE (Resume) and allow scanning?\n\nOK = Resume & Allow Scanning\nCancel = Discard Changes")) return;
-        
-        // User clicked OK -> Resume
         await resumeAudit(id);
     }
 
@@ -464,8 +550,6 @@
         // Update status to In Progress
         const { error } = await sb.from('audit_sessions').update({ status: 'In Progress' }).eq('id', id);
         if(error) return alert("Failed to resume audit");
-        
-        // Reload audit state which enables scanner and focuses input
         await loadAuditById(id);
     }
 
@@ -477,12 +561,11 @@
         // 2. Delete session
         await sb.from('audit_sessions').delete().eq('id', id);
 
-        await fetchPreviousAudits();
+        await fetchPreviousAudits(); // Reload dashboard
+        await fetchMergedAudits(); // Reload merged list
     }
 
-
-    // --- MERGE LOGIC ---
-
+    // --- MERGE LOGIC (FIXED) ---
     async function mergeSelectedAudits() {
         const checkboxes = document.querySelectorAll('.audit-merge-check:checked');
         if(checkboxes.length < 2) {
@@ -490,7 +573,7 @@
             return;
         }
 
-        // 1. Prompt for new audit details
+        // 1. Prompt for details
         const auditName = prompt("Merged Audit Name:", "Merged Audit " + new Date().toLocaleDateString());
         const companyName = prompt("Company Name:", "Merged");
         const branchName = prompt("Branch Name:", "Merged");
@@ -499,6 +582,7 @@
         if (!auditName) return;
 
         const ids = Array.from(checkboxes).map(cb => cb.value);
+        const sourceIds = ids.join(',');
 
         // 2. Fetch all inventory for selected audits
         const { data: invData, error } = await sb.from('audit_inventory')
@@ -507,51 +591,74 @@
 
         if(error) return console.error(error);
 
-        // 3. Aggregate by Barcode (Sum scanned_qty across audits)
+        // 3. Aggregate by Barcode
         const map = {};
         invData.forEach(item => {
             if(!map[item.barcode]) {
-                // Store basic info from first occurrence
                 map[item.barcode] = {
                     barcode: item.barcode,
                     name: item.name,
                     style_code: item.style_code,
                     color: item.color,
                     size: item.size,
-                    balance: item.balance, // Assuming System Stock is static
+                    balance: item.balance, // System Stock is static
                     scanned_qty: 0
                 };
             }
-            // Add scanned quantity
             map[item.barcode].scanned_qty += item.scanned_qty;
         });
 
         const mergedRows = Object.values(map);
 
-        // 4. Create New Audit Session (In Progress so we can edit name)
+        // 4. Create New Audit Session in audit_sessions
         const { data: newSession, error: sessionError } = await sb.from('audit_sessions').insert([{
             audit_name: auditName,
             company_name: companyName,
             outlet_name: branchName,
             created_by: margeBy,
-            status: 'In Progress', // Keep In Progress to allow name editing
+            status: 'In Progress', // Keep In Progress so you can edit the name after merge
             audit_date: new Date()
         }]).select().single();
 
         if(sessionError) return alert("Failed to create merge session");
 
-        // 5. Insert Merged Rows
+        // 5. Insert Merged Row into merged_audits (For tracking)
+        await sb.from('merged_audits').insert([{
+            id: newSession.id, // Use same ID for consistency
+            merged_name: auditName,
+            company_name: companyName,
+            outlet_name: branchName,
+            created_by: margeBy,
+            status: 'In Progress',
+            created_at: new Date(),
+            source_audit_ids: sourceIds
+        }]);
+
+        // 6. Insert Merged Inventory Rows into audit_inventory
         const rowsToInsert = mergedRows.map(r => ({
             ...r,
-            audit_id: newSession.id,
+            audit_id: newSession.id, // Use the new session ID
             last_scanned_at: new Date()
         }));
 
         await sb.from('audit_inventory').insert(rowsToInsert);
 
-        alert("Audits Merged Successfully! Redirecting to Audit...");
-        // Redirect to the new audit
-        loadAudit(newSession);
+        // 7. Delete original audits from audit_sessions (This cascades delete to audit_inventory)
+        await sb.from('audit_sessions').delete().in('id', `(${ids.join(',')})`);
+
+        alert("Audits Merged Successfully! Reloading lists...");
+        
+        // 8. Reload Dashboard (This will remove items from 'Previous' and show them in 'Merged')
+        loadDashboard();
+    }
+
+    // Delete from Merged List
+    async function deleteMergedAudit(id) {
+        if(!confirm("Are you sure? This cannot be undone.")) return;
+        await sb.from('audit_inventory').delete().eq('audit_id', id);
+        await sb.from('merged_audits').delete().eq('id', id);
+        // Note: Deleting from merged_audits deletes the 'source' link, but since it's already merged, it's gone.
+        await fetchMergedAudits();
     }
 
 
