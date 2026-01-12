@@ -79,8 +79,8 @@
         .stat-sys { border-color: #8b5cf6; color: #8b5cf6; }
 
         /* Table */
-        .filter-section { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .filter-select { padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; font-size: 1rem; min-width: 200px; }
+        .filter-section { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .filter-select { padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; font-size: 1rem; min-width: 200px; }
         .badge-filter { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); white-space: nowrap; }
         .badge-filter.active { background: var(--primary); color: white; border-color: var(--primary); }
 
@@ -89,7 +89,7 @@
         th, td { padding: 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
         th { background-color: #f8fafc; font-weight: 600; color: #475569; white-space: nowrap; }
         
-        .badge { padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+        .badge { padding: 6px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
         .badge-ok { background: #dcfce7; color: #166534; }
         .badge-missing { background: #fee2e2; color: #991b1b; }
         .badge-extra { background: #dbeafe; color: #1e40af; }
@@ -162,7 +162,7 @@
                 <!-- Export Buttons -->
                 <div class="export-actions">
                     <button class="btn-excel" onclick="exportToExcel()">📊 Export Excel</button>
-                    <button class="btn-pdf" onclick="exportToPDF()">📄 Export PDF</button>
+                    <button class="btn-pdf" onclick="exportToPDF()">📋 Export PDF</button>
                 </div>
             </div>
 
@@ -211,8 +211,8 @@
                         <tr>
                             <th style="width: 150px;">Barcode</th>
                             <th>Product Name</th>
-                            <th>Color</th> <!-- SEPARATED -->
-                            <th>Size</th>  <!-- SEPARATED -->
+                            <th>Color</th> <!-- SPLIT -->
+                            <th>Size</th>  <!-- SPLIT -->
                             <th>Style Code</th> <!-- ADDED -->
                             <th>System Balance</th>
                             <th>Scanned Qty</th>
@@ -295,11 +295,17 @@
             if (invError) throw invError;
 
             // 5. Process Data (Calculations)
+            // Ensure valid numbers to prevent "Unexpected number" error
             auditData = data.map(item => {
-                const bal = item.balance || 0;
-                const sc = item.scanned_qty || 0;
+                const bal = parseFloat(item.balance) || 0;
+                const sc = parseFloat(item.scanned_qty) || 0;
                 
-                // Calculations
+                // If parsing failed (NaN), set to 0
+                if (isNaN(bal) || isNaN(sc)) {
+                    console.warn("Invalid numeric data found, resetting to 0", item);
+                    return { ...item, balance: 0, scanned_qty: 0, missing_qty: 0, extra_qty: 0, status: 'OK' };
+                }
+
                 let mis = bal - sc;
                 let ext = sc - bal;
                 if (mis < 0) mis = 0;
@@ -322,14 +328,13 @@
 
         } catch (err) {
             console.error("Report Load Error:", err);
-            document.getElementById('loadingState').innerHTML = `<p style="color:red">Error loading audit: ${err.message}</p>`;
+            document.getElementById('loadingState').innerHTML = `<p style="color:red">Error loading audit.</p>`;
         }
     }
 
     // --- UI RENDERING ---
 
     function updateStats() {
-        // Check for null to prevent "reduce of undefined"
         if (!auditData || !Array.isArray(auditData)) return;
 
         const totalSys = auditData.reduce((a, i) => a + (Number(i.balance) || 0), 0);
@@ -383,40 +388,39 @@
         });
     }
 
-    // --- EXPORT FUNCTIONS (ROBUST) ---
+    // --- EXPORT FUNCTIONS (FINAL) ---
 
     // Export to Excel
     async function exportToExcel() {
         // 1. Validation
-        if (!auditData || auditData.length === 0) {
+        if (!auditData || !Array.isArray(auditData) || auditData.length === 0) {
             alert("No data available to export.");
             return;
         }
 
         try {
-            // 2. Create Data Array
+            // 2. Create Data Array (Explicit Casting)
             const excelData = auditData.map(item => ({
-                Barcode: item.barcode,
-                Name: item.name,
-                Color: item.color || '-',
-                Size: item.size || '-',
-                'Style Code': item.style_code || '-',
-                'System Balance': item.balance,
-                'Scanned Qty': item.scanned_qty,
-                'Missing Qty': item.missing_qty,
-                'Extra Qty': item.extra_qty,
-                Status: item.status
+                Barcode: String(item.barcode),
+                Name: String(item.name || ''),
+                Color: String(item.color || '-'),
+                Size: String(item.size || '-'),
+                'Style Code': String(item.style_code || '-'),
+                'System Balance': Number(item.balance),
+                'Scanned Qty': Number(item.scanned_qty),
+                'Missing Qty': Number(item.missing_qty),
+                'Extra Qty': Number(item.extra_qty),
+                Status: String(item.status || '')
             }));
 
             // 3. Create Workbook
             const wb = XLSX.utils.book_new();
 
-            // 4. Create Worksheet using Array of Arrays for robust column widths
+            // 4. Create Worksheet
             const wsData = [
                 ["Barcode", "Name", "Color", "Size", "Style Code", "System Balance", "Scanned Qty", "Missing Qty", "Extra Qty", "Status"], // Header
             ];
 
-            // Add Row Data
             excelData.forEach(row => {
                 wsData.push([
                     row['Barcode'],
@@ -432,40 +436,26 @@
                 ]);
             });
 
-            // 5. Create Worksheet (Array of Arrays approach)
-            const ws = XLSX.utils.aoa_to_sheet(wsData, { header: 1 });
-            wb.SheetNames.push("Audit Report");
-            wb.Sheets.push(ws);
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // 5. Append to Workbook
+            XLSX.utils.book_append_sheet(wb, ws, "Audit Report");
 
-            // 6. Set Column Widths
-            if (!ws['!cols']) {
-                ws['!cols'] = wsData[0].map(() => ({ wch: 15 })); // Default width
-            }
-            ws['!cols'][0].wch = 20; // Barcode
-            ws['!cols'][1].wch = 35; // Name
-            ws['!cols'][2].wch = 15; // Color
-            ws['!cols'][3].wch = 15; // Size
-            ws['!cols'][4].wch = 15; // Style Code
-            ws['!cols'][5].wch = 12; // Balance
-            ws['!cols'][6].wch = 12; // Scanned
-            ws['!cols'][7].wch = 12; // Missing
-            ws['!cols'][8].wch = 12; // Extra
-            ws['!cols'][9].wch = 12; // Status
-
-            // 7. Download
-            XLSX.writeFile(wb, `Audit_Report_${currentAuditInfo.audit_name}.xlsx`);
+            // 6. Download
+            XLSX.writeFile(wb, `Audit_Report_${currentAuditInfo.audit_name || 'Export'}.xlsx`);
 
             console.log("Excel Exported Successfully");
 
         } catch (error) {
             console.error("Excel Export Error:", error);
-            alert("Excel Export Failed: " + error.message);
+            alert("Excel Export Failed. Check console for details.");
         }
     }
 
-    // Export to PDF (Double Layer: AutoTable + Fallback)
+    // Export to PDF (Robust & Safe)
     async function exportToPDF() {
-        if (!auditData || auditData.length === 0) {
+        // 1. Validation
+        if (!auditData || !Array.isArray(auditData) || auditData.length === 0) {
             alert("No data available to export.");
             return;
         }
@@ -479,7 +469,7 @@
 
             const doc = new jsPDF({ orientation: "landscape", unit: "pt" });
             
-            // Filter Data
+            // Filter Data (Safe)
             const filterName = document.getElementById('productFilter').value;
             const filterStatus = document.getElementById('statusFilter').value;
             const filteredData = auditData.filter(item => {
@@ -487,6 +477,16 @@
                 const statusMatch = filterStatus === 'all' || item.status === filterStatus;
                 return nameMatch && statusMatch;
             });
+
+            // Data Sanitization Check for PDF
+            const dataIsValid = filteredData.every(item => {
+                return !isNaN(item.balance) && !isNaN(item.scanned_qty);
+            });
+
+            if (!dataIsValid) {
+                alert("Data contains errors (non-numeric values). Cannot export PDF safely.");
+                return;
+            }
 
             const columns = [
                 { header: "Barcode", dataKey: "barcode", width: 40 },
@@ -509,7 +509,6 @@
                 black: { fillColor: "#ffffff", textColor: "#0f172a", fontStyle: "normal" }
             };
 
-            // Define column styles
             const columnStyles = {
                 barcode: { styles: styles.grey },
                 name: { styles: styles.black },
@@ -523,64 +522,17 @@
                 status: (row) => row.status === 'OK' ? styles.green : (row.status === 'Missing' ? styles.red : styles.blue)
             };
 
-            // Attempt 1: AutoTable (Professional & Easier)
-            if (doc.autoTable) {
-                const sessionName = document.getElementById('rTitle').innerText;
-                
-                // Sanitize sessionName to prevent "Unexpected number" errors if name contains quotes/backticks
-                const safeName = sessionName.replace(/`/g, "'").replace(/'/g, '');
+            // 2. Safe Title
+            const rawSessionName = document.getElementById('rTitle').innerText;
+            const safeName = rawSessionName.replace(/`/g, "'").replace(/'/g, ""); // Remove quotes to prevent PDF syntax error
 
-                // Header Text
-                doc.setFontSize(14);
-                doc.setFont("helvetica", "bold");
-                doc.text(`Audit Report: ${safeName}`, 14, doc.internal.pageSize.width / 2, 15);
-
-                // Info Text
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "normal");
-                const company = document.getElementById('rCompany').innerText;
-                const outlet = document.getElementById('rOutlet').innerText;
-                const date = document.getElementById('rDate').innerText;
-                const status = document.getElementById('rStatus').innerText;
-                
-                let infoX = 14;
-                if(company !== '-') { doc.text(`Company: ${company}`, infoX, 20, { align: 'left' }); infoX += 60; }
-                if(outlet !== '-') { doc.text(`Outlet: ${outlet}`, infoX, 20, { align: 'left' }); infoX += 60; }
-                if(date !== '-') { doc.text(`Date: ${date}`, infoX, 20, { align: 'left' }); infoX += 60; }
-                if(status !== '-') { doc.text(`Status: ${status}`, infoX, 20, { align: 'left' }); infoX += 60; }
-                
-                // Add AutoTable
-                doc.autoTable({
-                    startY: 30,
-                    columns: columns,
-                    body: filteredData,
-                    styles: columnStyles,
-                    theme: 'striped'
-                });
-
-                doc.save(`Audit_Report_${safeName}.pdf`);
-                return;
-            }
-        } catch (err) {
-            console.warn("AutoTable failed, falling back to manual drawing:", err);
-        }
-
-        // Attempt 2: Manual Drawing (Fallback)
-        try {
-            const sessionName = document.getElementById('rTitle').innerText;
-            const safeName = sessionName.replace(/`/g, "'").replace(/'/g, "");
-            
-            const colWidths = {40, 60, 40, 40, 40, 40, 40, 40, 30, 30, 35};
-            const rowHeight = 12;
-            let yPosition = 30;
-
-            // Title
+            // 3. Header Text
             doc.setFontSize(16);
             doc.setFont("helvetica", "bold");
-            doc.text(`Audit Report: ${safeName}`, 14, doc.internal.pageSize.width / 2, yPosition);
-            yPosition += 25;
+            doc.text(`Audit Report: ${safeName}`, 14, doc.internal.pageSize.width / 2, 15);
+            let yPosition = 25;
 
-            // Metadata
+            // 4. Metadata
             doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
             const company = document.getElementById('rCompany').innerText;
@@ -594,12 +546,11 @@
             if (status !== '-') doc.text(`Status: ${status}`, 14, 14, yPosition, { align: 'left' });
             yPosition += 10;
 
-            // Header Underline
-            doc.setLineWidth(0.5);
-            doc.line(14, 14, 198, yPosition);
-            yPosition += 5;
+            // 5. Draw Table (Manual Loop - Most Robust)
+            const colWidths = [40, 60, 40, 40, 40, 40, 40, 30, 30, 35];
+            const rowHeight = 12;
 
-            // Table Headers
+            // Header Background
             doc.setFillColor(59, 130, 246); // Blue
             doc.setTextColor(255, 255, 255); // White
             doc.setFontSize(11);
@@ -608,7 +559,7 @@
             doc.text("Product Name", colWidths[1], yPosition);
             doc.text("Color", colWidths[2], yPosition);
             doc.text("Size", colWidths[3], yPosition);
-            doc.text("Style Code", colWidths[4], yPosition); // Added
+            doc.text("Style Code", colWidths[4], yPosition);
             doc.text("System Balance", colWidths[5], yPosition);
             doc.text("Scanned Qty", colWidths[6], yPosition);
             doc.text("Missing", colWidths[7], yPosition);
@@ -618,26 +569,31 @@
 
             // Table Rows
             doc.setFillColor(255, 255, 255); // White BG
-            doc.setTextColor(50, 50, 50); // Dark Grey
+            doc.setTextColor(50, 50, 50); // Dark Grey Text
             doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
             doc.setLineWidth(0.1);
             doc.setDrawColor({ lineColor: [229, 229, 229] }); // Line Color Light Grey
 
-            filteredData.forEach((item, index) => {
-                const y = yPosition;
+            filteredData.forEach((item) => {
                 let x = 14;
 
+                // Ensure numbers before adding/subtracting
+                const bal = parseFloat(item.balance) || 0;
+                const sc = parseFloat(item.scanned_qty) || 0;
+                const mis = parseFloat(item.missing_qty) || 0;
+                const ext = parseFloat(item.extra_qty) || 0;
+
                 // Draw Cells
-                doc.text(item.barcode, x, y); x += colWidths[0];
-                doc.text(item.name, x, y); x += colWidths[1];
-                doc.text(item.color || '-', x, y); x += colWidths[2]; // Separate
-                doc.text(item.size || '-', x, y); x += colWidths[3]; // Separate
-                doc.text(item.style_code || '-', x, y); x += colWidths[4]; // Added (Style Code)
-                doc.text(String(item.balance), x, y); x += colWidths[5];
-                doc.text(String(item.scanned_qty), x, y); x += colWidths[6];
-                doc.text(String(item.missing_qty), x, y); x += colWidths[7];
-                doc.text(String(item.extra_qty), x, y); x += colWidths[8];
+                doc.text(item.barcode, x, yPosition); x += colWidths[0];
+                doc.text(item.name, x, yPosition); x += colWidths[1];
+                doc.text(item.color || '-', x, yPosition); x += colWidths[2];
+                doc.text(item.size || '-', x, yPosition); x += colWidths[3];
+                doc.text(item.style_code || '-', x, yPosition); x += colWidths[4];
+                doc.text(String(bal), x, yPosition); x += colWidths[5];
+                doc.text(String(sc), x, yPosition); x += colWidths[6];
+                doc.text(String(mis), x, yPosition); x += colWidths[7];
+                doc.text(String(ext), x, yPosition); x += colWidths[8];
 
                 // Status Color
                 let color = [0, 0, 0];
@@ -648,11 +604,13 @@
                 if (item.status === 'Extra') { color = [59, 130, 246]; text = "#1e40af"; }
                 
                 doc.setFillColor(color);
-                doc.rect(x, y, colWidths[9], rowHeight);
+                doc.rect(x, yPosition, colWidths[9], rowHeight);
                 doc.setFillColor(255, 255, 255); // Reset to white text
                 doc.setTextColor(color);
-                doc.text(item.status, x + 2, y + 2);
+                doc.text(item.status, x + 2, yPosition + 2);
                 doc.setTextColor(50, 50, 50); // Reset text color
+                
+                yPosition += 12; // Next row
             });
 
             doc.save(`Audit_Report_${safeName}.pdf`);
@@ -669,9 +627,9 @@
         const input = prompt(`Enter new Scanned Qty:`, currentQty);
         if (input === null) return;
         
-        // Strict Validation to prevent "Unexpected number"
-        const newQty = Number(input);
-        if (!newQty || isNaN(newQty) || newQty < 0) {
+        // Validation to prevent NaN
+        const newQty = parseInt(input);
+        if (!newQty || newQty < 0) {
             alert("Please enter a valid positive number.");
             return;
         }
