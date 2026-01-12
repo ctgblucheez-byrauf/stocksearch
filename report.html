@@ -79,8 +79,8 @@
         .stat-sys { border-color: #8b5cf6; color: #8b5cf6; }
 
         /* Table */
-        .filter-section { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .filter-select { padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; font-size: 1rem; min-width: 200px; }
+        .filter-section { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .filter-select { padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; font-size: 1rem; min-width: 200px; }
         .badge-filter { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); white-space: nowrap; }
         .badge-filter.active { background: var(--primary); color: white; border-color: var(--primary); }
 
@@ -94,7 +94,7 @@
         .badge-missing { background: #fee2e2; color: #991b1b; }
         .badge-extra { background: #dbeafe; color: #1e40af; }
 
-        .action-btn { padding: 6px 12px; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer; color: white; font-weight: 600; }
+        .action-btn { padding: 6px 12px; border: none; border-radius: 4px; font-size: 0.85rem; cursor: pointer; color: white; font-weight: 600; }
         .btn-edit { background-color: #f59e0b; margin-right: 5px; }
 
         /* Loader */
@@ -211,8 +211,8 @@
                         <tr>
                             <th style="width: 150px;">Barcode</th>
                             <th>Product Name</th>
-                            <th>Color</th> <!-- SPLIT -->
-                            <th>Size</th> <!-- SPLIT -->
+                            <th>Color</th> <!-- SEPARATED -->
+                            <th>Size</th>  <!-- SEPARATED -->
                             <th>Style Code</th> <!-- ADDED -->
                             <th>System Balance</th>
                             <th>Scanned Qty</th>
@@ -294,7 +294,7 @@
 
             if (invError) throw invError;
 
-            // 5. Process Data
+            // 5. Process Data (Calculations)
             auditData = data.map(item => {
                 const bal = item.balance || 0;
                 const sc = item.scanned_qty || 0;
@@ -329,12 +329,13 @@
     // --- UI RENDERING ---
 
     function updateStats() {
-        if (!auditData || auditData.length === 0) return;
-        
-        const totalSys = auditData.reduce((a, i) => a + (i.balance || 0), 0);
-        const totalScans = auditData.reduce((a, i) => a + i.scanned_qty, 0);
-        const missing = auditData.reduce((a, i) => a + i.missing_qty, 0);
-        const extra = auditData.reduce((a, i) => a + i.extra_qty, 0);
+        // Check for null to prevent "reduce of undefined"
+        if (!auditData || !Array.isArray(auditData)) return;
+
+        const totalSys = auditData.reduce((a, i) => a + (Number(i.balance) || 0), 0);
+        const totalScans = auditData.reduce((a, i) => a + (Number(i.scanned_qty) || 0), 0);
+        const missing = auditData.reduce((a, i) => a + (Number(i.missing_qty) || 0), 0);
+        const extra = auditData.reduce((a, i) => a + (Number(i.extra_qty) || 0), 0);
         const ok = auditData.filter(i => i.status === 'OK').length;
 
         document.getElementById('statSysTotal').innerText = totalSys;
@@ -348,7 +349,7 @@
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
 
-        if (!auditData) return;
+        if (!auditData || !Array.isArray(auditData)) return;
 
         const filterName = document.getElementById('productFilter').value;
         const filterStatus = document.getElementById('statusFilter').value;
@@ -367,8 +368,8 @@
                 <td>${item.barcode}</td>
                 <td>${item.name}</td>
                 <td>${item.color || '-'}</td> <!-- SEPARATED COLOR -->
-                <td>${item.size || '-'}</td>   <!-- SEPARATED SIZE -->
-                <td>${item.style_code || '-'}</td> <!-- STYLE CODE COLUMN -->
+                <td>${item.size || '-'}</td>  <!-- SEPARATED SIZE -->
+                <td>${item.style_code || '-'}</td> <!-- STYLE CODE -->
                 <td>${item.balance}</td>
                 <td style="font-weight:bold; color:var(--primary);">${item.scanned_qty}</td>
                 <td style="color:red; font-weight:bold;">${item.missing_qty}</td>
@@ -382,47 +383,76 @@
         });
     }
 
-    // --- EXPORT FUNCTIONS ---
+    // --- EXPORT FUNCTIONS (ROBUST) ---
 
     // Export to Excel
     async function exportToExcel() {
+        // 1. Validation
         if (!auditData || auditData.length === 0) {
             alert("No data available to export.");
             return;
         }
 
         try {
-            // 1. Create Workbook
+            // 2. Create Data Array
+            const excelData = auditData.map(item => ({
+                Barcode: item.barcode,
+                Name: item.name,
+                Color: item.color || '-',
+                Size: item.size || '-',
+                'Style Code': item.style_code || '-',
+                'System Balance': item.balance,
+                'Scanned Qty': item.scanned_qty,
+                'Missing Qty': item.missing_qty,
+                'Extra Qty': item.extra_qty,
+                Status: item.status
+            }));
+
+            // 3. Create Workbook
             const wb = XLSX.utils.book_new();
 
-            // 2. Prepare Header Array
+            // 4. Create Worksheet using Array of Arrays for robust column widths
             const wsData = [
-                ["Barcode", "Product Name", "Color", "Size", "Style Code", "System Balance", "Scanned Qty", "Missing Qty", "Extra Qty", "Status"]
+                ["Barcode", "Name", "Color", "Size", "Style Code", "System Balance", "Scanned Qty", "Missing Qty", "Extra Qty", "Status"], // Header
             ];
 
-            // 3. Prepare Data Rows (Separated Columns)
-            auditData.forEach(item => {
+            // Add Row Data
+            excelData.forEach(row => {
                 wsData.push([
-                    item.barcode,
-                    item.name,
-                    item.color || '-',     // Separate
-                    item.size || '-',      // Separate
-                    item.style_code || '-', // Added Style Code
-                    item.balance,
-                    item.scanned_qty,
-                    item.missing_qty,
-                    item.extra_qty,
-                    item.status
+                    row['Barcode'],
+                    row['Name'],
+                    row['Color'],
+                    row['Size'],
+                    row['Style Code'],
+                    row['System Balance'],
+                    row['Scanned Qty'],
+                    row['Missing Qty'],
+                    row['Extra Qty'],
+                    row['Status']
                 ]);
             });
 
-            // 4. Create Worksheet
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            // 5. Create Worksheet (Array of Arrays approach)
+            const ws = XLSX.utils.aoa_to_sheet(wsData, { header: 1 });
+            wb.SheetNames.push("Audit Report");
+            wb.Sheets.push(ws);
 
-            // 5. Append to Workbook
-            XLSX.utils.book_append_sheet(wb, ws, "Audit Report");
+            // 6. Set Column Widths
+            if (!ws['!cols']) {
+                ws['!cols'] = wsData[0].map(() => ({ wch: 15 })); // Default width
+            }
+            ws['!cols'][0].wch = 20; // Barcode
+            ws['!cols'][1].wch = 35; // Name
+            ws['!cols'][2].wch = 15; // Color
+            ws['!cols'][3].wch = 15; // Size
+            ws['!cols'][4].wch = 15; // Style Code
+            ws['!cols'][5].wch = 12; // Balance
+            ws['!cols'][6].wch = 12; // Scanned
+            ws['!cols'][7].wch = 12; // Missing
+            ws['!cols'][8].wch = 12; // Extra
+            ws['!cols'][9].wch = 12; // Status
 
-            // 6. Download
+            // 7. Download
             XLSX.writeFile(wb, `Audit_Report_${currentAuditInfo.audit_name}.xlsx`);
 
             console.log("Excel Exported Successfully");
@@ -461,9 +491,9 @@
             const columns = [
                 { header: "Barcode", dataKey: "barcode", width: 40 },
                 { header: "Product Name", dataKey: "name", width: 60 },
-                { header: "Color", dataKey: "color", width: 40 }, // Separate
-                { header: "Size", dataKey: "size", width: 40 },   // Separate
-                { header: "Style Code", dataKey: "style_code", width: 40 }, // Added
+                { header: "Color", dataKey: "color", width: 40 },
+                { header: "Size", dataKey: "size", width: 40 },
+                { header: "Style Code", dataKey: "style_code", width: 40 },
                 { header: "System Balance", dataKey: "balance", width: 40 },
                 { header: "Scanned Qty", dataKey: "scanned_qty", width: 40 },
                 { header: "Missing", dataKey: "missing_qty", width: 30 },
@@ -485,7 +515,7 @@
                 name: { styles: styles.black },
                 color: { styles: styles.black },
                 size: { styles: styles.black },
-                style_code: { styles: styles.black }, // Style Code
+                style_code: { styles: styles.black },
                 balance: { styles: styles.black },
                 scanned_qty: { styles: styles.black },
                 missing_qty: { styles: styles.black },
@@ -493,14 +523,17 @@
                 status: (row) => row.status === 'OK' ? styles.green : (row.status === 'Missing' ? styles.red : styles.blue)
             };
 
-            // Attempt 1: AutoTable (Professional & Clean)
+            // Attempt 1: AutoTable (Professional & Easier)
             if (doc.autoTable) {
                 const sessionName = document.getElementById('rTitle').innerText;
                 
+                // Sanitize sessionName to prevent "Unexpected number" errors if name contains quotes/backticks
+                const safeName = sessionName.replace(/`/g, "'").replace(/'/g, '');
+
                 // Header Text
                 doc.setFontSize(14);
                 doc.setFont("helvetica", "bold");
-                doc.text(`Audit Report: ${sessionName}`, 14, doc.internal.pageSize.width / 2, 15);
+                doc.text(`Audit Report: ${safeName}`, 14, doc.internal.pageSize.width / 2, 15);
 
                 // Info Text
                 doc.setFontSize(10);
@@ -525,26 +558,27 @@
                     theme: 'striped'
                 });
 
-                doc.save(`Audit_Report_${sessionName}.pdf`);
+                doc.save(`Audit_Report_${safeName}.pdf`);
                 return;
             }
         } catch (err) {
             console.warn("AutoTable failed, falling back to manual drawing:", err);
         }
 
-        // Attempt 2: Manual Drawing (Fallback & Customizable)
+        // Attempt 2: Manual Drawing (Fallback)
         try {
             const sessionName = document.getElementById('rTitle').innerText;
+            const safeName = sessionName.replace(/`/g, "'").replace(/'/g, "");
             
-            const colWidths = {40, 60, 40, 40, 40, 40, 40, 30, 30, 35};
+            const colWidths = {40, 60, 40, 40, 40, 40, 40, 40, 30, 30, 35};
             const rowHeight = 12;
             let yPosition = 30;
 
             // Title
             doc.setFontSize(16);
             doc.setFont("helvetica", "bold");
-            doc.text(`Audit Report: ${sessionName}`, 14, doc.internal.pageSize.width / 2, yPosition);
-            yPosition += 20;
+            doc.text(`Audit Report: ${safeName}`, 14, doc.internal.pageSize.width / 2, yPosition);
+            yPosition += 25;
 
             // Metadata
             doc.setFontSize(10);
@@ -572,8 +606,8 @@
             doc.setFont("helvetica", "bold");
             doc.text("Barcode", colWidths[0], yPosition);
             doc.text("Product Name", colWidths[1], yPosition);
-            doc.text("Color", colWidths[2], yPosition); // Separate
-            doc.text("Size", colWidths[3], yPosition);   // Separate
+            doc.text("Color", colWidths[2], yPosition);
+            doc.text("Size", colWidths[3], yPosition);
             doc.text("Style Code", colWidths[4], yPosition); // Added
             doc.text("System Balance", colWidths[5], yPosition);
             doc.text("Scanned Qty", colWidths[6], yPosition);
@@ -584,10 +618,11 @@
 
             // Table Rows
             doc.setFillColor(255, 255, 255); // White BG
-            doc.setTextColor(50, 50, 50); // Dark Grey Text
+            doc.setTextColor(50, 50, 50); // Dark Grey
             doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
             doc.setLineWidth(0.1);
+            doc.setDrawColor({ lineColor: [229, 229, 229] }); // Line Color Light Grey
 
             filteredData.forEach((item, index) => {
                 const y = yPosition;
@@ -597,8 +632,8 @@
                 doc.text(item.barcode, x, y); x += colWidths[0];
                 doc.text(item.name, x, y); x += colWidths[1];
                 doc.text(item.color || '-', x, y); x += colWidths[2]; // Separate
-                doc.text(item.size || '-', x, y); x += colWidths[3];   // Separate
-                doc.text(item.style_code || '-', x, y); x += colWidths[4]; // Added
+                doc.text(item.size || '-', x, y); x += colWidths[3]; // Separate
+                doc.text(item.style_code || '-', x, y); x += colWidths[4]; // Added (Style Code)
                 doc.text(String(item.balance), x, y); x += colWidths[5];
                 doc.text(String(item.scanned_qty), x, y); x += colWidths[6];
                 doc.text(String(item.missing_qty), x, y); x += colWidths[7];
@@ -614,18 +649,17 @@
                 
                 doc.setFillColor(color);
                 doc.rect(x, y, colWidths[9], rowHeight);
-                doc.setFillColor(255, 255, 255); // Reset BG
+                doc.setFillColor(255, 255, 255); // Reset to white text
                 doc.setTextColor(color);
-                doc.text(item.status, x, y + 2);
-
-                yPosition += 12; // Next row
+                doc.text(item.status, x + 2, y + 2);
+                doc.setTextColor(50, 50, 50); // Reset text color
             });
 
-            doc.save(`Audit_Report_${sessionName}.pdf`);
+            doc.save(`Audit_Report_${safeName}.pdf`);
 
-        } catch (err) {
-            console.error("PDF Export Error:", err);
-            alert("PDF Export Failed: " + err.message);
+        } catch (error) {
+            console.error("PDF Export Error:", error);
+            alert("PDF Export Failed: " + error.message);
         }
     }
 
@@ -635,8 +669,9 @@
         const input = prompt(`Enter new Scanned Qty:`, currentQty);
         if (input === null) return;
         
-        const newQty = parseInt(input);
-        if (isNaN(newQty) || newQty < 0) {
+        // Strict Validation to prevent "Unexpected number"
+        const newQty = Number(input);
+        if (!newQty || isNaN(newQty) || newQty < 0) {
             alert("Please enter a valid positive number.");
             return;
         }
