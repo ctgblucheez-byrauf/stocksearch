@@ -25,7 +25,7 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { margin: 0; background-color: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
 
-        /* Sidebar & Layout */
+        /* Layout */
         .sidebar { width: var(--sidebar-width); background-color: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; padding: 1.5rem 1rem; position: fixed; top: 0; bottom: 0; left: 0; z-index: 1000; transition: transform 0.3s ease; }
         .sidebar-header { font-size: 1.25rem; font-weight: 700; margin-bottom: 2rem; color: white; padding-bottom: 1rem; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
         .sidebar a { color: #cbd5e1; text-decoration: none; padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 0.5rem; display: block; font-weight: 500; transition: all 0.2s; }
@@ -43,108 +43,102 @@
         /* Main Content */
         main { padding: 1rem; max-width: 1200px; margin: 0 auto; }
 
-        /* Setup Card (Dashboard) */
-        .setup-card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        /* Setup Card */
+        .setup-card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); }
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
         input, select { padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; width: 100%; }
         
-        /* Dashboard Lists Wrapper */
+        /* Add Item Panel */
+        .add-item-panel { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); display: none; flex-direction: column; }
+        .add-item-panel.open { display: flex; }
+        
+        .search-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+        .mode-toggles { display: flex; gap: 5px; font-weight: 600; margin-bottom: 10px; }
+        .mode-badge { cursor: pointer; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; }
+        .mode-badge.active { background-color: var(--primary); color: white; border-color: var(--primary); }
+
+        .search-input-wrap { display: flex; gap: 10px; }
+        #inventorySearch { flex: 1; padding: 1rem; font-size: 1rem; border: 2px solid var(--primary); border-radius: var(--radius); }
+        
+        .search-results, .category-results { max-height: 350px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1rem; }
+        
+        /* Individual Items */
+        .search-result-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .search-result-item:hover { background-color: #f1f5f9; }
+        .search-result-item.selected { background-color: #dbeafe; border-left: 4px solid var(--primary); }
+        
+        /* Category Items (Summary) */
+        .category-item { padding: 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: block; transition: background 0.2s; }
+        .category-item:hover { background-color: #f1f5f9; }
+        .category-item.selected { background-color: #dbeafe; border-left: 4px solid var(--primary); }
+
+        .result-info strong { display: block; font-size: 1rem; color: var(--text); margin-bottom: 4px; }
+        .result-meta { font-size: 0.9rem; color: var(--secondary); }
+        .total-stock-highlight { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+
+        .selection-summary { background: #eff6ff; padding: 1rem; border-radius: 8px; border: 1px solid #dbeafe; display: none; align-items: center; justify-content: space-between; }
+        .selection-summary.has-items { display: flex; }
+        .total-balance { font-weight: 700; color: var(--primary); font-size: 1.1rem; }
+        .total-label { font-size: 0.85rem; color: var(--secondary); }
+
+        /* Scanner Section */
+        .scanner-section { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; border: 2px solid transparent; }
+        .scanner-section.locked { border-color: #ef4444; opacity: 0.7; pointer-events: none; }
+        #reader-wrapper { width: 300px; height: 250px; background: #000; border-radius: var(--radius); overflow: hidden; display: none; margin-left: auto; }
+        #reader { width: 100%; height: 100%; object-fit: cover; }
+        #reader a { display: none !important; }
+        
+        .btn { padding: 0.8rem 1.2rem; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.9rem; color: white; text-decoration: none; }
+        .btn-scan { background-color: var(--secondary); }
+        .btn-new { background-color: var(--primary); }
+        .btn-add { background-color: #f59e0b; width: 100%; }
+        .btn-close { background-color: #ef4444; }
+        .btn-merge { background-color: #8b5cf6; margin-top: 10px; }
+        .btn-nav { background-color: #0f172a; width: 100%; margin-bottom: 10px; }
+
+        /* Lists Wrapper */
         .lists-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .audit-list-container { 
-            background: var(--surface); 
-            border-radius: var(--radius); 
-            overflow: hidden; 
-            box-shadow: var(--shadow); 
-            margin-top: 20px; 
-            display: flex;
-            flex-direction: column;
-            border: 1px solid var(--border);
-        }
-        .audit-list-wrapper {
-            overflow-x: auto; /* Horizontal Scroll */
-            width: 100%;
-        }
+        .audit-list-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-top: 20px; display: flex; flex-direction: column; border: 1px solid var(--border); }
+        .audit-list-wrapper { overflow-x: auto; width: 100%; }
         
-        .merged-list-container { 
-            background: #f0fdf4; /* Green tint to differentiate */
-            border-radius: var(--radius); 
-            overflow: hidden; 
-            box-shadow: var(--shadow); 
-            margin-top: 20px; 
-            display: flex;
-            flex-direction: column;
-            border: 1px solid var(--border);
-        }
-        .merged-list-wrapper {
-            overflow-x: auto; /* Horizontal Scroll */
-            width: 100%;
-        }
+        .merged-list-container { background: #f0fdf4; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-top: 20px; display: flex; flex-direction: column; border: 1px solid var(--border); }
+        .merged-list-wrapper { overflow-x: auto; width: 100%; }
         
-        /* Table Styles */
-        .audit-list-table { width: 100%; border-collapse: collapse; min-width: 900px; } /* Increased min-width slightly for new column */
-        .audit-list-table th { 
-            position: sticky; 
-            top: 0; 
-            z-index: 10;
-            background-color: #f8fafc; 
-            padding: 12px; 
-            text-align: left; 
-            border-bottom: 1px solid var(--border); 
-            font-size: 0.8rem; 
-            color: #64748b; 
-            text-transform: uppercase; 
-            white-space: nowrap; 
-        }
+        .audit-list-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        .audit-list-table th { position: sticky; top: 0; z-index: 10; background-color: #f8fafc; padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.8rem; color: #64748b; text-transform: uppercase; white-space: nowrap; }
         .audit-list-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         
         .action-link { color: var(--primary); font-weight: 600; margin-right: 10px; cursor: pointer; text-decoration: none; white-space: nowrap; }
         .action-link.delete { color: #ef4444; }
         
-        /* Scanner Section */
-        .scanner-section { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; border: 2px solid transparent; }
-        .scanner-section.locked { border-color: #ef4444; opacity: 0.7; pointer-events: none; }
-        .scan-input { flex: 1; min-width: 250px; padding: 1rem; font-size: 1.1rem; border: 2px solid var(--primary); border-radius: var(--radius); }
-        #reader-wrapper { width: 300px; height: 250px; background: #000; border-radius: var(--radius); overflow: hidden; display: none; margin-left: auto; }
-        #reader { width: 100%; height: 100%; object-fit: cover; }
-        #reader a { display: none !important; }
-
-        .btn { padding: 0.8rem 1.2rem; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.9rem; color: white; text-decoration: none; }
-        .btn-scan { background-color: var(--secondary); }
-        .btn-new { background-color: var(--primary); }
-        .btn-close { background-color: #ef4444; }
-        .btn-merge { background-color: #8b5cf6; margin-top: 10px; }
-        .btn-nav { background-color: #0f172a; width: 100%; margin-bottom: 10px; }
-
         /* Stats & Filter */
         .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-        .stat-card { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; border-left: 4px solid var(--primary); }
-        .stat-val { font-size: 1.2rem; font-weight: 700; color: var(--text); }
-        .stat-label { font-size: 0.75rem; color: var(--secondary); }
-        .stat-red { border-color: #ef4444; } .stat-blue { border-color: #3b82f6; } .stat-green { border-color: #22c55e; } .stat-purple { border-color: #8b5cf6; }
+        .stat-card { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; border-top: 4px solid var(--primary); }
+        .stat-val { font-size: 1.5rem; font-weight: 700; color: var(--primary); display: block; margin-bottom: 0.5rem; }
+        .stat-label { font-size: 0.75rem; color: var(--secondary); font-weight: 500; text-transform: uppercase; }
+        .stat-missing { border-color: #ef4444; color: #ef4444; } .stat-extra { border-color: #3b82f6; color: #3b82f6; } .stat-ok { border-color: #22c55e; color: #22c55e; } .stat-sys { border-color: #8b5cf6; color: #8b5cf6; }
 
         .filter-area { background: var(--surface); padding: 1rem; border-radius: var(--radius); margin-bottom: 1rem; display: flex; gap: 10px; align-items: center; border: 1px solid var(--border); }
-        
-        /* History */
-        .history-bar { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1rem; overflow-x: auto; white-space: nowrap; display: flex; gap: 10px; align-items: center; border-bottom: 4px solid var(--primary); }
-        .history-item { display: inline-block; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.8rem; min-width: 220px; }
-        .history-bc { font-weight: bold; color: var(--primary); display: block; font-size: 0.9rem; }
-        .history-bal { color: #64748b; font-size: 0.75rem; display: block; }
+        .badge-filter { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); white-space: nowrap; }
+        .badge-filter.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* Table (Active Audit) */
-        .table-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        .table-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; font-size: 0.9rem; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         th { background-color: #f8fafc; font-weight: 600; color: #475569; white-space: nowrap; }
         
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
         .badge-ok { background: #dcfce7; color: #166534; }
         .badge-missing { background: #fee2e2; color: #991b1b; }
         .badge-extra { background: #dbeafe; color: #1e40af; }
         .badge-merged { background: #8b5cf6; color: white; }
 
-        .action-btn { padding: 4px 8px; font-size: 0.75rem; margin-right: 4px; cursor: pointer; border: none; border-radius: 4px; color: white; }
+        .action-btn { padding: 4px 8px; font-size: 0.75rem; margin-right: 4px; cursor: pointer; border: none; border-radius: 4px; color: white; font-weight: 600; }
         .btn-edit { background-color: #f59e0b; }
-        .btn-delete { background-color: #ef4444; }
+
+        /* Loader */
+        .loader { width: 20px; height: 20px; border: 2px solid #f3f4f6; border-bottom-color: #65a30d; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* Mobile */
         @media (max-width: 768px) {
@@ -182,7 +176,7 @@
     </header>
 
     <main>
-        <!-- 1. AUDIT DASHBOARD -->
+        <!-- 1. DASHBOARD -->
         <div id="dashboardPanel">
             
             <!-- Create New Form -->
@@ -190,13 +184,46 @@
                 <h3 style="margin-top:0;">Start New Audit</h3>
                 <div class="form-row">
                     <input type="text" id="auditName" placeholder="Audit Name">
-                    <input type="text" id="companyName" placeholder="Company Name">
-                    <input type="text" id="branchName" placeholder="Branch Name">
                     <input type="text" id="entryBy" placeholder="Entry By">
                     <input type="date" id="auditDate">
                 </div>
                 <div style="text-align:right;">
                     <button class="btn btn-new" onclick="createNewAudit()">Create Audit</button>
+                    <button class="btn btn-add" onclick="toggleAddPanel()">➕ Add Audit Item</button>
+                </div>
+            </div>
+
+            <!-- ADD ITEM / CATEGORY PANEL -->
+            <div id="addPanel" class="add-item-panel">
+                <div class="search-header">
+                    <div>
+                        <h3 style="margin:0;">Add / Select Items</h3>
+                        <div class="mode-toggles">
+                            <span id="modeIndividual" class="mode-badge active" onclick="setMode('individual')">Search Items</span>
+                            <span id="modeCategory" class="mode-badge" onclick="setMode('category')">View Categories</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-close" onclick="toggleAddPanel()">Close</button>
+                </div>
+                
+                <!-- Search Input (Only visible in Individual Mode) -->
+                <div id="individualSearchWrap" class="search-input-wrap">
+                    <input type="text" id="inventorySearch" placeholder="Search product name / barcode..." autocomplete="off">
+                </div>
+
+                <!-- Results Container -->
+                <div id="searchResults" class="search-results">
+                    <p style="text-align:center; color:var(--secondary); padding:1rem;">Select a mode...</p>
+                </div>
+
+                <!-- Selection Summary -->
+                <div id="selectionSummary" class="selection-summary">
+                    <span class="total-label">Selected Items:</span>
+                    <span id="totalSelectedBalance" class="total-balance">0</span>
+                </div>
+
+                <div style="margin-top: 1rem; text-align: right;">
+                    <button class="btn btn-add" id="addSelectedBtn" style="width: 100%;" onclick="addSelectedItems()">Add Selected Items</button>
                 </div>
             </div>
 
@@ -216,7 +243,6 @@
                                     <th style="width:40px;">Select</th>
                                     <th>Audit Name</th>
                                     <th>Outlet</th>
-                                    <th>Created By</th> <!-- ADDED COLUMN -->
                                     <th>Date</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -241,7 +267,6 @@
                                     <th>Merged Name</th>
                                     <th>Outlet</th>
                                     <th>Company</th>
-                                    <th>Created By</th> <!-- ADDED COLUMN -->
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -262,7 +287,7 @@
             <div id="auditInfoPanel" style="margin-bottom:1.5rem; background: var(--primary); color:white; padding:1rem; border-radius:var(--radius); justify-content:space-between; align-items:center;">
                 <div>
                     <h2 id="displayAuditName" style="margin:0;">Audit Name</h2>
-                    <small id="displayInfo">Branch - Date</small>
+                    <small id="displayInfo">Entry By - Date</small>
                 </div>
                 <div style="display:flex; gap:10px;">
                     <button class="btn btn-close" onclick="closeAudit()">Close Audit</button>
@@ -329,12 +354,12 @@
                                 <th>Barcode</th>
                                 <th>Name</th>
                                 <th>Color/Size</th>
-                                <th>Balance</th>
+                                <th>System Balance</th>
                                 <th>Scanned</th>
                                 <th>Missing</th>
                                 <th>Extra</th>
                                 <th>Status</th>
-                                <th>Action</th>
+                                <th style="width: 80px;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody">
@@ -357,6 +382,13 @@
     let html5QrCode = null;
     let isCameraOn = false;
 
+    // Mode Selection for Add Item
+    let addMode = 'individual'; // 'individual' or 'category'
+    let selectedCategory = null; // Stores category name when in category mode
+
+    // AUDIO ELEMENT (Beep)
+    const beep = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-beep-1-1s-27.mp3');
+
     // Init
     window.addEventListener('load', () => {
         document.getElementById('auditDate').valueAsDate = new Date();
@@ -368,9 +400,8 @@
         document.getElementById('overlay').classList.toggle('show');
     }
 
-    // --- NAVIGATION: DASHBOARD vs ACTIVE ---
+    // --- NAVIGATION ---
     
-    // Check for active audit
     async function checkActiveAudit() {
         const urlParams = new URLSearchParams(window.location.search);
         const paramId = urlParams.get('id');
@@ -391,7 +422,6 @@
         loadDashboard();
     }
 
-    // Load Dashboard View (Fetches both lists)
     async function loadDashboard() {
         currentAuditId = null;
         document.getElementById('dashboardPanel').style.display = 'block';
@@ -404,11 +434,10 @@
         await fetchMergedAudits();
     }
 
-    // Load Active Audit View
     async function loadAuditById(id) {
         const { data } = await sb.from('audit_sessions').select('*').eq('id', id).single();
         if(data) {
-            localStorage.setItem('currentAuditId', data.id); // Sync local storage
+            localStorage.setItem('currentAuditId', data.id);
             loadAudit(data);
         }
     }
@@ -423,7 +452,7 @@
         
         document.getElementById('auditInfoPanel').style.display = 'flex';
         document.getElementById('displayAuditName').textContent = session.audit_name;
-        document.getElementById('displayInfo').textContent = `${session.outlet_name || '-'} - ${new Date(session.audit_date).toLocaleDateString()}`;
+        document.getElementById('displayInfo').textContent = `${session.created_by || '-'} - ${new Date(session.audit_date).toLocaleDateString()}`;
         
         document.getElementById('scanSection').style.display = 'flex';
         document.getElementById('historyBar').style.display = 'flex';
@@ -432,20 +461,319 @@
         document.getElementById('filterArea').style.display = 'flex';
         document.getElementById('tableSection').style.display = 'block';
 
-        // Ensure scanner is enabled and unlocked
+        // Unlock scanner and reset input
         document.getElementById('scanSection').classList.remove('locked');
         document.getElementById('scanInput').focus();
-
+        
         fetchAuditData();
+    }
+
+    // --- ADD ITEM / CATEGORY LOGIC ---
+
+    function toggleAddPanel() {
+        const panel = document.getElementById('addPanel');
+        panel.classList.toggle('open');
+        if (panel.classList.contains('open')) {
+            // Default to individual when opening
+            setMode('individual'); 
+        }
+    }
+
+    function setMode(mode) {
+        addMode = mode;
+        document.getElementById('modeIndividual').className = mode === 'individual' ? 'mode-badge active' : 'mode-badge';
+        document.getElementById('modeCategory').className = mode === 'category' ? 'mode-badge active' : 'mode-badge';
+        
+        const searchWrap = document.getElementById('individualSearchWrap');
+        const resultsDiv = document.getElementById('searchResults');
+        const summaryDiv = document.getElementById('selectionSummary');
+        
+        if (mode === 'individual') {
+            searchWrap.style.display = 'flex';
+            summaryDiv.style.display = 'block';
+            // Trigger fetch if text exists
+            const query = document.getElementById('inventorySearch').value;
+            if(query) searchProducts(query);
+        } else {
+            searchWrap.style.display = 'none';
+            summaryDiv.style.display = 'none';
+            // Trigger categories fetch
+            fetchCategories();
+        }
+    }
+
+    // 1. Individual Search
+    async function searchProducts(query) {
+        if(!query) {
+            document.getElementById('searchResults').innerHTML = '<p style="text-align:center; padding:1rem;">Type to search products...</p>';
+            document.getElementById('selectionSummary').style.display = 'none';
+            return;
+        }
+
+        try {
+            const { data, error } = await sb.from('inventory')
+                .select('*')
+                .ilike('name', `%${query}%`) // Case-insensitive search
+                .limit(20);
+
+            if(error) throw error;
+
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '';
+
+            if(data.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding:1rem;">No products found.</p>';
+                return;
+            }
+
+            // Store selection state
+            const selectedItems = new Set(); // Set of barcodes
+
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'search-result-item individual-item';
+                // Check if selected
+                if(selectedItems.has(item.barcode)) {
+                    div.classList.add('selected');
+                }
+
+                div.innerHTML = `
+                    <div class="result-info">
+                        <strong>${item.name}</strong>
+                        <span class="result-meta">Barcode: ${item.barcode} | Balance: ${item.balance}</span>
+                    </div>
+                    <div style="font-size:1.5rem; color:var(--secondary);">${selectedItems.has(item.barcode) ? '✓' : '+'}</div>
+                `;
+                
+                div.onclick = () => toggleSelection(item.barcode, item.balance);
+                container.appendChild(div);
+            });
+
+            updateSelectionSummary(selectedItems);
+
+        } catch (err) {
+            console.error("Search Error:", err);
+        }
+    }
+
+    function toggleSelection(barcode, balance) {
+        const selectedItems = new Set();
+        
+        // Collect currently selected items from DOM
+        document.querySelectorAll('.individual-item.selected').forEach(el => {
+            selectedItems.add(el.dataset.barcode);
+        });
+
+        if(selectedItems.has(barcode)) {
+            selectedItems.delete(barcode); // Deselect
+        } else {
+            selectedItems.add(barcode); // Select
+        }
+
+        // Re-render list to show checkmarks
+        // NOTE: For better UX, we should ideally just re-fetch or re-render searchResults
+        // But for simplicity, we'll just update the summary for now, assuming user knows which are selected
+        updateSelectionSummary(selectedItems);
+    }
+
+    // 2. Category View (Summary)
+    async function fetchCategories() {
+        try {
+            // Fetch inventory to calculate totals
+            const { data, error } = await sb.from('inventory')
+                .select('name, balance') 
+                .limit(200) // Limit to keep UI fast
+                .order('balance', { ascending: false }); // Sort by stock desc
+
+            if(error) throw error;
+
+            // Group by Name (Case Insensitive)
+            const grouped = {};
+            data.forEach(item => {
+                const name = item.name || 'Unknown';
+                if(!grouped[name]) grouped[name] = 0;
+                grouped[name] += (item.balance || 0);
+            });
+
+            // Convert to array
+            const result = Object.keys(grouped).map(name => ({ name, balance: grouped[name] }));
+            
+            renderCategories(result);
+
+        } catch (err) {
+            console.error("Category Fetch Error:", err);
+        }
+    }
+
+    function renderCategories(list) {
+        const container = document.getElementById('searchResults');
+        container.innerHTML = '';
+        
+        list.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'search-result-item category-item';
+            // Check selection
+            if (addMode === 'category' && selectedCategory === item.name) {
+                div.classList.add('selected');
+            }
+
+            div.innerHTML = `
+                <div class="result-info">
+                    <strong>${item.name}</strong>
+                    <span class="result-meta total-stock-highlight">Total Stock: ${item.balance}</span>
+                </div>
+                <div style="font-size:1.5rem; color:var(--secondary);">${addMode === 'category' && selectedCategory === item.name ? '✓' : '+'}</div>
+            `;
+            
+            div.onclick = () => {
+                if (addMode === 'category') {
+                    selectedCategory = (selectedCategory === item.name) ? null : item.name;
+                    renderCategories(list); // Re-render to update UI
+                }
+            };
+            container.appendChild(div);
+        });
+
+        if (addMode === 'category') {
+            updateCategorySelectionSummary();
+        }
+    }
+
+    // 3. Add to Audit Logic
+    async function addSelectedItems() {
+        if (!currentAuditId) {
+            alert("Please start an audit first.");
+            return;
+        }
+
+        try {
+            if (addMode === 'individual') {
+                // Add specific barcodes
+                const selectedItems = new Set();
+                document.querySelectorAll('.individual-item.selected').forEach(el => {
+                    selectedItems.add(el.dataset.barcode);
+                });
+
+                if(selectedItems.size === 0) {
+                    alert("Please select at least one item.");
+                    return;
+                }
+
+                for (const barcode of selectedItems) {
+                    await processScan(barcode);
+                }
+
+                beep.play().catch(e => console.log("Audio play failed", e));
+                alert(`Added ${selectedItems.size} Items Successfully`);
+                
+                // Reset selection
+                selectedItems.clear();
+                const container = document.getElementById('searchResults');
+                container.innerHTML = '<p style="text-align:center; padding:1rem;">Items added. Search again to add more.</p>';
+                updateSelectionSummary(selectedItems);
+
+            } else if (addMode === 'category') {
+                // Add ALL items in category
+                if (!selectedCategory) {
+                    alert("Please select a category first.");
+                    return;
+                }
+
+                // Fetch all items matching category name
+                const { data } = await sb.from('inventory')
+                    .select('*')
+                    .ilike('name', `%${selectedCategory}%`)
+                    .order('balance', { ascending: false });
+
+                if (data.length === 0) {
+                    alert("No items found for this category.");
+                    return;
+                }
+
+                // Add all to audit
+                for (const item of data) {
+                    await processScan(item.barcode);
+                }
+
+                beep.play().catch(e => console.log("Audio play failed", e));
+                alert(`Added all items from category: ${selectedCategory} (${data.length} items)`);
+
+                // Reset selection
+                selectedCategory = null;
+                const container = document.getElementById('searchResults');
+                container.innerHTML = '<p style="text-align:center; padding:1rem;">Items added. Select again to add more.</p>';
+                updateCategorySelectionSummary();
+            }
+        } catch (err) {
+            console.error("Add Items Error:", err);
+            alert("Failed to add items.");
+        }
+    }
+
+    function updateSelectionSummary() {
+        const summary = document.getElementById('selectionSummary');
+        const totalEl = document.getElementById('totalSelectedBalance');
+        const label = document.querySelector('.total-label');
+        
+        if (addMode === 'category') {
+            // Category Mode
+            if(selectedCategory) {
+                // Show summary
+                summary.style.display = 'flex';
+                label.innerText = "Selected Category Stock:";
+                
+                // We need to fetch the sum from DB or the local list. 
+                // For speed, let's calculate from the DOM if available, otherwise fetch.
+                // Since we fetched grouped list in fetchCategories, we have the balance there.
+                // But to be safe, let's just count visible items logic in renderCategories
+                // Or simpler: just fetch on demand.
+            } else {
+                summary.style.display = 'none';
+            }
+        } else {
+            // Individual Mode
+            const selectedCount = document.querySelectorAll('.individual-item.selected').length;
+            if (selectedCount > 0) {
+                summary.style.display = 'flex';
+                label.innerText = "Selected Items Total (Approx):";
+                // Summing exact balance requires iterating elements. 
+                // We won't do that to avoid DOM thrashing, just show count.
+                totalEl.innerText = selectedCount; 
+            } else {
+                summary.style.display = 'none';
+            }
+        }
+    }
+
+    function updateCategorySelectionSummary() {
+        if(selectedCategory) {
+            // We need the total. We fetched it in renderCategories.
+            // But to display it here, we can just fetch it again or store in a variable.
+            // For simplicity, let's just fetch the group again to get exact total.
+            // (In a real app we'd cache this).
+            
+            const { data } = await sb.from('inventory')
+                .select('name, balance')
+                .ilike('name', `%${selectedCategory}%`);
+            
+            const total = data.reduce((a, i) => a + (i.balance || 0), 0);
+
+            const summary = document.getElementById('selectionSummary');
+            const totalEl = document.getElementById('totalSelectedBalance');
+            const label = document.querySelector('.total-label');
+
+            summary.style.display = 'flex';
+            label.innerText = "Selected Category Total:";
+            totalEl.innerText = total;
+        }
     }
 
     // --- DASHBOARD FUNCTIONS ---
     
-    // 1. Fetch Previous Audits
     async function fetchPreviousAudits() {
         const { data, error } = await sb.from('audit_sessions')
             .select('*')
-            .eq('is_merged', false) // Only fetch non-merged
+            .eq('is_merged', false)
             .order('created_at', { ascending: false });
 
         if(error) return console.error(error);
@@ -459,7 +787,6 @@
                 <td><input type="checkbox" class="audit-merge-check" value="${audit.id}"></td>
                 <td><strong>${audit.audit_name}</strong></td>
                 <td>${audit.outlet_name || '-'}</td>
-                <td>${audit.created_by || '-'}</td> <!-- ADDED ROW FOR CREATED BY -->
                 <td>${new Date(audit.audit_date).toLocaleDateString()}</td>
                 <td>
                     <span class="badge ${audit.status === 'Closed' ? 'badge-ok' : 'badge-extra'}">${audit.status}</span>
@@ -474,11 +801,10 @@
         });
     }
 
-    // 2. Fetch Merged Audits
     async function fetchMergedAudits() {
         const { data, error } = await sb.from('audit_sessions')
             .select('*')
-            .eq('is_merged', true) // Only fetch merged
+            .eq('is_merged', true)
             .order('created_at', { ascending: false });
 
         if(error) return console.error(error);
@@ -487,7 +813,7 @@
         tbody.innerHTML = '';
 
         if(data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#64748b; padding:20px;">No Merged Audits Yet</td></tr>'; <!-- Updated colspan for new column -->
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:20px;">No Merged Audits Yet</td></tr>';
             return;
         }
 
@@ -497,7 +823,6 @@
                 <td><strong>${audit.audit_name}</strong></td>
                 <td>${audit.outlet_name || '-'}</td>
                 <td>${audit.company_name || '-'}</td>
-                <td>${audit.created_by || '-'}</td> <!-- ADDED ROW FOR MERGED BY -->
                 <td>
                     <span class="badge badge-merged">${audit.status}</span>
                 </td>
@@ -512,24 +837,25 @@
 
     async function createNewAudit() {
         const name = document.getElementById('auditName').value;
-        const company = document.getElementById('companyName').value;
-        const branch = document.getElementById('branchName').value;
         const entry = document.getElementById('entryBy').value;
         const date = document.getElementById('auditDate').value;
 
         if(!name) return alert("Please enter Audit Name");
 
-        const { data, error } = await sb.from('audit_sessions').insert([{
-            audit_name: name,
-            company_name: company,
-            outlet_name: branch,
-            created_by: entry,
-            audit_date: date,
-            status: 'In Progress'
-        }]).select().single();
+        try {
+            const { data, error } = await sb.from('audit_sessions').insert([{
+                audit_name: name,
+                created_by: entry,
+                audit_date: date,
+                status: 'In Progress'
+            }]).select().single();
 
-        if(error) return console.error(error);
-        loadAudit(data);
+            if(error) throw error;
+            loadAudit(data);
+        } catch (err) {
+            console.error("Create Error:", err);
+            alert("Failed to create audit");
+        }
     }
 
     async function confirmEditAudit(id) {
@@ -538,9 +864,13 @@
     }
 
     async function resumeAudit(id) {
-        const { error } = await sb.from('audit_sessions').update({ status: 'In Progress' }).eq('id', id);
-        if(error) return alert("Failed to resume audit");
-        await loadAuditById(id);
+        try {
+            const { error } = await sb.from('audit_sessions').update({ status: 'In Progress' }).eq('id', id);
+            if(error) throw error;
+            await loadAuditById(id);
+        } catch (err) {
+            alert("Failed to resume audit: " + err.message);
+        }
     }
 
     async function deleteAudit(id) {
@@ -553,40 +883,28 @@
         await fetchMergedAudits();
     }
 
-
-    // --- MERGE LOGIC (FIXED) ---
+    // --- MERGE LOGIC ---
     async function mergeSelectedAudits() {
         const checkboxes = document.querySelectorAll('.audit-merge-check:checked');
-        console.log("[DEBUG MERGE] Selected count:", checkboxes.length);
-
         if(checkboxes.length < 2) {
             alert("Please select at least 2 audits to merge.");
             return;
         }
 
         const auditName = prompt("Merged Audit Name:", "Merged Audit " + new Date().toLocaleDateString());
-        const companyName = prompt("Company Name:", "Merged");
-        const branchName = prompt("Branch Name:", "Merged");
-        const margeBy = prompt("Marge By (Created By):", "System");
-
-        console.log("[DEBUG MERGE] Inputs ->", { auditName, companyName, branchName, margeBy });
+        const margeBy = "System";
 
         if (!auditName) return;
 
         const ids = Array.from(checkboxes).map(cb => cb.value);
-        console.log("[DEBUG MERGE] Source IDs:", ids);
 
         try {
-            // 1. Fetch Inventory
-            console.log("[DEBUG MERGE] Fetching inventory for IDs:", ids);
             const { data: invData, error: invError } = await sb.from('audit_inventory')
                 .select('*')
                 .in('audit_id', ids); 
 
-            if(invError) throw new Error("Inventory Fetch Failed: " + JSON.stringify(invError));
-            console.log("[DEBUG MERGE] Inventory Data fetched:", invData);
+            if(invError) throw invError;
 
-            // 2. Aggregate
             const map = {};
             invData.forEach(item => {
                 if(!map[item.barcode]) {
@@ -604,32 +922,17 @@
             });
 
             const mergedRows = Object.values(map);
-            console.log("[DEBUG MERGE] Aggregated Rows:", mergedRows);
 
-            // 3. Create Session
-            const sessionPayload = {
+            const { data: newSession, error: sessionError } = await sb.from('audit_sessions').insert([{
                 audit_name: auditName,
-                company_name: companyName,
-                outlet_name: branchName,
-                created_by: margeBy, // Stores "Merged By"
+                created_by: margeBy,
                 status: 'In Progress',
                 is_merged: true,
                 audit_date: new Date()
-            };
-            console.log("[DEBUG MERGE] Session Payload:", sessionPayload);
+            }]).select().single();
 
-            const { data: newSession, error: sessionError } = await sb.from('audit_sessions')
-                .insert(sessionPayload)
-                .select()
-                .single();
+            if(sessionError) throw new Error("Session Creation Failed: " + JSON.stringify(sessionError));
 
-            if(sessionError) {
-                console.error("[DEBUG MERGE] SESSION ERROR:", sessionError);
-                throw new Error("Session Creation Failed: " + JSON.stringify(sessionError));
-            }
-            console.log("[DEBUG MERGE] New Session Created:", newSession);
-
-            // 4. Insert Inventory
             const rowsToInsert = mergedRows.map(r => ({
                 ...r,
                 audit_id: newSession.id,
@@ -637,16 +940,14 @@
             }));
             
             await sb.from('audit_inventory').insert(rowsToInsert);
-
-            // 5. Delete Originals
             await sb.from('audit_sessions').delete().in('id', ids);
 
             alert("Audits Merged Successfully! Reloading lists...");
             loadDashboard();
 
         } catch (err) {
-            console.error("[DEBUG MERGE] CRITICAL ERROR:", err);
-            alert("Merge failed! \n\nPlease check Console (F12) for detailed logs starting with [DEBUG MERGE].");
+            console.error("Merge Error:", err);
+            alert("Merge failed! \n\nPlease check Console (F12) for detailed logs.");
         }
     }
 
@@ -671,7 +972,6 @@
         }
 
         showToast("Audit Saved Successfully");
-        // Go back to dashboard after closing
         setTimeout(() => loadDashboard(), 1000);
     }
 
@@ -680,32 +980,41 @@
             const barcode = e.target.value.trim();
             if(!barcode) return;
             await processScan(barcode);
+            
+            // Mobile Scan Optimization: Clear input and focus for next scan
             e.target.value = '';
+            e.target.focus();
         }
     });
 
     async function processScan(barcode) {
-        const { data: master, error } = await sb.from('inventory').select('*').eq('barcode', barcode).single();
-        if(error || !master) {
-            alert("Product not found in Inventory!");
-            return;
-        }
-
         try {
+            const { data: master, error } = await sb.from('inventory').select('*').eq('barcode', barcode).single();
+            if(error || !master) {
+                alert("Product not found in Inventory!");
+                return;
+            }
+
             const { data: existing } = await sb.from('audit_inventory')
                 .select('*').eq('audit_id', currentAuditId).eq('barcode', barcode).maybeSingle();
 
             if(existing) {
+                // Increment if already scanned
                 await sb.from('audit_inventory').update({ scanned_qty: existing.scanned_qty + 1, last_scanned_at: new Date() }).eq('id', existing.id);
             } else {
+                // Insert new
                 await sb.from('audit_inventory').insert([{
                     audit_id: currentAuditId, barcode: master.barcode, name: master.name, style_code: master.style_code,
-                    color: master.color, size: master.size, balance: master.balance, scanned_qty: 1
+                    color: master.color, size: master.size, balance: master.balance, scanned_qty: 1, last_scanned_at: new Date()
                 }]);
             }
 
             showToast("Entry Successfully");
-            await fetchAuditData();
+            
+            // AUDIO: Play Beep
+            beep.play().catch(e => console.log("Audio play failed (user interaction required)", e));
+
+            fetchAuditData();
         } catch (err) {
             console.error("Scan Error:", err);
             alert("Scan failed: " + err.message);
@@ -714,7 +1023,9 @@
 
     async function fetchAuditData() {
         const { data, error } = await sb.from('audit_inventory')
-            .select('*').eq('audit_id', currentAuditId).order('last_scanned_at', { ascending: false });
+            .select('*')
+            .eq('audit_id', currentAuditId)
+            .order('last_scanned_at', { ascending: false });
 
         if(error) return console.error(error);
         auditData = data.map(item => {
@@ -731,7 +1042,7 @@
         });
 
         updateStats();
-        updateHistory(); // Shows last 10 UNIQUE items
+        updateHistory();
         updateFilterDropdown();
         renderTable();
     }
@@ -749,18 +1060,15 @@
         document.getElementById('statMissing').textContent = auditData.reduce((a,i)=>a+i.missing_qty,0);
         document.getElementById('statExtra').textContent = auditData.reduce((a,i)=>a+i.extra_qty,0);
         document.getElementById('statOk').textContent = auditData.filter(i=>i.status==='OK').length;
-        // Total Stock from Inventory Table (Sum of Balance)
         document.getElementById('statSysTotal').textContent = auditData.reduce((a,i)=>a+(i.balance||0),0);
     }
 
     function updateHistory() {
         const container = document.getElementById('historyContainer');
         container.innerHTML = '';
-        // Take first 10 items
         auditData.slice(0,10).forEach(i => {
             const d = document.createElement('div');
             d.className = 'history-item';
-            // Shows Barcode, Name, Total Scanned Qty, Balance
             d.innerHTML = `<span class="history-bc">${i.barcode}</span> ${i.name} <br><span class="history-bal">Qty: ${i.scanned_qty} | Bal: ${i.balance}</span>`;
             container.appendChild(d);
         });
@@ -783,21 +1091,21 @@
         const filtered = auditData.filter(i => filterName === 'all' || i.name === filterName);
 
         filtered.forEach(i => {
+            const tr = document.createElement('tr');
             const badgeClass = i.status === 'Missing' ? 'badge-missing' : (i.status === 'Extra' ? 'badge-extra' : 'badge-ok');
             
-            const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${i.barcode}</td>
                 <td>${i.name}</td>
                 <td>${i.color||'-'} / ${i.size||'-'}</td>
                 <td>${i.balance}</td>
-                <td>${i.scanned_qty}</td>
-                <td style="color:red">${i.missing_qty}</td>
-                <td style="color:blue">${i.extra_qty}</td>
+                <td style="font-weight:bold; color:var(--primary);">${i.scanned_qty}</td>
+                <td style="color:red; font-weight:bold;">${i.missing_qty}</td>
+                <td style="color:blue; font-weight:bold;">${i.extra_qty}</td>
                 <td><span class="badge ${badgeClass}">${i.status}</span></td>
                 <td>
                     <button class="action-btn btn-edit" onclick="editItem(${i.id}, ${i.scanned_qty})">Edit</button>
-                    <button class="action-btn btn-delete" onclick="deleteItem(${i.id}, ${i.scanned_qty})">Delete</button>
+                    <button class="action-btn btn-delete" onclick="deleteItem(${i.id})">Delete</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -809,7 +1117,7 @@
         if (input === null) return;
         let newQty = parseInt(input);
         if (isNaN(newQty) || newQty < 0) {
-            alert("Please enter a valid number.");
+            alert("Please enter a valid positive number.");
             return;
         }
         const { error } = await sb.from('audit_inventory').update({ scanned_qty: newQty, last_scanned_at: new Date() }).eq('id', id);
@@ -821,39 +1129,22 @@
         }
     }
 
-    async function deleteItem(id, currentQty) {
-        let input = prompt("Enter quantity to remove:", "1");
-        if (input === null) return;
-        let qtyToRemove = parseInt(input);
-        if (isNaN(qtyToRemove) || qtyToRemove <= 0) {
-            alert("Please enter a valid quantity.");
-            return;
+    async function deleteItem(id) {
+        if(!confirm("Delete this scan record?")) return;
+        try {
+            await sb.from('audit_inventory').delete().eq('id', id);
+            fetchAuditData();
+        } catch (err) {
+            alert("Failed to delete.");
         }
-        let newQty = currentQty - qtyToRemove;
-        if (newQty <= 0) {
-            if (confirm("Delete entire row?")) {
-                await sb.from('audit_inventory').delete().eq('id', id);
-                showToast("Row Deleted");
-            }
-        } else {
-            const { error } = await sb.from('audit_inventory').update({ scanned_qty: newQty, last_scanned_at: new Date() }).eq('id', id);
-            if (error) {
-                alert("Failed to update.");
-            } else {
-                showToast("Quantity Reduced");
-            }
-        }
-        await fetchAuditData();
     }
     
-    // Delete from Merged Audits List
     async function deleteMergedAudit(id) {
         if(!confirm("Are you sure? This cannot be undone.")) return;
         try {
             await sb.from('audit_inventory').delete().eq('audit_id', id);
             await sb.from('audit_sessions').delete().eq('id', id);
-            
-            await fetchMergedAudits();
+            fetchMergedAudits();
         } catch (err) {
             console.error(err);
             alert("Failed to delete.");
