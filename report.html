@@ -17,6 +17,7 @@
     <style>
         :root {
             --primary: #2563eb;
+            --primary-dark: #1d4ed8;
             --secondary: #64748b;
             --sidebar-bg: #1e293b;
             --sidebar-text: #f8fafc;
@@ -54,15 +55,15 @@
         .report-title { margin: 0 0 1rem 0; font-size: 1.5rem; color: var(--primary); }
         
         .report-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 0.5rem; }
-        .meta-label { font-size: 0.85rem; font-weight: 600; color: var(--secondary); }
+        .meta-label { font-size: 0.85rem; font-weight: 600; }
         .meta-value { font-size: 1rem; color: var(--text); }
 
         .export-actions { display: flex; gap: 10px; align-items: center; margin-top: 1rem; }
-        .btn-excel { background-color: #10b981; color: white; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-excel { background-color: #10b981; color: white; padding: 0.6rem 1.2rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
         .btn-excel:hover { background-color: #059669; }
         
-        .btn-pdf { background-color: #ef4444; color: white; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; }
-        .btn-pdf:hover { background-color: #dc2626; }
+        .btn-pdf { background-color: #64748b; color: white; padding: 0.6rem 1.2rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .btn-pdf:hover { background-color: #475569; }
 
         .back-link { color: var(--text); font-weight: 600; text-decoration: none; font-size: 0.9rem; cursor: pointer; }
         .back-link:hover { color: var(--primary); }
@@ -71,27 +72,29 @@
         .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
         .stat-card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; border-top: 4px solid var(--primary); }
         .stat-val { font-size: 2rem; font-weight: 800; color: var(--primary); display: block; margin-bottom: 0.5rem; }
-        .stat-label { font-size: 0.9rem; color: var(--secondary); text-transform: uppercase; }
+        .stat-label { font-size: 0.9rem; color: var(--secondary); font-weight: 500; text-transform: uppercase; }
         .stat-missing { border-color: #ef4444; color: #ef4444; }
         .stat-extra { border-color: #3b82f6; color: #3b82f6; }
         .stat-ok { border-color: #22c55e; color: #22c55e; }
         .stat-sys { border-color: #8b5cf6; color: #8b5cf6; }
 
         /* Table */
-        .filter-section { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .filter-select { padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; font-size: 1rem; min-width: 200px; }
-        
+        .filter-section { background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .filter-select { padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; font-size: 1rem; min-width: 200px; }
+        .badge-filter { padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); white-space: nowrap; }
+        .badge-filter.active { background: var(--primary); color: white; border-color: var(--primary); }
+
         .table-container { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 1000px; font-size: 0.9rem; }
-        th, td { padding: 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid var(--border); }
         th { background-color: #f8fafc; font-weight: 600; color: #475569; white-space: nowrap; }
         
-        .badge { padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+        .badge { padding: 6px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
         .badge-ok { background: #dcfce7; color: #166534; }
         .badge-missing { background: #fee2e2; color: #991b1b; }
         .badge-extra { background: #dbeafe; color: #1e40af; }
 
-        .action-btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 600; }
+        .action-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: 600; font-size: 0.85rem; }
         .btn-edit { background-color: #f59e0b; margin-right: 5px; }
 
         /* Loader */
@@ -104,7 +107,6 @@
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; width: 100%; }
             .menu-toggle { display: block; }
-            .stats-bar { grid-template-columns: 1fr 1fr; }
             .report-header { flex-direction: column; }
             .export-actions { width: 100%; justify-content: space-between; }
         }
@@ -135,7 +137,7 @@
 
     <main>
         <!-- Loading State -->
-        <div id="loadingState" style="text-align:center; padding: 3rem; display: none;">
+        <div id="loadingState" style="text-align:center; padding: 4rem; display: none;">
             <div class="loader"></div>
             <p style="margin-top: 1rem; color: var(--secondary);">Loading Report Data...</p>
         </div>
@@ -151,15 +153,15 @@
                         <div><span class="meta-label">Company:</span> <span class="meta-value" id="rCompany">-</span></div>
                         <div><span class="meta-label">Outlet:</span> <span class="meta-value" id="rOutlet">-</span></div>
                         <div><span class="meta-label">Date:</span> <span class="meta-value" id="rDate">-</span></div>
-                        <div><span class="meta-label">Created By:</span> <span class="meta-value" id="rCreated">-</span></div>
                         <div><span class="meta-label">Status:</span> <span class="meta-value" id="rStatus">-</span></div>
+                        <div><span class="meta-label">Created By:</span> <span class="meta-value" id="rCreated">-</span></div>
                     </div>
                 </div>
 
                 <!-- Export Buttons -->
                 <div class="export-actions">
                     <button class="btn-excel" onclick="exportToExcel()">📊 Export Excel</button>
-                    <button class="btn-pdf" onclick="exportToPDF()">📄 Export PDF</button>
+                    <button class="btn-pdf" onclick="exportToPDF()">📋 Export PDF</button>
                 </div>
             </div>
 
@@ -171,7 +173,7 @@
                 </div>
                 <div class="stat-card stat-ok">
                     <div class="stat-val" id="statTotalScans">0</div>
-                    <div class="stat-label">Total Scans</div>
+                    <div class="stat-label">Total Scanned</div>
                 </div>
                 <div class="stat-card stat-missing">
                     <div class="stat-val" id="statMissing">0</div>
@@ -214,6 +216,7 @@
                             <th>Missing</th>
                             <th>Extra</th>
                             <th>Status</th>
+                            <th style="width: 80px;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
@@ -231,6 +234,7 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentAuditId = null;
+    let currentAuditInfo = {};
     let auditData = [];
 
     // Init
@@ -250,9 +254,7 @@
         const id = urlParams.get('id');
         
         if (!id) {
-            document.getElementById('loadingState').style.display = 'block';
-            document.getElementById('reportContent').style.display = 'none';
-            alert("No Audit ID provided. Returning to Dashboard.");
+            alert("No Audit ID found. Returning to dashboard.");
             setTimeout(() => window.location.href = "Audit.html", 1000);
             return;
         }
@@ -265,11 +267,23 @@
         document.getElementById('reportContent').style.display = 'none';
 
         try {
-            // 1. Fetch Main Session Data
+            // 1. Fetch Session Info
             const { data: session, error: sessionError } = await sb.from('audit_sessions').select('*').eq('id', id).single();
             if (sessionError) throw sessionError;
 
-            // 2. Fetch Inventory Data
+            // 2. Set Global Variables
+            currentAuditId = session.id;
+            currentAuditInfo = session;
+
+            // 3. Populate Header
+            document.getElementById('rTitle').innerText = session.audit_name;
+            document.getElementById('rCompany').innerText = session.company_name || '-';
+            document.getElementById('rOutlet').innerText = session.outlet_name || '-';
+            document.getElementById('rDate').innerText = new Date(session.audit_date).toLocaleDateString();
+            document.getElementById('rStatus').innerText = session.status;
+            document.getElementById('rCreated').innerText = session.created_by || '-';
+
+            // 4. Fetch Inventory Data
             const { data, error: invError } = await sb.from('audit_inventory')
                 .select('*')
                 .eq('audit_id', id)
@@ -277,7 +291,7 @@
 
             if (invError) throw invError;
 
-            // 3. Process Data (Calculations)
+            // 5. Process Data (Calculations)
             auditData = data.map(item => {
                 const bal = item.balance || 0;
                 const sc = item.scanned_qty || 0;
@@ -295,15 +309,7 @@
                 return { ...item, missing_qty: mis, extra_qty: ext, status: st };
             });
 
-            // 4. Populate Header
-            document.getElementById('rTitle').innerText = session.audit_name;
-            document.getElementById('rCompany').innerText = session.company_name || '-';
-            document.getElementById('rOutlet').innerText = session.outlet_name || '-';
-            document.getElementById('rDate').innerText = new Date(session.audit_date).toLocaleDateString();
-            document.getElementById('rCreated').innerText = session.created_by || '-';
-            document.getElementById('rStatus').innerText = session.status;
-
-            // 5. Render Table & Stats
+            // 6. Update Stats & Render
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('reportContent').style.display = 'block';
             document.getElementById('pageTitle').innerText = `Report: ${session.audit_name}`;
@@ -317,16 +323,26 @@
         }
     }
 
-    // --- UI RENDERING ---
+    // --- UI UPDATES ---
 
     function updateStats() {
+        // Ensure auditData exists before reducing
+        if (!auditData || auditData.length === 0) {
+            document.getElementById('statSysTotal').innerText = 0;
+            document.getElementById('statTotalScans').innerText = 0;
+            document.getElementById('statMissing').innerText = 0;
+            document.getElementById('statExtra').innerText = 0;
+            document.getElementById('statOk').innerText = 0;
+            return;
+        }
+
+        const totalSys = auditData.reduce((a, i) => a + (i.balance || 0), 0);
         const totalScans = auditData.reduce((a, i) => a + i.scanned_qty, 0);
         const missing = auditData.reduce((a, i) => a + i.missing_qty, 0);
         const extra = auditData.reduce((a, i) => a + i.extra_qty, 0);
         const ok = auditData.filter(i => i.status === 'OK').length;
-        const sysStock = auditData.reduce((a, i) => a + (i.balance || 0), 0);
 
-        document.getElementById('statSysTotal').innerText = sysStock;
+        document.getElementById('statSysTotal').innerText = totalSys;
         document.getElementById('statTotalScans').innerText = totalScans;
         document.getElementById('statMissing').innerText = missing;
         document.getElementById('statExtra').innerText = extra;
@@ -336,6 +352,8 @@
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
+
+        if (!auditData) return;
 
         const filterName = document.getElementById('productFilter').value;
         const filterStatus = document.getElementById('statusFilter').value;
@@ -367,17 +385,18 @@
         });
     }
 
-    // --- EXPORT FUNCTIONS ---
+    // --- EXPORT FUNCTIONS (FIXED) ---
 
-    // Export to Excel with Styles
-    function exportToExcel() {
-        if (auditData.length === 0) {
-            alert("No data to export.");
+    // Export to Excel
+    async function exportToExcel() {
+        // 1. Validation
+        if (!auditData || auditData.length === 0) {
+            alert("No data available to export.");
             return;
         }
 
         try {
-            // 1. Create Data Array for SheetJS
+            // 2. Create Data Array
             const excelData = auditData.map(item => ({
                 Barcode: item.barcode,
                 Name: item.name,
@@ -389,14 +408,14 @@
                 Status: item.status
             }));
 
-            // 2. Create Workbook
+            // 3. Create Workbook
             const wb = XLSX.utils.book_new();
 
-            // 3. Create Worksheet
-            const ws = XLSX.utils.json_to_sheet(excelData, { header: ["Barcode", "Name", "Color/Size", "System Balance", "Scanned Qty", "Missing Qty", "Extra Qty", "Status"] });
+            // 4. Create Worksheet
+            const ws = XLSX.utils.json_to_sheet(excelData);
             wb.SheetNames.push("Audit Report");
 
-            // 4. Set Column Widths
+            // 5. Set Column Widths
             const wscols = ws['!cols'];
             wscols[0].wch = 20; // Barcode
             wscols[1].wch = 30; // Name
@@ -407,39 +426,40 @@
             wscols[6].wch = 10; // Extra
             wscols[7].wch = 12; // Status
 
-            // 5. Create Workbook
+            // 6. Create Workbook
             const workbook = XLSX.utils.book_new();
             workbook.SheetNames.push("Audit Report");
             workbook.Sheets.push(ws);
 
-            // 6. Download
-            XLSX.writeFile(workbook, `Audit_Report_${currentAuditId}.xlsx`);
+            // 7. Download
+            XLSX.writeFile(workbook, `Audit_Report_${currentAuditInfo.audit_name}.xlsx`);
 
             console.log("Excel Exported Successfully");
 
         } catch (error) {
             console.error("Excel Export Error:", error);
-            alert("Failed to export Excel.");
+            alert("Excel Export Failed: " + error.message);
         }
     }
 
-    // Export to PDF using AutoTable
-    function exportToPDF() {
-        if (auditData.length === 0) {
-            alert("No data to export.");
+    // Export to PDF
+    async function exportToPDF() {
+        // 1. Validation
+        if (!auditData || auditData.length === 0) {
+            alert("No data available to export.");
             return;
         }
 
         try {
             const { jsPDF } = window.jspdf;
             if (!jsPDF) {
-                alert("PDF library not loaded.");
+                alert("PDF Library not loaded. Please check your internet connection.");
                 return;
             }
 
             const doc = new jsPDF({ orientation: "landscape", unit: "pt" });
             
-            // Filter data
+            // 2. Define Data (Filtered)
             const filterName = document.getElementById('productFilter').value;
             const filterStatus = document.getElementById('statusFilter').value;
             const filteredData = auditData.filter(item => {
@@ -448,7 +468,7 @@
                 return nameMatch && statusMatch;
             });
 
-            // Prepare Data Array
+            // 3. Prepare Data Array
             const pdfData = filteredData.map(item => [
                 item.barcode,
                 item.name,
@@ -460,65 +480,67 @@
                 item.status.toUpperCase()
             ]);
 
-            const headers = [["Barcode", "Product Name", "Color/Size", "System Balance", "Scanned Qty", "Missing", "Extra", "Status"]];
+            // 4. Define Headers
+            const headers = [["Barcode", "Product Name", "Color/Size", "System Balance", "Scanned", "Missing", "Extra", "Status"]];
             
-            // Styles
+            // 5. Styles
             const headStyles = {
-                fillColor: [59, 130, 246], // Header BG Color (Blue)
+                fillColor: [59, 130, 246], // Header BG (Blue)
                 textColor: [255, 255, 255], // Text Color (White)
                 fontStyle: "bold",
                 halign: "center",
-                lineColor: [188, 188, 188], // Line Color (Grey)
+                lineColor: [188, 188, 188], // Line Color (Light Grey)
                 lineWidth: 0.5
             };
 
             const bodyStyles = {
                 textColor: [50, 50, 50], // Text Color (Dark Grey)
-                fillColor: [245, 245, 245], // Cell BG Color (White)
+                fillColor: [245, 245, 245], // Cell BG (White)
                 halign: "left",
                 fontStyle: "normal",
-                lineColor: [229, 229, 229], // Line Color (Light Grey)
+                lineColor: [229, 229, 229], // Line Color (Grey)
                 lineWidth: 0.1,
-                cellPadding: 2
+                cellPadding: 2 // Cell Padding
             };
 
-            // Add Title
+            // 6. Add Title
+            const sessionName = document.getElementById('rTitle').innerText;
             doc.setFontSize(18);
             doc.setFont("helvetica", "bold");
-            const sessionName = document.getElementById('rTitle').innerText;
             doc.text(`Audit Report: ${sessionName}`, 14, doc.internal.pageSize.width / 2, 20);
 
-            // Add Subtitles
+            // 7. Add Subtitles
             const company = document.getElementById('rCompany').innerText;
             if(company !== '-') {
                 doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
                 doc.text(`Company: ${company}`, 14, 14, { align: 'left' });
             }
 
             const outlet = document.getElementById('rOutlet').innerText;
             if(outlet !== '-') {
                 doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
                 doc.text(`Outlet: ${outlet}`, 14, 14, { align: 'left' });
             }
 
-            const date = document.getElementById('rDate').innerText;
-            doc.setFontSize(10);
-            doc.text(`Date: ${date}`, 14, 14, { align: 'left' });
+            // 8. Add Title and Headers
+            doc.autoTable(headStyles, bodyStyles, headers, pdfData, {
+                startY: 30,
+                theme: 'grid', // Simple stripe theme
+                tableWidth: 'auto',
+                columnStyles: { // Explicitly color Status column
+                    5: { fillColor: [240, 240, 240] } // Light gray for rows to distinguish header
+                }
+            });
 
-            const status = document.getElementById('rStatus').innerText;
-            doc.setFontSize(10);
-            doc.text(`Status: ${status}`, 14, 14, { align: 'left' });
-
-            // Draw Table
-            doc.autoTable(headStyles, bodyStyles, headers, pdfData, { startY: 30, theme: 'grid', tableWidth: 'auto' });
-
-            // Save
+            // 9. Save
             doc.save(`Audit_Report_${sessionName}.pdf`);
             console.log("PDF Exported Successfully");
 
         } catch (error) {
             console.error("PDF Export Error:", error);
-            alert("Failed to export PDF.");
+            alert("PDF Export Failed: " + error.message);
         }
     }
 
@@ -540,7 +562,7 @@
             alert("Failed to update item.");
         } else {
             alert("Quantity Updated Successfully");
-            // Refresh data without reloading page to keep smooth UX
+            // Refresh data to ensure table updates correctly
             fetchAuditData(currentAuditId);
         }
     }
