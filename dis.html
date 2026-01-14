@@ -44,21 +44,36 @@
         
         /* Inputs & Buttons */
         input { padding: 0.8rem; border: 1px solid var(--border); border-radius: 6px; width: 100%; font-size: 1rem; }
-        .btn { padding: 0.8rem 1.2rem; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; color: white; white-space: nowrap; }
+        .btn { padding: 0.8rem 1.2rem; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; color: white; white-space: nowrap; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
         .btn-search { background-color: var(--primary); }
-        .btn-add { background-color: #10b981; }
+        .btn-add { background-color: #10b981; } 
         .btn-clear { background-color: var(--secondary); }
+        .btn-save { background-color: #2563eb; }
         
-        /* Table */
-        .table-container { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
-        th { background-color: #f8fafc; padding: 12px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid var(--border); }
-        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.95rem; vertical-align: middle; }
+        /* Top Bar Flexbox */
+        .top-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+        .search-input-group { flex: 1; min-width: 200px; display: flex; gap: 10px; }
+
+        /* Table & Scroll Container */
+        .table-container { 
+            overflow-x: auto; /* Allows horizontal scroll on mobile */
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+            border-radius: var(--radius); 
+            border: 1px solid var(--border); 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            min-width: 700px; /* Reduced min-width since we removed a column */
+        }
+        th { background-color: #f8fafc; padding: 12px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid var(--border); white-space: nowrap; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.95rem; vertical-align: middle; white-space: nowrap; }
         
         .price-tag { font-weight: 700; }
-        .discount-amt { color: #ef4444; }
         .discount-pct { color: #22c55e; font-weight: bold; }
         .total-vat { color: #0f172a; font-weight: 800; font-size: 1.05rem; }
+        .no-data { text-align: center; padding: 2rem; color: var(--secondary); white-space: normal; }
 
         /* Mobile */
         @media (max-width: 768px) {
@@ -66,6 +81,10 @@
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; width: 100%; }
             .menu-toggle { display: block; }
+            .top-bar { flex-direction: column; align-items: stretch; }
+            .search-input-group { flex-direction: column; }
+            /* Make text slightly smaller on mobile to fit more */
+            th, td { padding: 10px 8px; font-size: 0.85rem; } 
         }
     </style>
 </head>
@@ -92,35 +111,46 @@
     </header>
 
     <main>
-        <!-- SEARCH SECTION -->
+        <!-- SEARCH & ADD SECTION -->
         <div class="card">
-            <h3 style="margin-top:0;">Search SKU</h3>
-            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <input type="text" id="searchInput" placeholder="Enter Barcode/SKU..." autofocus>
-                <button class="btn btn-search" onclick="searchDiscount()">Search</button>
+            <h3 style="margin-top:0; margin-bottom: 15px;">Manage Discounts</h3>
+            
+            <div class="top-bar">
+                <!-- Search Inputs -->
+                <div class="search-input-group">
+                    <input type="text" id="searchInput" placeholder="Search (e.g. BMP, SKU)">
+                    <button class="btn btn-search" onclick="searchDiscount()">Search</button>
+                </div>
+                <!-- Add New Button -->
+                <button class="btn btn-add" onclick="openAddForm()">+ Add New</button>
             </div>
-            <div id="statusMsg" style="font-size:0.9rem; color: var(--secondary);"></div>
+            <div id="statusMsg" style="margin-top:10px; font-size:0.9rem; color: var(--secondary); min-height: 20px;"></div>
         </div>
 
-        <!-- ADD/UPDATE FORM -->
-        <div class="card" id="addSection" style="display:none; border-left: 4px solid #10b981;">
-            <h4 style="margin-top:0; color:#10b981;">Manage Discount</h4>
+        <!-- ADD/EDIT FORM -->
+        <div class="card" id="addSection" style="display:none; border-left: 4px solid #2563eb;">
+            <h4 style="margin-top:0; color:var(--primary);">Discount Details</h4>
             <input type="hidden" id="editBarcode">
             
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div>
-                    <label style="display:block; font-size:0.8rem; margin-bottom:5px;">Actual Price</label>
-                    <input type="number" id="editActualPrice" placeholder="0.00">
+                    <label style="display:block; font-size:0.8rem; margin-bottom:5px; font-weight:600;">SKU / Barcode</label>
+                    <input type="text" id="editBarcodeDisplay" placeholder="Scan or type SKU">
+                </div>
+                <div></div> 
+                <div>
+                    <label style="display:block; font-size:0.8rem; margin-bottom:5px; font-weight:600;">Actual Price</label>
+                    <input type="number" id="editActualPrice" placeholder="0.00" step="0.01">
                 </div>
                 <div>
-                    <label style="display:block; font-size:0.8rem; margin-bottom:5px;">Discount Price</label>
-                    <input type="number" id="editDiscountPrice" placeholder="0.00">
+                    <label style="display:block; font-size:0.8rem; margin-bottom:5px; font-weight:600;">Discount Price</label>
+                    <input type="number" id="editDiscountPrice" placeholder="0.00" step="0.01">
                 </div>
             </div>
 
             <div style="margin-top:15px; text-align:right;">
-                <button class="btn btn-add" onclick="saveDiscount()">Save Discount</button>
-                <button class="btn btn-clear" onclick="closeEdit()">Cancel</button>
+                <button class="btn btn-save" onclick="saveDiscount()">Save / Update</button>
+                <button class="btn btn-clear" onclick="closeForm()">Cancel</button>
             </div>
         </div>
 
@@ -133,15 +163,14 @@
                         <th>Actual Price</th>
                         <th>Discount Price</th>
                         <th>Discount %</th>
-                        <th>Discount Amount</th>
                         <th>Total (Inc 10% VAT)</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="resultBody">
                     <tr>
-                        <td colspan="7" style="text-align:center; padding: 2rem; color: var(--secondary);">
-                            Search for a SKU to view details
+                        <td colspan="6" class="no-data">
+                            Search for an SKU or click "Add New" to start.
                         </td>
                     </tr>
                 </tbody>
@@ -155,14 +184,53 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // Enter Key Support
     document.getElementById('searchInput').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') searchDiscount();
+    });
+
+    document.getElementById('editBarcodeDisplay').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            document.getElementById('editBarcode').value = document.getElementById('editBarcodeDisplay').value;
+            document.getElementById('editActualPrice').focus();
+        }
     });
 
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('overlay').classList.toggle('show');
     }
+
+    // --- FORM ACTIONS ---
+
+    function openAddForm() {
+        document.getElementById('editBarcode').value = '';
+        document.getElementById('editBarcodeDisplay').value = '';
+        document.getElementById('editActualPrice').value = '';
+        document.getElementById('editDiscountPrice').value = '';
+        
+        document.getElementById('addSection').style.display = 'block';
+        document.getElementById('editBarcodeDisplay').focus();
+        
+        document.getElementById('resultBody').innerHTML = `
+            <tr><td colspan="6" class="no-data">Enter details below to add a new discount.</td></tr>
+        `;
+    }
+
+    function closeForm() {
+        document.getElementById('addSection').style.display = 'none';
+    }
+
+    function openEditForm(barcode, actualPrice, discountPrice) {
+        document.getElementById('editBarcode').value = barcode;
+        document.getElementById('editBarcodeDisplay').value = barcode;
+        document.getElementById('editActualPrice').value = actualPrice;
+        document.getElementById('editDiscountPrice').value = discountPrice;
+        
+        document.getElementById('addSection').style.display = 'block';
+    }
+
+    // --- LOGIC ---
 
     async function searchDiscount() {
         const sku = document.getElementById('searchInput').value.trim();
@@ -172,80 +240,92 @@
         if(!sku) return;
 
         statusDiv.textContent = "Searching...";
-        closeEdit();
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Loading...</td></tr>';
+        closeForm(); 
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading...</td></tr>';
 
         try {
-            // Fetch ONLY from discounted_items table (No Inventory Join)
+            // Use 'ilike' for case-insensitive partial matching
             const { data, error } = await sb
                 .from('discounted_items')
                 .select('*')
-                .eq('barcode', sku)
-                .maybeSingle();
+                .ilike('barcode', `%${sku}%`) 
+                .order('barcode', { ascending: true })
+                .limit(50);
 
-            if (error || !data) {
-                // If not found, clear table and show "Add" button option
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align:center;">
-                            SKU not found in discount list.<br>
-                            <button class="btn btn-add" style="margin-top:10px; padding: 0.5rem 1rem;" onclick="openEdit('${sku}', '', '')">Add New Discount</button>
-                        </td>
-                    </tr>`;
-                statusDiv.textContent = "";
+            if (error) {
+                console.error(error);
+                statusDiv.textContent = "Database Error. Check Permissions.";
+                tbody.innerHTML = `<tr><td colspan="6" class="no-data" style="color:red;">Error: ${error.message}</td></tr>`;
                 return;
             }
 
-            // Data Found - Perform Calculations
-            const actualPrice = parseFloat(data.actual_price || 0);
-            const discountPrice = parseFloat(data.discount_price || 0);
-            
-            const discountAmt = actualPrice - discountPrice;
-            const discountPct = actualPrice > 0 ? ((discountAmt / actualPrice) * 100).toFixed(2) : 0;
-            const totalWithVat = discountPrice + (discountPrice * 0.10);
+            if (!data || data.length === 0) {
+                // Not Found
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="no-data">
+                            No results found for "<strong>${sku}</strong>".<br>
+                            <button class="btn btn-add" style="margin-top:10px; padding: 0.5rem 1rem;" onclick="openAddFormFromSearch('${sku}')">Add New</button>
+                        </td>
+                    </tr>`;
+                statusDiv.textContent = "No results found.";
+            } else {
+                // Found - Render Table
+                renderTable(data);
+                statusDiv.textContent = `Found ${data.length} result(s).`;
+            }
 
-            tbody.innerHTML = '';
+        } catch (err) {
+            console.error(err);
+            tbody.innerHTML = `<tr><td colspan="6" class="no-data">Unexpected Error.</td></tr>`;
+        }
+    }
+
+    function openAddFormFromSearch(sku) {
+        document.getElementById('editBarcode').value = sku;
+        document.getElementById('editBarcodeDisplay').value = sku;
+        document.getElementById('editActualPrice').value = '';
+        document.getElementById('editDiscountPrice').value = '';
+        
+        document.getElementById('addSection').style.display = 'block';
+        document.getElementById('editActualPrice').focus();
+    }
+
+    function renderTable(dataArray) {
+        const tbody = document.getElementById('resultBody');
+        tbody.innerHTML = '';
+
+        dataArray.forEach(item => {
+            const actualPrice = parseFloat(item.actual_price || 0);
+            const discountPrice = parseFloat(item.discount_price || 0);
+            
+            // Calculations
+            const discountPct = actualPrice > 0 ? (((actualPrice - discountPrice) / actualPrice) * 100).toFixed(2) : 0;
+            const totalWithVat = discountPrice + (discountPrice * 0.10); 
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="font-weight:bold; color:var(--primary);">${data.barcode}</td>
-                <td class="price-tag">$${actualPrice.toFixed(2)}</td>
-                <td class="price-tag" style="color:#ef4444;">$${discountPrice.toFixed(2)}</td>
+                <td style="font-weight:bold; color:var(--primary);">${item.barcode}</td>
+                <td class="price-tag">${actualPrice.toFixed(2)}</td>
+                <td class="price-tag" style="color:#ef4444;">${discountPrice.toFixed(2)}</td>
                 <td class="discount-pct">${discountPct}%</td>
-                <td class="discount-amt">$${discountAmt.toFixed(2)}</td>
-                <td class="total-vat">$${totalWithVat.toFixed(2)}</td>
+                <td class="total-vat">${totalWithVat.toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-search" style="font-size:0.8rem; padding:0.5rem;" onclick="openEdit('${sku}', ${actualPrice}, ${discountPrice})">
+                    <button class="btn btn-search" style="font-size:0.8rem; padding:0.5rem;" onclick="openEditForm('${item.barcode}', ${actualPrice}, ${discountPrice})">
                         Edit
                     </button>
                 </td>
             `;
             tbody.appendChild(tr);
-            statusDiv.textContent = "Discount found.";
-
-        } catch (err) {
-            console.error(err);
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Error loading data.</td></tr>`;
-            statusDiv.textContent = "";
-        }
-    }
-
-    function openEdit(sku, actual, discount) {
-        document.getElementById('addSection').style.display = 'block';
-        document.getElementById('editBarcode').value = sku;
-        document.getElementById('editActualPrice').value = actual;
-        document.getElementById('editDiscountPrice').value = discount;
-        document.getElementById('editActualPrice').focus();
-    }
-
-    function closeEdit() {
-        document.getElementById('addSection').style.display = 'none';
+        });
     }
 
     async function saveDiscount() {
-        const sku = document.getElementById('editBarcode').value;
+        const sku = document.getElementById('editBarcodeDisplay').value.trim();
         const actual = parseFloat(document.getElementById('editActualPrice').value);
         const discount = parseFloat(document.getElementById('editDiscountPrice').value);
 
+        if(!sku) return alert("Please enter a Barcode/SKU");
         if(isNaN(actual) || actual < 0) return alert("Please enter a valid Actual Price");
         if(isNaN(discount) || discount < 0) return alert("Please enter a valid Discount Price");
 
@@ -261,10 +341,17 @@
 
         if(error) {
             alert("Error saving: " + error.message);
+            console.error(error);
         } else {
             alert("Saved Successfully!");
-            closeEdit();
-            searchDiscount();
+            closeForm();
+            
+            const currentSearch = document.getElementById('searchInput').value.trim();
+            if(currentSearch && sku.toLowerCase().includes(currentSearch.toLowerCase())) {
+                searchDiscount();
+            } else {
+                document.getElementById('resultBody').innerHTML = `<tr><td colspan="6" class="no-data">Saved! Search to view.</td></tr>`;
+            }
         }
     }
 </script>
