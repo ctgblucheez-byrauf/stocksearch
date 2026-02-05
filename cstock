@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stock Requisition Scanner</title>
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- QuaggaJS for Barcode Scanning -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); padding-bottom: 80px; }
+
+        /* --- Header --- */
+        header {
+            background: var(--card-bg);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-main); }
+        .status-badge { font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 20px; background: #e0f2fe; color: #0369a1; font-weight: 600; }
+
+        /* --- Search Tabs --- */
+        .search-tabs { display: flex; background: #f1f5f9; padding: 4px; border-radius: var(--radius); margin-bottom: 1rem; }
+        .tab-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            background: transparent;
+            color: var(--text-sub);
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        /* --- Search Inputs --- */
+        .search-area { display: flex; gap: 0.5rem; }
+        .search-panel { display: none; width: 100%; }
+        .search-panel.active { display: flex; gap: 0.5rem; animation: fadeIn 0.3s; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .input-group { flex: 1; position: relative; }
+        
+        /* Text Input */
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            outline: none;
+            background: var(--bg);
+        }
+        input[type="text"]:focus { border-color: var(--primary); background: #fff; }
+
+        /* Select Dropdown */
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            outline: none;
+            background: var(--bg);
+            appearance: none;
+            cursor: pointer;
+        }
+        select:focus { border-color: var(--primary); }
+
+        .input-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-sub); pointer-events: none; }
+
+        .btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:active { transform: scale(0.96); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+
+        /* --- Scanner --- */
+        #scanner-section {
+            position: relative; background: #000; width: 100%; height: 250px; overflow: hidden;
+            display: none; border-bottom: 1px solid var(--border);
+        }
+        #scanner-section.active { display: block; }
+        #interactive.viewport { position: relative; width: 100%; height: 100%; }
+        canvas.drawingBuffer { position: absolute; left: 0; top: 0; }
+        .scanner-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            border: 50px solid rgba(0,0,0,0.5); box-sizing: border-box; z-index: 10; pointer-events: none;
+        }
+        .scanner-line {
+            width: 100%; height: 2px; background: var(--danger); position: absolute; top: 50%;
+            animation: scan 2s infinite linear; box-shadow: 0 0 4px var(--danger);
+        }
+        @keyframes scan { 0% { top: 10%; opacity: 0; } 50% { opacity: 1; } 100% { top: 90%; opacity: 0; } }
+        .close-scanner {
+            position: absolute; top: 1rem; right: 1rem; z-index: 20; background: rgba(0,0,0,0.6);
+            color: white; border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+
+        /* --- Results Area --- */
+        main { padding: 1rem; max-width: 1000px; margin: 0 auto; }
+
+        .section-title { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 1rem 0; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Grid for Multiple Cards */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .product-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 1rem;
+            box-shadow: var(--shadow);
+            border-left: 4px solid transparent;
+            position: relative;
+        }
+
+        .product-card.critical { border-left-color: var(--danger); }
+        .product-card.instock { border-left-color: var(--success); }
+
+        .card-header-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+        .style-badge { font-size: 0.7rem; font-weight: 700; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: var(--text-sub); }
+
+        .product-name { font-weight: 600; font-size: 1rem; line-height: 1.2; margin-bottom: 0.5rem; }
+        
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 0.75rem; }
+        
+        .stock-display {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #f8fafc; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border);
+        }
+        .stock-val { font-weight: 800; font-size: 1.1rem; }
+        .stock-val.zero { color: var(--danger); }
+        .stock-val.pos { color: var(--success); }
+
+        .mrp-tag { font-size: 0.9rem; color: var(--text-main); font-weight: 500; }
+
+        /* --- Requisition List (Bottom) --- */
+        .req-group { margin-bottom: 2rem; }
+        .req-group h3 { font-size: 0.95rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+        
+        /* Loader */
+        .loader-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8); z-index: 2000;
+            display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); display: none;
+        }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        #toast-container { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 0.5rem; width: 90%; max-width: 400px; }
+        .toast { background: #333; color: #fff; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.9rem; display: flex; align-items: center; gap: 0.75rem; animation: slideUp 0.3s ease-out; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--primary); }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Empty State */
+        .empty-state { text-align: center; padding: 2rem; color: var(--text-sub); }
+        .empty-state i { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
+
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="loader-overlay"><div class="spinner"></div></div>
+
+    <header>
+        <div class="header-top">
+            <h1>CStock <span style="font-weight: 400; color: var(--text-sub);">Requisition</span></h1>
+            <div id="connection-status" class="status-badge">Connecting...</div>
+        </div>
+
+        <!-- Search Mode Tabs -->
+        <div class="search-tabs">
+            <button class="tab-btn active" id="tab-barcode" onclick="switchSearchMode('barcode')">Barcode / Style</button>
+            <button class="tab-btn" id="tab-name" onclick="switchSearchMode('name')">Select Name</button>
+        </div>
+
+        <div class="search-area">
+            <!-- Barcode / Style Code Input Panel -->
+            <div id="panel-barcode" class="search-panel active">
+                <div class="input-group">
+                    <i class="fa-solid fa-barcode input-icon"></i>
+                    <input type="text" id="barcode-input" placeholder="Scan or type Barcode/Style Code..." autocomplete="off">
+                </div>
+                <button id="toggle-scan-btn" class="btn btn-primary" onclick="toggleScanner()">
+                    <i class="fa-solid fa-camera"></i>
+                </button>
+                <button class="btn btn-outline" onclick="performSearch('input')">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </div>
+
+            <!-- Name Dropdown Panel -->
+            <div id="panel-name" class="search-panel">
+                <div class="input-group">
+                    <select id="name-select" onchange="performSearch('name')">
+                        <option value="" disabled selected>Select Product Name...</option>
+                        <!-- Populated via JS -->
+                    </select>
+                    <i class="fa-solid fa-caret-down input-icon" style="right: 1rem; left: auto;"></i>
+                </div>
+                <button class="btn btn-outline" onclick="loadNames()">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Scanner View -->
+    <div id="scanner-section">
+        <button class="close-scanner" onclick="stopScanner()"><i class="fa-solid fa-xmark"></i></button>
+        <div class="scanner-overlay"><div class="scanner-line"></div></div>
+        <div id="interactive" class="viewport"></div>
+    </div>
+
+    <main>
+        <!-- Search Results Area -->
+        <div id="search-results-area" style="display:none;">
+            <div class="section-title">
+                <span id="results-title">Product Variants</span>
+                <button class="btn-outline" style="border:none; padding: 0; font-size: 0.8rem; color: var(--danger);" onclick="clearSearch()">Close</button>
+            </div>
+            <div id="search-results-grid" class="product-grid">
+                <!-- Variant Cards Injected Here -->
+            </div>
+        </div>
+
+        <!-- Requisition List (Auto-loaded 0 Balance) -->
+        <div class="section-title">
+            <span>Requisition List (Out of Stock)</span>
+        </div>
+        
+        <div id="req-list-container">
+            <!-- Grouped by Style Code -->
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script>
+        // --- Configuration ---
+        const SUPABASE_URL = 'https://vrsdpyodfejjuihutgag.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let isScanning = false;
+
+        // --- DOM Elements ---
+        const barcodeInput = document.getElementById('barcode-input');
+        const nameSelect = document.getElementById('name-select');
+        const searchResultsArea = document.getElementById('search-results-area');
+        const searchResultsGrid = document.getElementById('search-results-grid');
+        const resultsTitle = document.getElementById('results-title');
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadNames(); // Load dropdown names
+            loadRestockList(); // Load bottom list
+            
+            // Enter key for barcode input
+            barcodeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch('input');
+            });
+
+            checkConnection();
+        });
+
+        async function checkConnection() {
+            const { error } = await supabase.from('inventory').select('id', { count: 'exact', head: true });
+            const badge = document.getElementById('connection-status');
+            if (error) {
+                badge.textContent = "Offline";
+                badge.style.background = "#fee2e2"; badge.style.color = "#ef4444";
+            } else {
+                badge.textContent = "Online";
+                badge.style.background = "#dcfce7"; badge.style.color = "#166534";
+            }
+        }
+
+        // --- UI Switching ---
+        function switchSearchMode(mode) {
+            // Update Tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${mode}`).classList.add('active');
+
+            // Update Panels
+            document.querySelectorAll('.search-panel').forEach(panel => panel.classList.remove('active'));
+            document.getElementById(`panel-${mode}`).classList.add('active');
+
+            if (mode === 'name') stopScanner();
+        }
+
+        // --- Data Loading ---
+        async function loadNames() {
+            showLoader(true);
+            // Fetch distinct names. Since Supabase Postgres doesn't guarantee distinct order easily without specific syntax, 
+            // we fetch all names and deduplicate in JS for simplicity in this client-side app.
+            const { data, error } = await supabase.from('inventory').select('name');
+            showLoader(false);
+
+            if (error) {
+                showToast('Failed to load product names', 'error');
+                return;
+            }
+
+            // Deduplicate
+            const uniqueNames = [...new Set(data.map(item => item.name))].sort();
+            
+            nameSelect.innerHTML = '<option value="" disabled selected>Select Product Name...</option>';
+            uniqueNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                nameSelect.appendChild(option);
+            });
+        }
+
+        // --- Search Logic ---
+        async function performSearch(source) {
+            let query = '';
+            
+            if (source === 'input') {
+                query = barcodeInput.value.trim();
+                if (!query) return;
+                
+                // Switch to barcode tab automatically if we came from scanner or just to be safe
+                switchSearchMode('barcode');
+            } else if (source === 'name') {
+                query = nameSelect.value;
+                if (!query) return;
+            }
+
+            showLoader(true);
+            let products = [];
+
+            try {
+                if (source === 'input') {
+                    // Logic: Is it a Barcode or a Style Code?
+                    // 1. Try exact match on Barcode
+                    let { data: barcodeMatch, error } = await supabase
+                        .from('inventory')
+                        .select('*')
+                        .eq('barcode', query)
+                        .maybeSingle(); // Use maybeSingle to avoid error if not found
+
+                    if (barcodeMatch) {
+                        // Found by barcode -> Get style code -> Fetch ALL variants
+                        resultsTitle.textContent = `Style: ${barcodeMatch.style_code}`;
+                        const { data: variants } = await supabase
+                            .from('inventory')
+                            .select('*')
+                            .eq('style_code', barcodeMatch.style_code)
+                            .order('size', { ascending: true });
+                        products = variants || [];
+                    } else {
+                        // 2. Try match on Style Code directly
+                        const { data: styleMatch } = await supabase
+                            .from('inventory')
+                            .select('*')
+                            .eq('style_code', query)
+                            .order('size', { ascending: true });
+                        
+                        if (styleMatch && styleMatch.length > 0) {
+                            resultsTitle.textContent = `Style: ${query}`;
+                            products = styleMatch;
+                        } else {
+                            showToast('No product found', 'error');
+                        }
+                    }
+                } else if (source === 'name') {
+                    // Logic: Search by Name
+                    resultsTitle.textContent = `Product: ${query}`;
+                    const { data } = await supabase
+                        .from('inventory')
+                        .select('*')
+                        .eq('name', query)
+                        .order('style_code', { ascending: true })
+                        .order('size', { ascending: true });
+                    products = data || [];
+                }
+
+                if (products.length > 0) {
+                    renderProductCards(products);
+                    searchResultsArea.style.display = 'block';
+                    // Scroll to results
+                    searchResultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    searchResultsArea.style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error(err);
+                showToast('Search failed', 'error');
+            } finally {
+                showLoader(false);
+                if(source === 'input') barcodeInput.value = '';
+            }
+        }
+
+        // --- Rendering ---
+        function renderProductCards(items) {
+            searchResultsGrid.innerHTML = '';
+            
+            items.forEach(item => {
+                const isZero = item.balance <= 0;
+                const cardClass = isZero ? 'critical' : 'instock';
+                const stockClass = isZero ? 'zero' : 'pos';
+                const stockLabel = isZero ? 'OUT OF STOCK' : 'IN STOCK';
+
+                const html = `
+                    <div class="product-card ${cardClass}">
+                        <div class="card-header-row">
+                            <span class="style-badge">${item.style_code}</span>
+                            <span style="font-size:0.75rem; color:#aaa;">${item.barcode}</span>
+                        </div>
+                        <div class="product-name">${item.name}</div>
+                        
+                        <div class="meta-grid">
+                            <div><i class="fa-solid fa-palette"></i> ${item.color || '-'}</div>
+                            <div><i class="fa-solid fa-ruler-combined"></i> ${item.size || '-'}</div>
+                        </div>
+
+                        <div class="stock-display">
+                            <div>
+                                <div style="font-size:0.7rem; color:var(--text-sub);">BALANCE</div>
+                                <div class="stock-val ${stockClass}">${item.balance}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:0.7rem; color:var(--text-sub);">MRP</div>
+                                <div class="mrp-tag">${item.mrp || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                searchResultsGrid.innerHTML += html;
+            });
+        }
+
+        function clearSearch() {
+            searchResultsArea.style.display = 'none';
+            searchResultsGrid.innerHTML = '';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- Requisition List (Bottom) ---
+        async function loadRestockList() {
+            showLoader(true);
+            const { data, error } = await supabase
+                .from('inventory')
+                .select('*')
+                .lte('balance', 0)
+                .order('style_code', { ascending: true })
+                .order('size', { ascending: true });
+            showLoader(false);
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            const container = document.getElementById('req-list-container');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-check-circle"></i><p>All stocks are available!</p></div>';
+                return;
+            }
+
+            // Group by Style Code
+            const grouped = {};
+            data.forEach(p => {
+                const s = p.style_code || 'Unknown';
+                if (!grouped[s]) grouped[s] = [];
+                grouped[s].push(p);
+            });
+
+            Object.keys(grouped).forEach(style => {
+                const items = grouped[style];
+                const first = items[0];
+                
+                let itemsHtml = '<div class="product-grid">';
+                items.forEach(item => {
+                    itemsHtml += `
+                        <div class="product-card critical" style="padding: 0.5rem;">
+                             <div class="card-header-row">
+                                <span style="font-weight:700;">${item.size || '-'}</span>
+                                <span style="color:var(--danger); font-weight:700;">0</span>
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--text-sub);">${item.color || ''} | ${item.barcode}</div>
+                        </div>
+                    `;
+                });
+                itemsHtml += '</div>';
+
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'req-group';
+                groupDiv.innerHTML = `<h3>${style} - <span style="font-weight:400; text-transform:capitalize;">${first.name}</span></h3>${itemsHtml}`;
+                container.appendChild(groupDiv);
+            });
+        }
+
+        // --- Scanner Functions (Quagga) ---
+        function toggleScanner() {
+            if (isScanning) stopScanner(); else startScanner();
+        }
+
+        function startScanner() {
+            document.getElementById('scanner-section').classList.add('active');
+            document.getElementById('scanner-section').style.display = 'block';
+            const btn = document.getElementById('toggle-scan-btn');
+            btn.innerHTML = '<i class="fa-solid fa-stop"></i>';
+            btn.style.background = '#ef4444';
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showToast('Camera not supported', 'error');
+                stopScanner(); return;
+            }
+
+            Quagga.init({
+                inputStream: {
+                    name: "Live", type: "LiveStream",
+                    target: document.querySelector('#interactive'),
+                    constraints: { facingMode: "environment", width: 640, height: 480 }
+                },
+                decoder: { readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"] },
+                locate: true
+            }, function(err) {
+                if (err) { console.error(err); showToast('Camera failed', 'error'); stopScanner(); return; }
+                Quagga.start();
+                isScanning = true;
+            });
+
+            let lastDetected = 0;
+            Quagga.onDetected(function(result) {
+                const code = result.codeResult.code;
+                const now = Date.now();
+                if (now - lastDetected > 2000) { // 2s debounce
+                    triggerFeedback();
+                    // Set input value and trigger search
+                    barcodeInput.value = code;
+                    performSearch('input');
+                    stopScanner(); // Stop after successful scan
+                    lastDetected = now;
+                }
+            });
+        }
+
+        function stopScanner() {
+            if (isScanning) {
+                Quagga.stop();
+                isScanning = false;
+                document.getElementById('scanner-section').classList.remove('active');
+                document.getElementById('scanner-section').style.display = 'none';
+                const btn = document.getElementById('toggle-scan-btn');
+                btn.innerHTML = '<i class="fa-solid fa-camera"></i>';
+                btn.style.background = ''; // reset to CSS default
+            }
+        }
+
+        // --- Utilities ---
+        function triggerFeedback() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
+            osc.stop(audioCtx.currentTime + 0.15);
+            if (navigator.vibrate) navigator.vibrate(150);
+        }
+
+        function showToast(msg, type='info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = type === 'success' ? 'check-circle' : (type === 'error' ? 'exclamation-circle' : 'info-circle');
+            toast.innerHTML = `<i class="fa-solid fa-${icon}"></i> <span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(),300); }, 3000);
+        }
+
+        function showLoader(show) {
+            document.getElementById('loader').style.display = show ? 'flex' : 'none';
+        }
+    </script>
+</body>
+</html>
