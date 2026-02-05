@@ -72,7 +72,6 @@
 
         .input-group { flex: 1; position: relative; }
         
-        /* Text Input */
         input[type="text"] {
             width: 100%;
             padding: 0.75rem 1rem 0.75rem 2.5rem;
@@ -84,7 +83,6 @@
         }
         input[type="text"]:focus { border-color: var(--primary); background: #fff; }
 
-        /* Select Dropdown */
         select {
             width: 100%;
             padding: 0.75rem;
@@ -110,6 +108,7 @@
             align-items: center;
             gap: 0.5rem;
             transition: 0.2s;
+            white-space: nowrap;
         }
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:active { transform: scale(0.96); }
@@ -142,7 +141,30 @@
 
         .section-title { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 1rem 0; display: flex; justify-content: space-between; align-items: center; }
 
-        /* Grid for Multiple Cards */
+        /* View Switcher */
+        .view-switch {
+            display: flex;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: 8px;
+        }
+        .view-btn {
+            padding: 4px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-sub);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .view-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            font-weight: 600;
+        }
+
+        /* --- GRID VIEW --- */
         .product-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -178,7 +200,50 @@
 
         .mrp-tag { font-size: 0.9rem; color: var(--text-main); font-weight: 500; }
 
-        /* --- Requisition List (Bottom) --- */
+        /* --- TABLE VIEW --- */
+        .table-wrapper {
+            display: none; /* Hidden by default */
+            width: 100%;
+            overflow-x: auto; /* Horizontal scroll for mobile */
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: white;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 800px; /* Ensure table doesn't squish */
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--text-sub);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            white-space: nowrap;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f1f5f9; }
+
+        .td-bold { font-weight: 600; }
+        .td-zero { color: var(--danger); font-weight: 700; }
+        .td-pos { color: var(--success); font-weight: 600; }
+
+        /* --- Requisition List --- */
         .req-group { margin-bottom: 2rem; }
         .req-group h3 { font-size: 0.95rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
         
@@ -199,7 +264,6 @@
         .toast.info { border-left: 4px solid var(--primary); }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* Empty State */
         .empty-state { text-align: center; padding: 2rem; color: var(--text-sub); }
         .empty-state i { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
 
@@ -215,14 +279,12 @@
             <div id="connection-status" class="status-badge">Connecting...</div>
         </div>
 
-        <!-- Search Mode Tabs -->
         <div class="search-tabs">
             <button class="tab-btn active" id="tab-barcode" onclick="switchSearchMode('barcode')">Barcode / Style</button>
             <button class="tab-btn" id="tab-name" onclick="switchSearchMode('name')">Select Name</button>
         </div>
 
         <div class="search-area">
-            <!-- Barcode / Style Code Input Panel -->
             <div id="panel-barcode" class="search-panel active">
                 <div class="input-group">
                     <i class="fa-solid fa-barcode input-icon"></i>
@@ -236,12 +298,10 @@
                 </button>
             </div>
 
-            <!-- Name Dropdown Panel -->
             <div id="panel-name" class="search-panel">
                 <div class="input-group">
                     <select id="name-select" onchange="performSearch('name')">
                         <option value="" disabled selected>Select Product Name...</option>
-                        <!-- Populated via JS -->
                     </select>
                     <i class="fa-solid fa-caret-down input-icon" style="right: 1rem; left: auto;"></i>
                 </div>
@@ -264,10 +324,37 @@
         <div id="search-results-area" style="display:none;">
             <div class="section-title">
                 <span id="results-title">Product Variants</span>
-                <button class="btn-outline" style="border:none; padding: 0; font-size: 0.8rem; color: var(--danger);" onclick="clearSearch()">Close</button>
+                
+                <!-- View Switcher Buttons -->
+                <div class="view-switch">
+                    <button class="view-btn active" id="btn-view-grid" onclick="switchViewMode('grid')"><i class="fa-solid fa-border-all"></i> Grid</button>
+                    <button class="view-btn" id="btn-view-table" onclick="switchViewMode('table')"><i class="fa-solid fa-table-list"></i> Table</button>
+                </div>
             </div>
-            <div id="search-results-grid" class="product-grid">
-                <!-- Variant Cards Injected Here -->
+
+            <!-- Grid Container -->
+            <div id="search-results-grid" class="product-grid"></div>
+
+            <!-- Table Container -->
+            <div id="search-results-table" class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Barcode</th>
+                            <th>Name</th>
+                            <th>Style Code</th>
+                            <th>Color</th>
+                            <th>Size</th>
+                            <th>Rcv Qty</th>
+                            <th>Sale Qty</th>
+                            <th>Balance</th>
+                            <th>MRP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Rows injected via JS -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -287,23 +374,28 @@
         // --- Configuration ---
         const SUPABASE_URL = 'https://vrsdpyodfejjuihutgag.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // Renamed to _supabaseClient to avoid conflicts
+        const _supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let isScanning = false;
+        let currentSearchData = []; // Store current search results to switch views without re-fetching
+        let viewMode = 'grid'; // 'grid' or 'table'
 
         // --- DOM Elements ---
         const barcodeInput = document.getElementById('barcode-input');
         const nameSelect = document.getElementById('name-select');
         const searchResultsArea = document.getElementById('search-results-area');
         const searchResultsGrid = document.getElementById('search-results-grid');
+        const searchResultsTable = document.getElementById('search-results-table');
         const resultsTitle = document.getElementById('results-title');
+        const tableBody = document.getElementById('table-body');
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
-            loadNames(); // Load dropdown names
-            loadRestockList(); // Load bottom list
+            loadNames(); 
+            loadRestockList(); 
             
-            // Enter key for barcode input
             barcodeInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') performSearch('input');
             });
@@ -312,7 +404,7 @@
         });
 
         async function checkConnection() {
-            const { error } = await supabase.from('inventory').select('id', { count: 'exact', head: true });
+            const { error } = await _supabaseClient.from('inventory').select('id', { count: 'exact', head: true });
             const badge = document.getElementById('connection-status');
             if (error) {
                 badge.textContent = "Offline";
@@ -323,25 +415,17 @@
             }
         }
 
-        // --- UI Switching ---
         function switchSearchMode(mode) {
-            // Update Tabs
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`tab-${mode}`).classList.add('active');
-
-            // Update Panels
             document.querySelectorAll('.search-panel').forEach(panel => panel.classList.remove('active'));
             document.getElementById(`panel-${mode}`).classList.add('active');
-
             if (mode === 'name') stopScanner();
         }
 
-        // --- Data Loading ---
         async function loadNames() {
             showLoader(true);
-            // Fetch distinct names. Since Supabase Postgres doesn't guarantee distinct order easily without specific syntax, 
-            // we fetch all names and deduplicate in JS for simplicity in this client-side app.
-            const { data, error } = await supabase.from('inventory').select('name');
+            const { data, error } = await _supabaseClient.from('inventory').select('name');
             showLoader(false);
 
             if (error) {
@@ -349,7 +433,6 @@
                 return;
             }
 
-            // Deduplicate
             const uniqueNames = [...new Set(data.map(item => item.name))].sort();
             
             nameSelect.innerHTML = '<option value="" disabled selected>Select Product Name...</option>';
@@ -361,15 +444,12 @@
             });
         }
 
-        // --- Search Logic ---
         async function performSearch(source) {
             let query = '';
             
             if (source === 'input') {
                 query = barcodeInput.value.trim();
                 if (!query) return;
-                
-                // Switch to barcode tab automatically if we came from scanner or just to be safe
                 switchSearchMode('barcode');
             } else if (source === 'name') {
                 query = nameSelect.value;
@@ -381,18 +461,16 @@
 
             try {
                 if (source === 'input') {
-                    // Logic: Is it a Barcode or a Style Code?
                     // 1. Try exact match on Barcode
-                    let { data: barcodeMatch, error } = await supabase
+                    let { data: barcodeMatch, error } = await _supabaseClient
                         .from('inventory')
                         .select('*')
                         .eq('barcode', query)
-                        .maybeSingle(); // Use maybeSingle to avoid error if not found
+                        .maybeSingle(); 
 
                     if (barcodeMatch) {
-                        // Found by barcode -> Get style code -> Fetch ALL variants
                         resultsTitle.textContent = `Style: ${barcodeMatch.style_code}`;
-                        const { data: variants } = await supabase
+                        const { data: variants } = await _supabaseClient
                             .from('inventory')
                             .select('*')
                             .eq('style_code', barcodeMatch.style_code)
@@ -400,7 +478,7 @@
                         products = variants || [];
                     } else {
                         // 2. Try match on Style Code directly
-                        const { data: styleMatch } = await supabase
+                        const { data: styleMatch } = await _supabaseClient
                             .from('inventory')
                             .select('*')
                             .eq('style_code', query)
@@ -414,9 +492,8 @@
                         }
                     }
                 } else if (source === 'name') {
-                    // Logic: Search by Name
                     resultsTitle.textContent = `Product: ${query}`;
-                    const { data } = await supabase
+                    const { data } = await _supabaseClient
                         .from('inventory')
                         .select('*')
                         .eq('name', query)
@@ -426,9 +503,9 @@
                 }
 
                 if (products.length > 0) {
-                    renderProductCards(products);
+                    currentSearchData = products; // Store data
+                    renderResults(); // Render based on current viewMode
                     searchResultsArea.style.display = 'block';
-                    // Scroll to results
                     searchResultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else {
                     searchResultsArea.style.display = 'none';
@@ -443,15 +520,40 @@
             }
         }
 
-        // --- Rendering ---
-        function renderProductCards(items) {
+        // --- Rendering Logic ---
+
+        function switchViewMode(mode) {
+            viewMode = mode;
+            
+            // Toggle Buttons
+            document.getElementById('btn-view-grid').classList.toggle('active', mode === 'grid');
+            document.getElementById('btn-view-table').classList.toggle('active', mode === 'table');
+
+            // Toggle Containers
+            searchResultsGrid.style.display = mode === 'grid' ? 'grid' : 'none';
+            searchResultsTable.style.display = mode === 'table' ? 'block' : 'none';
+
+            // Render if we have data
+            if (currentSearchData.length > 0) {
+                renderResults();
+            }
+        }
+
+        function renderResults() {
+            if (viewMode === 'grid') {
+                renderGrid(currentSearchData);
+            } else {
+                renderTable(currentSearchData);
+            }
+        }
+
+        function renderGrid(items) {
             searchResultsGrid.innerHTML = '';
             
             items.forEach(item => {
                 const isZero = item.balance <= 0;
                 const cardClass = isZero ? 'critical' : 'instock';
                 const stockClass = isZero ? 'zero' : 'pos';
-                const stockLabel = isZero ? 'OUT OF STOCK' : 'IN STOCK';
 
                 const html = `
                     <div class="product-card ${cardClass}">
@@ -482,16 +584,41 @@
             });
         }
 
+        function renderTable(items) {
+            tableBody.innerHTML = '';
+            
+            items.forEach(item => {
+                const isZero = item.balance <= 0;
+                const balanceClass = isZero ? 'td-zero' : 'td-pos';
+
+                const row = `
+                    <tr>
+                        <td class="td-bold">${item.barcode}</td>
+                        <td>${item.name}</td>
+                        <td>${item.style_code}</td>
+                        <td>${item.color || '-'}</td>
+                        <td style="text-transform:uppercase;">${item.size || '-'}</td>
+                        <td>${item.rcv_qty}</td>
+                        <td>${item.sale_qty}</td>
+                        <td class="${balanceClass}">${item.balance}</td>
+                        <td>${item.mrp || 0}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
         function clearSearch() {
             searchResultsArea.style.display = 'none';
             searchResultsGrid.innerHTML = '';
+            tableBody.innerHTML = '';
+            currentSearchData = [];
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // --- Requisition List (Bottom) ---
         async function loadRestockList() {
             showLoader(true);
-            const { data, error } = await supabase
+            const { data, error } = await _supabaseClient
                 .from('inventory')
                 .select('*')
                 .lte('balance', 0)
@@ -512,7 +639,6 @@
                 return;
             }
 
-            // Group by Style Code
             const grouped = {};
             data.forEach(p => {
                 const s = p.style_code || 'Unknown';
@@ -545,7 +671,6 @@
             });
         }
 
-        // --- Scanner Functions (Quagga) ---
         function toggleScanner() {
             if (isScanning) stopScanner(); else startScanner();
         }
@@ -580,12 +705,11 @@
             Quagga.onDetected(function(result) {
                 const code = result.codeResult.code;
                 const now = Date.now();
-                if (now - lastDetected > 2000) { // 2s debounce
+                if (now - lastDetected > 2000) { 
                     triggerFeedback();
-                    // Set input value and trigger search
                     barcodeInput.value = code;
                     performSearch('input');
-                    stopScanner(); // Stop after successful scan
+                    stopScanner(); 
                     lastDetected = now;
                 }
             });
@@ -599,11 +723,10 @@
                 document.getElementById('scanner-section').style.display = 'none';
                 const btn = document.getElementById('toggle-scan-btn');
                 btn.innerHTML = '<i class="fa-solid fa-camera"></i>';
-                btn.style.background = ''; // reset to CSS default
+                btn.style.background = ''; 
             }
         }
 
-        // --- Utilities ---
         function triggerFeedback() {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = audioCtx.createOscillator();
