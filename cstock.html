@@ -110,6 +110,7 @@
             gap: 0.5rem;
             transition: 0.2s;
             white-space: nowrap;
+            font-size: 0.9rem;
         }
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:active { transform: scale(0.96); }
@@ -119,8 +120,8 @@
         .btn-excel {
             background: #107c41; 
             color: white;
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
         }
         .btn-excel:hover { background: #0c5e31; }
 
@@ -146,15 +147,15 @@
             color: white; border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
 
-        /* --- Results Area --- */
+        /* --- Main Content --- */
         main { padding: 1rem; max-width: 1000px; margin: 0 auto; }
 
-        .section-title { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 1rem 0; display: flex; justify-content: space-between; align-items: center; }
+        .section-title { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 1rem 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
 
         /* Toolbar */
         .results-toolbar {
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             align-items: center;
         }
 
@@ -166,7 +167,7 @@
             border-radius: 8px;
         }
         .view-btn {
-            padding: 4px 12px;
+            padding: 4px 10px;
             border: none;
             background: transparent;
             color: var(--text-sub);
@@ -260,7 +261,7 @@
         .td-zero { color: var(--danger); font-weight: 700; }
         .td-pos { color: var(--success); font-weight: 600; }
 
-        /* --- Requisition List --- */
+        /* --- Requisition List Styles --- */
         .req-group { margin-bottom: 2rem; }
         .req-group h3 { font-size: 0.95rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
         
@@ -345,8 +346,8 @@
                 <!-- Toolbar for Search Results -->
                 <div class="results-toolbar">
                     <div class="view-switch">
-                        <button class="view-btn active" id="btn-view-grid" onclick="switchViewMode('grid')"><i class="fa-solid fa-border-all"></i></button>
-                        <button class="view-btn" id="btn-view-table" onclick="switchViewMode('table')"><i class="fa-solid fa-table-list"></i></button>
+                        <button class="view-btn active" id="btn-view-grid" onclick="switchViewMode('grid')"><i class="fa-solid fa-border-all"></i> Grid</button>
+                        <button class="view-btn" id="btn-view-table" onclick="switchViewMode('table')"><i class="fa-solid fa-table-list"></i> Table</button>
                     </div>
                     <button class="btn btn-excel" onclick="exportToExcel()">
                         <i class="fa-solid fa-file-excel"></i> Excel
@@ -385,8 +386,8 @@
             <!-- Toolbar for Requisition List -->
             <div class="results-toolbar">
                 <div class="view-switch">
-                    <button class="view-btn active" id="btn-req-grid" onclick="switchReqViewMode('grid')"><i class="fa-solid fa-border-all"></i></button>
-                    <button class="view-btn" id="btn-req-table" onclick="switchReqViewMode('table')"><i class="fa-solid fa-table-list"></i></button>
+                    <button class="view-btn active" id="btn-req-grid" onclick="switchReqViewMode('grid')"><i class="fa-solid fa-border-all"></i> Grid</button>
+                    <button class="view-btn" id="btn-req-table" onclick="switchReqViewMode('table')"><i class="fa-solid fa-table-list"></i> Table</button>
                 </div>
                 <button class="btn btn-excel" onclick="exportReqToExcel()">
                     <i class="fa-solid fa-file-excel"></i> Export
@@ -430,11 +431,11 @@
 
         let isScanning = false;
         let currentSearchData = []; 
-        let viewMode = 'grid'; 
+        let viewMode = 'grid'; // Search Results View Mode
 
         // Requisition List State
         let currentReqData = [];
-        let reqViewMode = 'grid';
+        let reqViewMode = 'grid'; // Requisition View Mode
 
         // --- DOM Elements ---
         const barcodeInput = document.getElementById('barcode-input');
@@ -452,7 +453,7 @@
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
             loadNames(); 
-            loadRestockList(); 
+            loadRestockList(); // Load Requisition List immediately
             
             barcodeInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') performSearch('input');
@@ -483,22 +484,23 @@
 
         async function loadNames() {
             showLoader(true);
-            const { data, error } = await _supabaseClient.from('inventory').select('name');
-            showLoader(false);
+            try {
+                const { data, error } = await _supabaseClient.from('inventory').select('name');
+                if (error) throw error;
 
-            if (error) {
+                const uniqueNames = [...new Set(data.map(item => item.name))].sort();
+                nameSelect.innerHTML = '<option value="" disabled selected>Select Product Name...</option>';
+                uniqueNames.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    nameSelect.appendChild(option);
+                });
+            } catch (err) {
                 showToast('Failed to load product names', 'error');
-                return;
+            } finally {
+                showLoader(false);
             }
-
-            const uniqueNames = [...new Set(data.map(item => item.name))].sort();
-            nameSelect.innerHTML = '<option value="" disabled selected>Select Product Name...</option>';
-            uniqueNames.forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                nameSelect.appendChild(option);
-            });
         }
 
         // --- Sorting Logic ---
@@ -603,10 +605,15 @@
         // --- SEARCH Results Rendering ---
         function switchViewMode(mode) {
             viewMode = mode;
+            // Update Buttons
             document.getElementById('btn-view-grid').classList.toggle('active', mode === 'grid');
             document.getElementById('btn-view-table').classList.toggle('active', mode === 'table');
+            
+            // Toggle Containers
             searchResultsGrid.style.display = mode === 'grid' ? 'grid' : 'none';
             searchResultsTable.style.display = mode === 'table' ? 'block' : 'none';
+            
+            // Re-render content if needed
             if (currentSearchData.length > 0) renderResults();
         }
 
@@ -678,40 +685,49 @@
         // --- REQUISITION List Functions ---
         async function loadRestockList() {
             showLoader(true);
-            const { data, error } = await _supabaseClient
-                .from('inventory')
-                .select('*')
-                .lte('balance', 0);
-            showLoader(false);
+            try {
+                const { data, error } = await _supabaseClient
+                    .from('inventory')
+                    .select('*')
+                    .lte('balance', 0);
+                
+                if (error) throw error;
 
-            if (error) {
-                console.error(error);
-                return;
+                if (data.length === 0) {
+                    reqListContainer.innerHTML = '<div class="empty-state"><i class="fa-solid fa-check-circle"></i><p>All stocks are available!</p></div>';
+                    reqTableBody.innerHTML = '';
+                    return;
+                }
+
+                // Sort and Store
+                currentReqData = sortProductsBySize(data);
+                renderReqResults();
+
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load requisition list', 'error');
+            } finally {
+                showLoader(false);
             }
-
-            if (data.length === 0) {
-                reqListContainer.innerHTML = '<div class="empty-state"><i class="fa-solid fa-check-circle"></i><p>All stocks are available!</p></div>';
-                reqTableBody.innerHTML = '';
-                return;
-            }
-
-            // Sort and Store
-            currentReqData = sortProductsBySize(data);
-            renderReqResults();
         }
 
         function switchReqViewMode(mode) {
             reqViewMode = mode;
+            // Update Buttons
             document.getElementById('btn-req-grid').classList.toggle('active', mode === 'grid');
             document.getElementById('btn-req-table').classList.toggle('active', mode === 'table');
             
+            // Toggle Containers
             reqListContainer.style.display = mode === 'grid' ? 'block' : 'none';
             reqTableWrapper.style.display = mode === 'table' ? 'block' : 'none';
 
-            if (currentReqData.length > 0) renderReqResults();
+            // Re-render content
+            renderReqResults();
         }
 
         function renderReqResults() {
+            if (currentReqData.length === 0) return;
+
             if (reqViewMode === 'grid') {
                 renderReqGrid(currentReqData);
             } else {
@@ -721,7 +737,6 @@
 
         function renderReqGrid(items) {
             reqListContainer.innerHTML = '';
-
             // Group by Style for Grid View
             const grouped = {};
             items.forEach(p => {
@@ -775,12 +790,12 @@
 
         // --- Export Functions ---
         function exportToExcel() {
-            if (!currentSearchData.length) return showToast("No data to export", "error");
+            if (!currentSearchData.length) return showToast("No search data to export", "error");
             exportDataToExcel(currentSearchData, "Search_Results");
         }
 
         function exportReqToExcel() {
-            if (!currentReqData.length) return showToast("No data to export", "error");
+            if (!currentReqData.length) return showToast("No requisition data to export", "error");
             exportDataToExcel(currentReqData, "Requisition_List");
         }
 
@@ -792,10 +807,10 @@
                 Style_Code: item.style_code,
                 Color: item.color,
                 Size: item.size,
-                Rcv_Qty: item.rcv_qty,
-                Sale_Qty: item.sale_qty,
+                Rcv_Qty: item.rcv_qty || 0,
+                Sale_Qty: item.sale_qty || 0,
                 Balance: item.balance,
-                MRP: item.mrp
+                MRP: item.mrp || 0
             }));
 
             try {
