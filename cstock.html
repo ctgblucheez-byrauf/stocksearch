@@ -67,9 +67,9 @@
         /* --- Search Inputs --- */
         .search-area { display: flex; gap: 0.5rem; }
         .search-panel { display: none; width: 100%; }
-        .search-panel.active { display: flex; gap: 0.5rem; animation: fadeIn 0.3s; }
+        .search-panel.active { display: flex; gap: 0.5rem; animation: fadeIn 0.2s ease-out; }
         
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .input-group { flex: 1; position: relative; }
         
@@ -108,7 +108,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: 0.2s;
+            transition: 0.1s;
             white-space: nowrap;
             font-size: 0.9rem;
         }
@@ -139,7 +139,7 @@
         }
         .scanner-line {
             width: 100%; height: 2px; background: var(--danger); position: absolute; top: 50%;
-            animation: scan 2s infinite linear; box-shadow: 0 0 4px var(--danger);
+            animation: scan 1.5s infinite linear; box-shadow: 0 0 4px var(--danger);
         }
         @keyframes scan { 0% { top: 10%; opacity: 0; } 50% { opacity: 1; } 100% { top: 90%; opacity: 0; } }
         .close-scanner {
@@ -285,6 +285,9 @@
         .empty-state { text-align: center; padding: 2rem; color: var(--text-sub); }
         .empty-state i { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
 
+        /* Small loader inside dropdown area */
+        .small-spinner { border: 2px solid #f3f3f3; border-top: 2px solid var(--primary); border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; }
+
     </style>
 </head>
 <body>
@@ -323,7 +326,7 @@
                     </select>
                     <i class="fa-solid fa-caret-down input-icon" style="right: 1rem; left: auto;"></i>
                 </div>
-                <button class="btn btn-outline" onclick="loadNames()">
+                <button class="btn btn-outline" onclick="loadNames()" id="refresh-names-btn">
                     <i class="fa-solid fa-rotate"></i>
                 </button>
             </div>
@@ -431,11 +434,11 @@
 
         let isScanning = false;
         let currentSearchData = []; 
-        let viewMode = 'grid'; // Search Results View Mode
+        let viewMode = 'grid'; 
 
         // Requisition List State
         let currentReqData = [];
-        let reqViewMode = 'grid'; // Requisition View Mode
+        let reqViewMode = 'grid';
 
         // --- DOM Elements ---
         const barcodeInput = document.getElementById('barcode-input');
@@ -452,8 +455,9 @@
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
+            // Load names in background so page doesn't feel stuck
             loadNames(); 
-            loadRestockList(); // Load Requisition List immediately
+            loadRestockList(); 
             
             barcodeInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') performSearch('input');
@@ -463,14 +467,18 @@
         });
 
         async function checkConnection() {
-            const { error } = await _supabaseClient.from('inventory').select('id', { count: 'exact', head: true });
-            const badge = document.getElementById('connection-status');
-            if (error) {
-                badge.textContent = "Offline";
-                badge.style.background = "#fee2e2"; badge.style.color = "#ef4444";
-            } else {
-                badge.textContent = "Online";
-                badge.style.background = "#dcfce7"; badge.style.color = "#166534";
+            try {
+                const { error } = await _supabaseClient.from('inventory').select('id', { count: 'exact', head: true });
+                const badge = document.getElementById('connection-status');
+                if (error) {
+                    badge.textContent = "Offline";
+                    badge.style.background = "#fee2e2"; badge.style.color = "#ef4444";
+                } else {
+                    badge.textContent = "Online";
+                    badge.style.background = "#dcfce7"; badge.style.color = "#166534";
+                }
+            } catch(e) {
+                console.error(e);
             }
         }
 
@@ -483,9 +491,18 @@
         }
 
         async function loadNames() {
-            showLoader(true);
+            const btnIcon = document.querySelector('#refresh-names-btn i');
+            if(btnIcon) {
+                btnIcon.classList.add('fa-spin');
+            }
+
             try {
-                const { data, error } = await _supabaseClient.from('inventory').select('name');
+                // Increased range to 5000 to ensure all names are loaded
+                const { data, error } = await _supabaseClient
+                    .from('inventory')
+                    .select('name')
+                    .range(0, 5000); 
+                
                 if (error) throw error;
 
                 const uniqueNames = [...new Set(data.map(item => item.name))].sort();
@@ -497,9 +514,12 @@
                     nameSelect.appendChild(option);
                 });
             } catch (err) {
-                showToast('Failed to load product names', 'error');
+                console.error(err);
+                // Don't show toast on initial load error to avoid spam
             } finally {
-                showLoader(false);
+                if(btnIcon) {
+                    btnIcon.classList.remove('fa-spin');
+                }
             }
         }
 
@@ -513,12 +533,10 @@
                 let sizeA = (a.size || '').toString().toUpperCase().trim();
                 let sizeB = (b.size || '').toString().toUpperCase().trim();
 
-                // Primary sort by Style Code
                 if (a.style_code !== b.style_code) {
                     return a.style_code.localeCompare(b.style_code);
                 }
 
-                // Secondary sort by Size
                 if (sizeOrder[sizeA] && !sizeOrder[sizeB]) return -1;
                 if (!sizeOrder[sizeA] && sizeOrder[sizeB]) return 1;
                 if (sizeOrder[sizeA] && sizeOrder[sizeB]) {
@@ -563,10 +581,11 @@
                             .eq('style_code', barcodeMatch.style_code);
                         products = variants || [];
                     } else {
+                        // IMPORTANT FIX: Use .ilike for case-insensitive partial match (abc-002 works for ABC-002)
                         const { data: styleMatch } = await _supabaseClient
                             .from('inventory')
                             .select('*')
-                            .eq('style_code', query);
+                            .ilike('style_code', `%${query}%`);
                         
                         if (styleMatch && styleMatch.length > 0) {
                             resultsTitle.textContent = `Style: ${query}`;
@@ -605,15 +624,10 @@
         // --- SEARCH Results Rendering ---
         function switchViewMode(mode) {
             viewMode = mode;
-            // Update Buttons
             document.getElementById('btn-view-grid').classList.toggle('active', mode === 'grid');
             document.getElementById('btn-view-table').classList.toggle('active', mode === 'table');
-            
-            // Toggle Containers
             searchResultsGrid.style.display = mode === 'grid' ? 'grid' : 'none';
             searchResultsTable.style.display = mode === 'table' ? 'block' : 'none';
-            
-            // Re-render content if needed
             if (currentSearchData.length > 0) renderResults();
         }
 
@@ -699,7 +713,6 @@
                     return;
                 }
 
-                // Sort and Store
                 currentReqData = sortProductsBySize(data);
                 renderReqResults();
 
@@ -713,21 +726,15 @@
 
         function switchReqViewMode(mode) {
             reqViewMode = mode;
-            // Update Buttons
             document.getElementById('btn-req-grid').classList.toggle('active', mode === 'grid');
             document.getElementById('btn-req-table').classList.toggle('active', mode === 'table');
-            
-            // Toggle Containers
             reqListContainer.style.display = mode === 'grid' ? 'block' : 'none';
             reqTableWrapper.style.display = mode === 'table' ? 'block' : 'none';
-
-            // Re-render content
             renderReqResults();
         }
 
         function renderReqResults() {
             if (currentReqData.length === 0) return;
-
             if (reqViewMode === 'grid') {
                 renderReqGrid(currentReqData);
             } else {
@@ -737,7 +744,6 @@
 
         function renderReqGrid(items) {
             reqListContainer.innerHTML = '';
-            // Group by Style for Grid View
             const grouped = {};
             items.forEach(p => {
                 const s = p.style_code || 'Unknown';
@@ -828,15 +834,7 @@
             }
         }
 
-        function clearSearch() {
-            searchResultsArea.style.display = 'none';
-            searchResultsGrid.innerHTML = '';
-            tableBody.innerHTML = '';
-            currentSearchData = [];
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // --- Scanner Functions ---
+        // --- SCANNER FUNCTIONS ---
         function toggleScanner() {
             if (isScanning) stopScanner(); else startScanner();
         }
@@ -853,16 +851,35 @@
                 stopScanner(); return;
             }
 
+            // Improved Configuration for speed and accuracy
             Quagga.init({
                 inputStream: {
-                    name: "Live", type: "LiveStream",
+                    name: "Live",
+                    type: "LiveStream",
                     target: document.querySelector('#interactive'),
-                    constraints: { facingMode: "environment", width: 640, height: 480 }
+                    constraints: {
+                        facingMode: "environment",
+                        width: { min: 640, ideal: 1280, max: 1920 },
+                        height: { min: 480, ideal: 720, max: 1080 },
+                    },
                 },
-                decoder: { readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"] },
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true
+                },
+                numOfWorkers: 2, // Reduce workers for slightly faster startup
+                decoder: {
+                    // Common readers
+                    readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"]
+                },
                 locate: true
             }, function(err) {
-                if (err) { console.error(err); showToast('Camera failed', 'error'); stopScanner(); return; }
+                if (err) { 
+                    console.error(err); 
+                    showToast('Camera failed to start', 'error'); 
+                    stopScanner(); 
+                    return; 
+                }
                 Quagga.start();
                 isScanning = true;
             });
@@ -871,7 +888,7 @@
             Quagga.onDetected(function(result) {
                 const code = result.codeResult.code;
                 const now = Date.now();
-                if (now - lastDetected > 2000) { 
+                if (now - lastDetected > 1500) { 
                     triggerFeedback();
                     barcodeInput.value = code;
                     performSearch('input');
@@ -890,6 +907,9 @@
                 const btn = document.getElementById('toggle-scan-btn');
                 btn.innerHTML = '<i class="fa-solid fa-camera"></i>';
                 btn.style.background = ''; 
+                // Clear the canvas to ensure no ghosting
+                const interactive = document.querySelector('#interactive');
+                if(interactive) interactive.innerHTML = '';
             }
         }
 
