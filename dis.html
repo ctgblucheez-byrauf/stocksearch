@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Search</title>
+    <title>Product Search Tool</title>
     
-    <!-- Supabase JS Library -->
+    <!-- Supabase JS Library via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         :root {
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
-            --bg: #f8fafc;
+            --bg: #f1f5f9;
             --surface: #ffffff;
             --text: #1e293b;
             --border: #e2e8f0;
@@ -27,16 +27,22 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
         }
 
-        /* Search Box Area */
-        .search-box {
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #334155;
+        }
+
+        /* Search Card */
+        .search-card {
             background: var(--surface);
-            padding: 1.5rem;
+            padding: 2rem;
             border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             display: flex;
             gap: 1rem;
             align-items: flex-end;
@@ -51,32 +57,33 @@
         }
 
         label {
-            font-size: 0.875rem;
+            font-size: 0.9rem;
             font-weight: 600;
             color: #64748b;
+            text-transform: uppercase;
         }
 
         input {
-            padding: 0.75rem;
-            border: 1px solid var(--border);
+            padding: 0.8rem;
+            border: 2px solid var(--border);
             border-radius: 8px;
             font-size: 1rem;
             outline: none;
-            transition: border-color 0.2s;
+            transition: all 0.2s;
         }
 
         input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         button {
-            padding: 0.75rem 1.5rem;
+            padding: 0.8rem 2rem;
             background-color: var(--primary);
             color: white;
             border: none;
             border-radius: 8px;
             font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
             transition: background 0.2s;
         }
@@ -86,15 +93,25 @@
         }
 
         button:disabled {
-            background-color: #94a3b8;
-            cursor: not-allowed;
+            background-color: #cbd5e1;
+            cursor: wait;
         }
 
+        /* Status Messages */
+        .status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            display: none;
+        }
+        .error { background-color: #fee2e2; color: #ef4444; }
+        .loading { color: #64748b; font-weight: 500; }
+
         /* Results Table */
-        .results {
+        .results-container {
             background: var(--surface);
             border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             display: none; /* Hidden by default */
         }
@@ -102,21 +119,20 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            text-align: left;
         }
 
         thead {
-            background-color: #f1f5f9;
-            border-bottom: 1px solid var(--border);
+            background-color: #f8fafc;
+            border-bottom: 2px solid var(--border);
         }
 
         th {
             padding: 1rem;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #475569;
+            text-align: left;
+            font-size: 0.85rem;
             font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
         }
 
         td {
@@ -125,52 +141,38 @@
             color: #334155;
         }
 
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background-color: #f8fafc;
-        }
-
-        /* Status Messages */
-        .status {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            display: none;
-        }
-        .error {
-            background-color: #fee2e2;
-            color: #ef4444;
-        }
-        .loading {
-            color: #64748b;
-            font-style: italic;
-        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #f8fafc; }
 
         .empty-state {
-            padding: 2rem;
+            padding: 3rem;
             text-align: center;
             color: #94a3b8;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 640px) {
+            .search-card { flex-direction: column; align-items: stretch; }
+            button { width: 100%; }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div class="search-box">
+        <h1>Inventory Lookup</h1>
+
+        <div class="search-card">
             <div class="input-group">
-                <label for="searchInput">Search Style Code</label>
-                <input type="text" id="searchInput" placeholder="Enter style code (e.g., 1001)..." autocomplete="off">
+                <label for="styleCode">Search Style Code</label>
+                <input type="text" id="styleCode" placeholder="e.g. 1001, AB-20..." autocomplete="off">
             </div>
-            <button id="btnSearch">Search</button>
+            <button id="searchBtn">Search</button>
         </div>
 
         <div id="statusArea" class="status"></div>
 
-        <div class="results" id="resultsTable">
+        <div class="results-container" id="resultsArea">
             <table>
                 <thead>
                     <tr>
@@ -182,75 +184,83 @@
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- Rows go here -->
+                    <!-- Rows injected here -->
                 </tbody>
             </table>
-            <div id="emptyState" class="empty-state" style="display:none;">
-                No products found.
-            </div>
+            <div id="emptyState" class="empty-state hidden">No results found.</div>
         </div>
     </div>
 
+    <!-- SINGLE SCRIPT BLOCK STARTS HERE -->
     <script>
-        // CONFIGURATION
+        // --- CONFIGURATION ---
         const SUPABASE_URL = 'https://vrsdpyodfejjuihutgag.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE';
         const TABLE_NAME = 'dis product';
 
-        // Initialize Supabase
+        // --- INITIALIZE CLIENT (ONLY ONCE) ---
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // DOM Elements
-        const searchInput = document.getElementById('searchInput');
-        const btnSearch = document.getElementById('btnSearch');
-        const resultsTable = document.getElementById('resultsTable');
+        // --- DOM ELEMENTS ---
+        const styleCodeInput = document.getElementById('styleCode');
+        const searchBtn = document.getElementById('searchBtn');
+        const resultsArea = document.getElementById('resultsArea');
         const tableBody = document.getElementById('tableBody');
         const statusArea = document.getElementById('statusArea');
         const emptyState = document.getElementById('emptyState');
 
-        // Columns to display (Must match SQL exactly)
+        // Columns to render
         const COLUMNS = ['Barcode', 'Style code', 'name', 'colour', 'balance'];
 
-        // Search Function
-        async function performSearch() {
-            const query = searchInput.value.trim();
-            
+        // --- FUNCTIONS ---
+
+        function showStatus(msg, type) {
+            statusArea.textContent = msg;
+            statusArea.className = `status ${type}`;
+            statusArea.style.display = 'block';
+        }
+
+        async function handleSearch() {
+            const query = styleCodeInput.value.trim();
+
             if (!query) {
-                showStatus('Please enter a style code.', 'error');
+                showStatus("Please enter a style code.", "error");
                 return;
             }
 
-            // UI Loading State
-            btnSearch.disabled = true;
-            btnSearch.textContent = 'Loading...';
-            resultsTable.style.display = 'none';
-            statusArea.style.display = 'none';
+            // UI State: Loading
+            searchBtn.disabled = true;
+            searchBtn.textContent = "Searching...";
+            resultsArea.style.display = 'none';
+            showStatus("Connecting to database...", "loading");
 
             try {
                 // Query Supabase
-                // Searching in the 'Style code' column
+                // Searching in 'Style code' column
                 const { data, error } = await supabase
                     .from(TABLE_NAME)
                     .select('*')
-                    .ilike('Style code', `%${query}%`); // Case-insensitive partial match
+                    .ilike('Style code', `%${query}%`);
 
                 if (error) throw error;
 
                 renderTable(data);
-                
+                showStatus("", ""); // Clear status
+
             } catch (err) {
                 console.error(err);
-                showStatus('Error: ' + err.message, 'error');
+                showStatus(`Error: ${err.message}`, "error");
+                resultsArea.style.display = 'none';
             } finally {
-                btnSearch.disabled = false;
-                btnSearch.textContent = 'Search';
+                // UI State: Reset
+                searchBtn.disabled = false;
+                searchBtn.textContent = "Search";
             }
         }
 
-        // Render Table
         function renderTable(data) {
-            resultsTable.style.display = 'block';
-            tableBody.innerHTML = '';
+            tableBody.innerHTML = ''; // Clear table
+            resultsArea.style.display = 'block';
 
             if (!data || data.length === 0) {
                 emptyState.style.display = 'block';
@@ -261,19 +271,16 @@
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                
-                // Loop through columns to create cells in correct order
-                COLUMNS.forEach(colName => {
-                    const td = document.createElement('td');
-                    // Safely get value
-                    const val = (row[colName] !== undefined) ? row[colName] : '';
-                    
-                    // Styling for Balance
-                    if (colName === 'balance') {
-                        td.style.fontWeight = 'bold';
-                        td.style.color = '#0f766e';
-                    }
 
+                COLUMNS.forEach(col => {
+                    const td = document.createElement('td');
+                    const val = (row[col] !== undefined) ? row[col] : '';
+                    
+                    if (col === 'balance') {
+                        td.style.fontWeight = 'bold';
+                        td.style.color = '#0d9488';
+                    }
+                    
                     td.textContent = val;
                     tr.appendChild(td);
                 });
@@ -282,18 +289,13 @@
             });
         }
 
-        function showStatus(msg, type) {
-            statusArea.textContent = msg;
-            statusArea.className = 'status ' + type;
-            statusArea.style.display = 'block';
-        }
-
-        // Event Listeners
-        btnSearch.addEventListener('click', performSearch);
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performSearch();
+        // --- EVENT LISTENERS ---
+        searchBtn.addEventListener('click', handleSearch);
+        styleCodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSearch();
         });
 
     </script>
+    <!-- SINGLE SCRIPT BLOCK ENDS HERE -->
 </body>
 </html>
