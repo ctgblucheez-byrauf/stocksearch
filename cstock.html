@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- QuaggaJS for Barcode Scanning -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
@@ -18,9 +20,8 @@
         :root {
             --primary: #3b82f6;
             --primary-dark: #2563eb;
-            --danger: #ef4444;
             --success: #22c55e;
-            --warning: #f59e0b;
+            --danger: #ef4444;
             --bg: #f8fafc;
             --card-bg: #ffffff;
             --text-main: #1e293b;
@@ -113,6 +114,15 @@
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:active { transform: scale(0.96); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        
+        /* Excel Button */
+        .btn-excel {
+            background: #107c41; 
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .btn-excel:hover { background: #0c5e31; }
 
         /* --- Scanner --- */
         #scanner-section {
@@ -140,6 +150,13 @@
         main { padding: 1rem; max-width: 1000px; margin: 0 auto; }
 
         .section-title { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 1rem 0; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Toolbar */
+        .results-toolbar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
 
         /* View Switcher */
         .view-switch {
@@ -202,9 +219,9 @@
 
         /* --- TABLE VIEW --- */
         .table-wrapper {
-            display: none; /* Hidden by default */
+            display: none; 
             width: 100%;
-            overflow-x: auto; /* Horizontal scroll for mobile */
+            overflow-x: auto; 
             border-radius: var(--radius);
             border: 1px solid var(--border);
             background: white;
@@ -214,7 +231,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.85rem;
-            min-width: 800px; /* Ensure table doesn't squish */
+            min-width: 800px;
         }
 
         th {
@@ -325,17 +342,22 @@
             <div class="section-title">
                 <span id="results-title">Product Variants</span>
                 
-                <!-- View Switcher Buttons -->
-                <div class="view-switch">
-                    <button class="view-btn active" id="btn-view-grid" onclick="switchViewMode('grid')"><i class="fa-solid fa-border-all"></i> Grid</button>
-                    <button class="view-btn" id="btn-view-table" onclick="switchViewMode('table')"><i class="fa-solid fa-table-list"></i> Table</button>
+                <!-- Toolbar for Search Results -->
+                <div class="results-toolbar">
+                    <div class="view-switch">
+                        <button class="view-btn active" id="btn-view-grid" onclick="switchViewMode('grid')"><i class="fa-solid fa-border-all"></i></button>
+                        <button class="view-btn" id="btn-view-table" onclick="switchViewMode('table')"><i class="fa-solid fa-table-list"></i></button>
+                    </div>
+                    <button class="btn btn-excel" onclick="exportToExcel()">
+                        <i class="fa-solid fa-file-excel"></i> Excel
+                    </button>
                 </div>
             </div>
 
-            <!-- Grid Container -->
+            <!-- Search Grid -->
             <div id="search-results-grid" class="product-grid"></div>
 
-            <!-- Table Container -->
+            <!-- Search Table -->
             <div id="search-results-table" class="table-wrapper">
                 <table>
                     <thead>
@@ -351,20 +373,50 @@
                             <th>MRP</th>
                         </tr>
                     </thead>
-                    <tbody id="table-body">
-                        <!-- Rows injected via JS -->
-                    </tbody>
+                    <tbody id="table-body"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Requisition List (Auto-loaded 0 Balance) -->
+        <!-- Requisition List (Out of Stock) -->
         <div class="section-title">
             <span>Requisition List (Out of Stock)</span>
+            
+            <!-- Toolbar for Requisition List -->
+            <div class="results-toolbar">
+                <div class="view-switch">
+                    <button class="view-btn active" id="btn-req-grid" onclick="switchReqViewMode('grid')"><i class="fa-solid fa-border-all"></i></button>
+                    <button class="view-btn" id="btn-req-table" onclick="switchReqViewMode('table')"><i class="fa-solid fa-table-list"></i></button>
+                </div>
+                <button class="btn btn-excel" onclick="exportReqToExcel()">
+                    <i class="fa-solid fa-file-excel"></i> Export
+                </button>
+            </div>
         </div>
         
+        <!-- Requisition Grid Container -->
         <div id="req-list-container">
-            <!-- Grouped by Style Code -->
+            <!-- Grouped Grid injected via JS -->
+        </div>
+
+        <!-- Requisition Table Container -->
+        <div id="req-table-wrapper" class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Barcode</th>
+                        <th>Name</th>
+                        <th>Style Code</th>
+                        <th>Color</th>
+                        <th>Size</th>
+                        <th>Balance</th>
+                        <th>MRP</th>
+                    </tr>
+                </thead>
+                <tbody id="req-table-body">
+                    <!-- Rows injected via JS -->
+                </tbody>
+            </table>
         </div>
     </main>
 
@@ -374,13 +426,15 @@
         // --- Configuration ---
         const SUPABASE_URL = 'https://vrsdpyodfejjuihutgag.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE';
-        
-        // Renamed to _supabaseClient to avoid conflicts
         const _supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let isScanning = false;
-        let currentSearchData = []; // Store current search results to switch views without re-fetching
-        let viewMode = 'grid'; // 'grid' or 'table'
+        let currentSearchData = []; 
+        let viewMode = 'grid'; 
+
+        // Requisition List State
+        let currentReqData = [];
+        let reqViewMode = 'grid';
 
         // --- DOM Elements ---
         const barcodeInput = document.getElementById('barcode-input');
@@ -390,6 +444,10 @@
         const searchResultsTable = document.getElementById('search-results-table');
         const resultsTitle = document.getElementById('results-title');
         const tableBody = document.getElementById('table-body');
+        
+        const reqListContainer = document.getElementById('req-list-container');
+        const reqTableWrapper = document.getElementById('req-table-wrapper');
+        const reqTableBody = document.getElementById('req-table-body');
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
@@ -434,7 +492,6 @@
             }
 
             const uniqueNames = [...new Set(data.map(item => item.name))].sort();
-            
             nameSelect.innerHTML = '<option value="" disabled selected>Select Product Name...</option>';
             uniqueNames.forEach(name => {
                 const option = document.createElement('option');
@@ -444,9 +501,38 @@
             });
         }
 
+        // --- Sorting Logic ---
+        function sortProductsBySize(products) {
+            const sizeOrder = {
+                'XS': 1, 'S': 2, 'M': 3, 'L': 4, 'XL': 5, 'XXL': 6, 'XXXL': 7, 
+                '2XL': 6, '3XL': 7, '4XL': 8, '5XL': 9
+            };
+            return products.sort((a, b) => {
+                let sizeA = (a.size || '').toString().toUpperCase().trim();
+                let sizeB = (b.size || '').toString().toUpperCase().trim();
+
+                // Primary sort by Style Code
+                if (a.style_code !== b.style_code) {
+                    return a.style_code.localeCompare(b.style_code);
+                }
+
+                // Secondary sort by Size
+                if (sizeOrder[sizeA] && !sizeOrder[sizeB]) return -1;
+                if (!sizeOrder[sizeA] && sizeOrder[sizeB]) return 1;
+                if (sizeOrder[sizeA] && sizeOrder[sizeB]) {
+                    return sizeOrder[sizeA] - sizeOrder[sizeB];
+                }
+                const numA = parseFloat(sizeA);
+                const numB = parseFloat(sizeB);
+                if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                if (!isNaN(numA)) return -1;
+                if (!isNaN(numB)) return 1;
+                return sizeA.localeCompare(sizeB);
+            });
+        }
+
         async function performSearch(source) {
             let query = '';
-            
             if (source === 'input') {
                 query = barcodeInput.value.trim();
                 if (!query) return;
@@ -461,8 +547,7 @@
 
             try {
                 if (source === 'input') {
-                    // 1. Try exact match on Barcode
-                    let { data: barcodeMatch, error } = await _supabaseClient
+                    let { data: barcodeMatch } = await _supabaseClient
                         .from('inventory')
                         .select('*')
                         .eq('barcode', query)
@@ -473,16 +558,13 @@
                         const { data: variants } = await _supabaseClient
                             .from('inventory')
                             .select('*')
-                            .eq('style_code', barcodeMatch.style_code)
-                            .order('size', { ascending: true });
+                            .eq('style_code', barcodeMatch.style_code);
                         products = variants || [];
                     } else {
-                        // 2. Try match on Style Code directly
                         const { data: styleMatch } = await _supabaseClient
                             .from('inventory')
                             .select('*')
-                            .eq('style_code', query)
-                            .order('size', { ascending: true });
+                            .eq('style_code', query);
                         
                         if (styleMatch && styleMatch.length > 0) {
                             resultsTitle.textContent = `Style: ${query}`;
@@ -496,15 +578,13 @@
                     const { data } = await _supabaseClient
                         .from('inventory')
                         .select('*')
-                        .eq('name', query)
-                        .order('style_code', { ascending: true })
-                        .order('size', { ascending: true });
+                        .eq('name', query);
                     products = data || [];
                 }
 
                 if (products.length > 0) {
-                    currentSearchData = products; // Store data
-                    renderResults(); // Render based on current viewMode
+                    currentSearchData = sortProductsBySize(products);
+                    renderResults(); 
                     searchResultsArea.style.display = 'block';
                     searchResultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else {
@@ -520,36 +600,26 @@
             }
         }
 
-        // --- Rendering Logic ---
-
+        // --- SEARCH Results Rendering ---
         function switchViewMode(mode) {
             viewMode = mode;
-            
-            // Toggle Buttons
             document.getElementById('btn-view-grid').classList.toggle('active', mode === 'grid');
             document.getElementById('btn-view-table').classList.toggle('active', mode === 'table');
-
-            // Toggle Containers
             searchResultsGrid.style.display = mode === 'grid' ? 'grid' : 'none';
             searchResultsTable.style.display = mode === 'table' ? 'block' : 'none';
-
-            // Render if we have data
-            if (currentSearchData.length > 0) {
-                renderResults();
-            }
+            if (currentSearchData.length > 0) renderResults();
         }
 
         function renderResults() {
             if (viewMode === 'grid') {
-                renderGrid(currentSearchData);
+                renderGrid(currentSearchData, searchResultsGrid);
             } else {
-                renderTable(currentSearchData);
+                renderTable(currentSearchData, tableBody);
             }
         }
 
-        function renderGrid(items) {
-            searchResultsGrid.innerHTML = '';
-            
+        function renderGrid(items, container) {
+            container.innerHTML = '';
             items.forEach(item => {
                 const isZero = item.balance <= 0;
                 const cardClass = isZero ? 'critical' : 'instock';
@@ -562,12 +632,10 @@
                             <span style="font-size:0.75rem; color:#aaa;">${item.barcode}</span>
                         </div>
                         <div class="product-name">${item.name}</div>
-                        
                         <div class="meta-grid">
                             <div><i class="fa-solid fa-palette"></i> ${item.color || '-'}</div>
                             <div><i class="fa-solid fa-ruler-combined"></i> ${item.size || '-'}</div>
                         </div>
-
                         <div class="stock-display">
                             <div>
                                 <div style="font-size:0.7rem; color:var(--text-sub);">BALANCE</div>
@@ -580,13 +648,12 @@
                         </div>
                     </div>
                 `;
-                searchResultsGrid.innerHTML += html;
+                container.innerHTML += html;
             });
         }
 
-        function renderTable(items) {
-            tableBody.innerHTML = '';
-            
+        function renderTable(items, tbody) {
+            tbody.innerHTML = '';
             items.forEach(item => {
                 const isZero = item.balance <= 0;
                 const balanceClass = isZero ? 'td-zero' : 'td-pos';
@@ -604,26 +671,17 @@
                         <td>${item.mrp || 0}</td>
                     </tr>
                 `;
-                tableBody.innerHTML += row;
+                tbody.innerHTML += row;
             });
         }
 
-        function clearSearch() {
-            searchResultsArea.style.display = 'none';
-            searchResultsGrid.innerHTML = '';
-            tableBody.innerHTML = '';
-            currentSearchData = [];
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
+        // --- REQUISITION List Functions ---
         async function loadRestockList() {
             showLoader(true);
             const { data, error } = await _supabaseClient
                 .from('inventory')
                 .select('*')
-                .lte('balance', 0)
-                .order('style_code', { ascending: true })
-                .order('size', { ascending: true });
+                .lte('balance', 0);
             showLoader(false);
 
             if (error) {
@@ -631,27 +689,53 @@
                 return;
             }
 
-            const container = document.getElementById('req-list-container');
-            container.innerHTML = '';
-
             if (data.length === 0) {
-                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-check-circle"></i><p>All stocks are available!</p></div>';
+                reqListContainer.innerHTML = '<div class="empty-state"><i class="fa-solid fa-check-circle"></i><p>All stocks are available!</p></div>';
+                reqTableBody.innerHTML = '';
                 return;
             }
 
+            // Sort and Store
+            currentReqData = sortProductsBySize(data);
+            renderReqResults();
+        }
+
+        function switchReqViewMode(mode) {
+            reqViewMode = mode;
+            document.getElementById('btn-req-grid').classList.toggle('active', mode === 'grid');
+            document.getElementById('btn-req-table').classList.toggle('active', mode === 'table');
+            
+            reqListContainer.style.display = mode === 'grid' ? 'block' : 'none';
+            reqTableWrapper.style.display = mode === 'table' ? 'block' : 'none';
+
+            if (currentReqData.length > 0) renderReqResults();
+        }
+
+        function renderReqResults() {
+            if (reqViewMode === 'grid') {
+                renderReqGrid(currentReqData);
+            } else {
+                renderReqTable(currentReqData);
+            }
+        }
+
+        function renderReqGrid(items) {
+            reqListContainer.innerHTML = '';
+
+            // Group by Style for Grid View
             const grouped = {};
-            data.forEach(p => {
+            items.forEach(p => {
                 const s = p.style_code || 'Unknown';
                 if (!grouped[s]) grouped[s] = [];
                 grouped[s].push(p);
             });
 
             Object.keys(grouped).forEach(style => {
-                const items = grouped[style];
-                const first = items[0];
+                const groupItems = grouped[style];
+                const first = groupItems[0];
                 
                 let itemsHtml = '<div class="product-grid">';
-                items.forEach(item => {
+                groupItems.forEach(item => {
                     itemsHtml += `
                         <div class="product-card critical" style="padding: 0.5rem;">
                              <div class="card-header-row">
@@ -667,10 +751,77 @@
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'req-group';
                 groupDiv.innerHTML = `<h3>${style} - <span style="font-weight:400; text-transform:capitalize;">${first.name}</span></h3>${itemsHtml}`;
-                container.appendChild(groupDiv);
+                reqListContainer.appendChild(groupDiv);
             });
         }
 
+        function renderReqTable(items) {
+            reqTableBody.innerHTML = '';
+            items.forEach(item => {
+                const row = `
+                    <tr>
+                        <td class="td-bold">${item.barcode}</td>
+                        <td>${item.name}</td>
+                        <td>${item.style_code}</td>
+                        <td>${item.color || '-'}</td>
+                        <td style="text-transform:uppercase;">${item.size || '-'}</td>
+                        <td class="td-zero">${item.balance}</td>
+                        <td>${item.mrp || 0}</td>
+                    </tr>
+                `;
+                reqTableBody.innerHTML += row;
+            });
+        }
+
+        // --- Export Functions ---
+        function exportToExcel() {
+            if (!currentSearchData.length) return showToast("No data to export", "error");
+            exportDataToExcel(currentSearchData, "Search_Results");
+        }
+
+        function exportReqToExcel() {
+            if (!currentReqData.length) return showToast("No data to export", "error");
+            exportDataToExcel(currentReqData, "Requisition_List");
+        }
+
+        function exportDataToExcel(data, filenamePrefix) {
+            showLoader(true);
+            const exportData = data.map(item => ({
+                Barcode: item.barcode,
+                Name: item.name,
+                Style_Code: item.style_code,
+                Color: item.color,
+                Size: item.size,
+                Rcv_Qty: item.rcv_qty,
+                Sale_Qty: item.sale_qty,
+                Balance: item.balance,
+                MRP: item.mrp
+            }));
+
+            try {
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+                const dateStr = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(wb, `${filenamePrefix}_${dateStr}.xlsx`);
+                showToast("Excel downloaded successfully", "success");
+            } catch (error) {
+                console.error(error);
+                showToast("Export failed", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function clearSearch() {
+            searchResultsArea.style.display = 'none';
+            searchResultsGrid.innerHTML = '';
+            tableBody.innerHTML = '';
+            currentSearchData = [];
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- Scanner Functions ---
         function toggleScanner() {
             if (isScanning) stopScanner(); else startScanner();
         }
