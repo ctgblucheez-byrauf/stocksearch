@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Search Tool</title>
     
-    <!-- Supabase JS Library via CDN -->
+    <!-- 1. Load Supabase Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
+        /* CSS STYLES */
         :root {
             --primary: #2563eb;
-            --primary-hover: #1d4ed8;
             --bg: #f1f5f9;
             --surface: #ffffff;
             --text: #1e293b;
@@ -19,62 +19,37 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: sans-serif;
             background-color: var(--bg);
             color: var(--text);
             padding: 2rem;
             margin: 0;
         }
 
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        h1 { text-align: center; margin-bottom: 2rem; }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 2rem;
-            color: #334155;
-        }
-
-        /* Search Card */
-        .search-card {
+        .search-box {
             background: var(--surface);
             padding: 2rem;
             border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
             display: flex;
             gap: 1rem;
-            align-items: flex-end;
             margin-bottom: 2rem;
         }
 
-        .input-group {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-        }
-
+        .input-group { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+        label { font-weight: 600; color: #64748b; font-size: 0.9rem; }
+        
         input {
             padding: 0.8rem;
             border: 2px solid var(--border);
             border-radius: 8px;
             font-size: 1rem;
-            outline: none;
-            transition: all 0.2s;
         }
-
-        input:focus {
-            border-color: var(--primary);
-        }
+        input:focus { border-color: var(--primary); outline: none; }
 
         button {
             padding: 0.8rem 2rem;
@@ -83,78 +58,27 @@
             border: none;
             border-radius: 8px;
             font-weight: 600;
-            font-size: 1rem;
             cursor: pointer;
-            transition: background 0.2s;
         }
+        button:disabled { background-color: #cbd5e1; cursor: wait; }
 
-        button:hover {
-            background-color: var(--primary-hover);
-        }
-
-        button:disabled {
-            background-color: #cbd5e1;
-            cursor: wait;
-        }
-
-        /* Status Messages */
-        .status {
-            margin-top: 1rem;
-            padding: 1rem;
-            border-radius: 8px;
-            display: none;
-        }
+        .status { margin-top: 1rem; padding: 1rem; border-radius: 8px; display: none; }
         .error { background-color: #fee2e2; color: #ef4444; }
-        .loading { color: #64748b; font-weight: 500; }
 
-        /* Results Table */
-        .results-container {
+        .results {
             background: var(--surface);
             border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
             overflow: hidden;
-            display: none; /* Hidden by default */
+            display: none;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        thead {
-            background-color: #f8fafc;
-            border-bottom: 2px solid var(--border);
-        }
-
-        th {
-            padding: 1rem;
-            text-align: left;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #475569;
-            text-transform: uppercase;
-        }
-
-        td {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border);
-            color: #334155;
-        }
-
+        table { width: 100%; border-collapse: collapse; }
+        thead { background-color: #f8fafc; border-bottom: 2px solid var(--border); }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { font-weight: 700; color: #475569; text-transform: uppercase; font-size: 0.85rem; }
         tr:last-child td { border-bottom: none; }
-        tr:hover { background-color: #f8fafc; }
-
-        .empty-state {
-            padding: 3rem;
-            text-align: center;
-            color: #94a3b8;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 640px) {
-            .search-card { flex-direction: column; align-items: stretch; }
-            button { width: 100%; }
-        }
+        .empty { padding: 2rem; text-align: center; color: #94a3b8; }
     </style>
 </head>
 <body>
@@ -162,17 +86,17 @@
     <div class="container">
         <h1>Inventory Lookup</h1>
 
-        <div class="search-card">
+        <div class="search-box">
             <div class="input-group">
-                <label for="styleCode">Search Style Code</label>
-                <input type="text" id="styleCode" placeholder="e.g. 1001, AB-20..." autocomplete="off">
+                <label for="searchInput">Style Code</label>
+                <input type="text" id="searchInput" placeholder="Type here...">
             </div>
-            <button id="searchBtn">Search</button>
+            <button id="btnSearch">Search</button>
         </div>
 
         <div id="statusArea" class="status"></div>
 
-        <div class="results-container" id="resultsArea">
+        <div class="results" id="resultsTable">
             <table>
                 <thead>
                     <tr>
@@ -183,119 +107,89 @@
                         <th>balance</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody">
-                    <!-- Rows injected here -->
-                </tbody>
+                <tbody id="tableBody"></tbody>
             </table>
-            <div id="emptyState" class="empty-state hidden">No results found.</div>
+            <div id="emptyMsg" class="empty" style="display:none;">No items found.</div>
         </div>
     </div>
 
-    <!-- SINGLE SCRIPT BLOCK STARTS HERE -->
     <script>
         // --- CONFIGURATION ---
-        const SUPABASE_URL = 'https://vrsdpyodfejjuihutgag.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE';
-        const TABLE_NAME = 'dis product';
+        const URL = 'https://vrsdpyodfejjuihutgag.supabase.co';
+        const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE';
+        const TABLE = 'dis product';
 
-        // --- INITIALIZE CLIENT (ONLY ONCE) ---
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // --- INITIALIZE SUPABASE (ONLY ONCE) ---
+        const supabase = window.supabase.createClient(URL, KEY);
 
-        // --- DOM ELEMENTS ---
-        const styleCodeInput = document.getElementById('styleCode');
-        const searchBtn = document.getElementById('searchBtn');
-        const resultsArea = document.getElementById('resultsArea');
-        const tableBody = document.getElementById('tableBody');
-        const statusArea = document.getElementById('statusArea');
-        const emptyState = document.getElementById('emptyState');
+        // --- VARIABLES ---
+        const input = document.getElementById('searchInput');
+        const btn = document.getElementById('btnSearch');
+        const resultsDiv = document.getElementById('resultsTable');
+        const tbody = document.getElementById('tableBody');
+        const statusDiv = document.getElementById('statusArea');
+        const emptyDiv = document.getElementById('emptyMsg');
 
-        // Columns to render
-        const COLUMNS = ['Barcode', 'Style code', 'name', 'colour', 'balance'];
+        // --- COLUMNS TO SHOW ---
+        const COLS = ['Barcode', 'Style code', 'name', 'colour', 'balance'];
 
-        // --- FUNCTIONS ---
+        // --- SEARCH FUNCTION ---
+        async function search() {
+            const val = input.value.trim();
+            if (!val) return alert('Please enter a style code');
 
-        function showStatus(msg, type) {
-            statusArea.textContent = msg;
-            statusArea.className = `status ${type}`;
-            statusArea.style.display = 'block';
-        }
-
-        async function handleSearch() {
-            const query = styleCodeInput.value.trim();
-
-            if (!query) {
-                showStatus("Please enter a style code.", "error");
-                return;
-            }
-
-            // UI State: Loading
-            searchBtn.disabled = true;
-            searchBtn.textContent = "Searching...";
-            resultsArea.style.display = 'none';
-            showStatus("Connecting to database...", "loading");
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
+            resultsDiv.style.display = 'none';
+            statusDiv.style.display = 'none';
 
             try {
-                // Query Supabase
-                // Searching in 'Style code' column
                 const { data, error } = await supabase
-                    .from(TABLE_NAME)
+                    .from(TABLE)
                     .select('*')
-                    .ilike('Style code', `%${query}%`);
+                    .ilike('Style code', `%${val}%`);
 
                 if (error) throw error;
-
-                renderTable(data);
-                showStatus("", ""); // Clear status
+                render(data);
 
             } catch (err) {
-                console.error(err);
-                showStatus(`Error: ${err.message}`, "error");
-                resultsArea.style.display = 'none';
+                statusDiv.textContent = 'Error: ' + err.message;
+                statusDiv.classList.add('error');
+                statusDiv.style.display = 'block';
             } finally {
-                // UI State: Reset
-                searchBtn.disabled = false;
-                searchBtn.textContent = "Search";
+                btn.disabled = false;
+                btn.textContent = 'Search';
             }
         }
 
-        function renderTable(data) {
-            tableBody.innerHTML = ''; // Clear table
-            resultsArea.style.display = 'block';
+        // --- RENDER FUNCTION ---
+        function render(data) {
+            tbody.innerHTML = '';
+            resultsDiv.style.display = 'block';
 
             if (!data || data.length === 0) {
-                emptyState.style.display = 'block';
+                emptyDiv.style.display = 'block';
                 return;
             }
-
-            emptyState.style.display = 'none';
+            emptyDiv.style.display = 'none';
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
-
-                COLUMNS.forEach(col => {
+                COLS.forEach(col => {
                     const td = document.createElement('td');
-                    const val = (row[col] !== undefined) ? row[col] : '';
-                    
-                    if (col === 'balance') {
-                        td.style.fontWeight = 'bold';
-                        td.style.color = '#0d9488';
-                    }
-                    
-                    td.textContent = val;
+                    td.textContent = row[col] !== undefined ? row[col] : '';
+                    if (col === 'balance') td.style.fontWeight = 'bold';
                     tr.appendChild(td);
                 });
-
-                tableBody.appendChild(tr);
+                tbody.appendChild(tr);
             });
         }
 
-        // --- EVENT LISTENERS ---
-        searchBtn.addEventListener('click', handleSearch);
-        styleCodeInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleSearch();
-        });
+        // --- EVENTS ---
+        btn.addEventListener('click', search);
+        input.addEventListener('keypress', (e) => { if(e.key === 'Enter') search(); });
 
     </script>
-    <!-- SINGLE SCRIPT BLOCK ENDS HERE -->
+<!-- DO NOT ADD ANYTHING BELOW THIS LINE -->
 </body>
 </html>
