@@ -152,12 +152,17 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.95rem;
-            white-space: nowrap; /* Prevent wrapping for better readability */
+            white-space: nowrap;
         }
 
         thead {
             background-color: #f1f5f9;
             border-bottom: 2px solid var(--border-color);
+        }
+
+        tfoot {
+            background-color: #f8fafc;
+            border-top: 2px solid var(--border-color);
         }
 
         th, td {
@@ -172,6 +177,12 @@
             text-transform: uppercase;
             font-size: 0.85rem;
             letter-spacing: 0.05em;
+        }
+
+        /* Footer specific styles */
+        tfoot td {
+            font-weight: 700;
+            color: #0f172a;
         }
 
         tr:hover {
@@ -278,6 +289,10 @@
                 <tbody id="tableBody">
                     <!-- Rows will be injected here -->
                 </tbody>
+                <!-- Footer for Totals -->
+                <tfoot id="tableFooter">
+                    <!-- Totals injected here -->
+                </tfoot>
             </table>
         </div>
     </main>
@@ -359,24 +374,20 @@
             const tableWrapper = document.getElementById('tableWrapper');
             const emptyState = document.getElementById('emptyState');
             const tbody = document.getElementById('tableBody');
+            const tfoot = document.getElementById('tableFooter');
 
             loading.style.display = 'none';
 
             // Filter logic
             const filteredData = allData.filter(row => {
-                // Access column. Note: Columns with spaces are accessed via bracket notation row["Column Name"]
-                // We treat the comparison as string to be safe, or parseFloat if strictly numeric
                 const vatVal = row["VAT"]; 
-                
                 if (filterValue === 'all') return true;
-                
-                // Comparing filter value (string) with DB value
-                // Handling potential string vs number mismatch
                 return String(vatVal) === filterValue;
             });
 
             // Render
-            tbody.innerHTML = ''; // Clear existing rows
+            tbody.innerHTML = ''; 
+            tfoot.innerHTML = ''; // Clear footer
 
             if (filteredData.length === 0) {
                 tableWrapper.style.display = 'none';
@@ -387,11 +398,19 @@
             tableWrapper.style.display = 'block';
             emptyState.style.display = 'none';
 
+            // --- CALCULATION VARIABLES ---
+            let totalVatAmt = 0;
+            let totalNetAmt = 0;
+
             filteredData.forEach(row => {
                 const tr = document.createElement('tr');
                 
                 // Helper to safely get numeric values and format them
                 const fmt = (val) => val !== null && val !== undefined ? Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+
+                // Accumulate totals (Parse float to ensure number math)
+                totalVatAmt += parseFloat(row["VAT AMT"]) || 0;
+                totalNetAmt += parseFloat(row["NET AMT"]) || 0;
 
                 tr.innerHTML = `
                     <td>${row["Invoice No"] || '-'}</td>
@@ -406,45 +425,46 @@
                 `;
                 tbody.appendChild(tr);
             });
+
+            // --- RENDER FOOTER ROW ---
+            const trTotal = document.createElement('tr');
+            // Colspan 7 to skip first 7 columns, align text right
+            const fmtTotal = (num) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            trTotal.innerHTML = `
+                <td colspan="7" style="text-align: right; padding-right: 20px; font-size: 1.1em;">TOTAL:</td>
+                <td class="num-col" style="font-size: 1.1em;">${fmtTotal(totalVatAmt)}</td>
+                <td class="num-col" style="font-size: 1.1em; color: var(--primary-color);">${fmtTotal(totalNetAmt)}</td>
+            `;
+            tfoot.appendChild(trTotal);
         }
 
         // --- 5. UTILITIES (COPY & EXPORT) ---
 
         function getFilteredRows() {
-            // We use the current DOM state to ensure we copy/export exactly what is visible
             const table = document.getElementById("dataTable");
-            const rows = [];
+            let rows = [];
             
-            // Loop through table rows
+            // Loop through table rows (excluding header for copy if desired, but usually header is good)
             for (let i = 0; i < table.rows.length; i++) {
                 const cells = table.rows[i].cells;
                 const rowData = [];
                 for (let j = 0; j < cells.length; j++) {
                     rowData.push(cells[j].innerText);
                 }
-                rows.push(rowData.join("\t")); // Tab separated for clipboard/Excel
+                rows.push(rowData.join("\t"));
             }
-            
-            // Add header
-            const headers = [];
-            for (let i = 0; i < table.rows[0].cells.length; i++) {
-                headers.push(table.rows[0].cells[i].innerText);
-            }
-            
-            return headers.join("\t") + "\n" + rows.join("\n");
+            return rows.join("\n");
         }
 
         function getFilteredCSV() {
             const table = document.getElementById("dataTable");
             let csvContent = "data:text/csv;charset=utf-8,";
-            
-            // Include BOM for Excel to recognize UTF-8 correctly
-            csvContent = "\uFEFF" + csvContent;
+            csvContent = "\uFEFF" + csvContent; // UTF-8 BOM
 
             for (let i = 0; i < table.rows.length; i++) {
                 let rowData = [];
                 for (let j = 0; j < table.rows[i].cells.length; j++) {
-                    // Escape quotes if necessary
                     let text = table.rows[i].cells[j].innerText.replace(/"/g, '""');
                     rowData.push(`"${text}"`);
                 }
@@ -462,7 +482,7 @@
             }
 
             navigator.clipboard.writeText(dataToCopy).then(() => {
-                showToast("Table copied to clipboard!", "success");
+                showToast("Table (with totals) copied!", "success");
             }).catch(err => {
                 console.error('Failed to copy: ', err);
                 showToast("Failed to copy data", "error");
@@ -474,11 +494,10 @@
             const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             
-            // Create filename with date
             const date = new Date().toISOString().slice(0,10);
             const fileName = `vat_export_${date}.csv`;
             
-            if (navigator.msSaveBlob) { // IE 10+
+            if (navigator.msSaveBlob) { 
                 navigator.msSaveBlob(blob, fileName);
             } else {
                 const url = URL.createObjectURL(blob);
