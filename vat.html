@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAT Invoice Filter Tool</title>
+    <!-- Import Supabase JS Library via CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --bg-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        /* --- Header & Controls --- */
+        header {
+            max-width: 1200px;
+            margin: 0 auto 20px auto;
+            background: var(--surface-color);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+            min-width: 200px;
+            cursor: pointer;
+            background-color: #fff;
+        }
+
+        select:focus {
+            border-color: var(--primary-color);
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background-color: #eff6ff;
+        }
+
+        /* --- Table Area --- */
+        .table-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .loading-overlay {
+            padding: 40px;
+            text-align: center;
+            color: #64748b;
+            display: none; /* Hidden by default */
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .responsive-table {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            white-space: nowrap; /* Prevent wrapping for better readability */
+        }
+
+        thead {
+            background-color: #f1f5f9;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-weight: 700;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Numeric columns alignment */
+        td.num-col, th.num-col {
+            text-align: right;
+        }
+
+        /* --- Toast Notification --- */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 17px;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+        
+        #toast.success { background-color: var(--success-color); }
+        #toast.error { background-color: #ef4444; }
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: #64748b;
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><i class="fa-solid fa-file-invoice-dollar"></i> VAT Viewer</h1>
+        
+        <div class="controls">
+            <!-- Filter Dropdown -->
+            <select id="vatFilter">
+                <option value="all">Show All Records</option>
+                <option value="10">10% VAT (Garments)</option>
+                <option value="7.5">7.5% VAT (Accessories)</option>
+            </select>
+
+            <!-- Action Buttons -->
+            <button id="refreshBtn" class="btn-primary" onclick="fetchData()">
+                <i class="fa-solid fa-rotate-right"></i> Load Data
+            </button>
+            <button id="copyBtn" class="btn-outline" onclick="copyData()">
+                <i class="fa-regular fa-copy"></i> Copy
+            </button>
+            <button id="exportBtn" class="btn-outline" onclick="exportToExcel()">
+                <i class="fa-solid fa-file-csv"></i> Export
+            </button>
+        </div>
+    </header>
+
+    <main class="table-container">
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading-overlay">
+            <div class="spinner"></div>
+            <p>Loading data from Supabase...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state">
+            <i class="fa-solid fa-box-open" style="font-size: 2rem; margin-bottom: 10px;"></i>
+            <p>No data found matching your criteria.</p>
+        </div>
+
+        <!-- Table -->
+        <div class="responsive-table" id="tableWrapper" style="display:none;">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Invoice No</th>
+                        <th>DISPLAY NAME</th>
+                        <th class="num-col">MRP</th>
+                        <th class="num-col">SQTY</th>
+                        <th class="num-col">DISC</th>
+                        <th class="num-col">DISC AMT</th>
+                        <th class="num-col">VAT %</th>
+                        <th class="num-col">VAT AMT</th>
+                        <th class="num-col">NET AMT</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Rows will be injected here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast">Message here</div>
+
+    <script>
+        // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+        const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+        
+        // IMPORTANT: Change 'sales_data' to the exact name of your table in Supabase
+        const TABLE_NAME = 'sales_data'; 
+
+        let sbClient;
+        let allData = []; // Store full dataset locally for fast filtering
+
+        if (window.supabase) {
+            sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } else {
+            showToast("Supabase library failed to load. Check internet connection.", "error");
+            console.error("Supabase library failed to load.");
+        }
+
+        // --- 2. STATE MANAGEMENT & INITIALIZATION ---
+        
+        // Listen for filter changes
+        document.getElementById('vatFilter').addEventListener('change', function() {
+            filterAndRender(this.value);
+        });
+
+        // Initial fetch on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (sbClient) fetchData();
+        });
+
+        // --- 3. DATA FETCHING ---
+        async function fetchData() {
+            const loading = document.getElementById('loading');
+            const tableWrapper = document.getElementById('tableWrapper');
+            const emptyState = document.getElementById('emptyState');
+
+            // UI State: Loading
+            loading.style.display = 'block';
+            tableWrapper.style.display = 'none';
+            emptyState.style.display = 'none';
+
+            try {
+                // Selecting all columns from the specific table
+                const { data, error } = await sbClient
+                    .from(TABLE_NAME)
+                    .select('*');
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    allData = data;
+                    // Apply current filter selection immediately
+                    const currentFilter = document.getElementById('vatFilter').value;
+                    filterAndRender(currentFilter);
+                } else {
+                    allData = [];
+                    loading.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    showToast("No records found in table.", "error");
+                }
+
+            } catch (err) {
+                console.error("Error fetching data:", err);
+                loading.style.display = 'none';
+                showToast(`Error: ${err.message}`, "error");
+            }
+        }
+
+        // --- 4. FILTERING & RENDERING ---
+        function filterAndRender(filterValue) {
+            const loading = document.getElementById('loading');
+            const tableWrapper = document.getElementById('tableWrapper');
+            const emptyState = document.getElementById('emptyState');
+            const tbody = document.getElementById('tableBody');
+
+            loading.style.display = 'none';
+
+            // Filter logic
+            const filteredData = allData.filter(row => {
+                // Access column. Note: Columns with spaces are accessed via bracket notation row["Column Name"]
+                // We treat the comparison as string to be safe, or parseFloat if strictly numeric
+                const vatVal = row["VAT"]; 
+                
+                if (filterValue === 'all') return true;
+                
+                // Comparing filter value (string) with DB value
+                // Handling potential string vs number mismatch
+                return String(vatVal) === filterValue;
+            });
+
+            // Render
+            tbody.innerHTML = ''; // Clear existing rows
+
+            if (filteredData.length === 0) {
+                tableWrapper.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            tableWrapper.style.display = 'block';
+            emptyState.style.display = 'none';
+
+            filteredData.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                // Helper to safely get numeric values and format them
+                const fmt = (val) => val !== null && val !== undefined ? Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+
+                tr.innerHTML = `
+                    <td>${row["Invoice No"] || '-'}</td>
+                    <td>${row["DISPLAY NAME"] || '-'}</td>
+                    <td class="num-col">${fmt(row["MRP"])}</td>
+                    <td class="num-col">${fmt(row["SQTY"])}</td>
+                    <td class="num-col">${fmt(row["DISC"])}</td>
+                    <td class="num-col">${fmt(row["DISC AMT"])}</td>
+                    <td class="num-col">${row["VAT"] || 0}%</td>
+                    <td class="num-col">${fmt(row["VAT AMT"])}</td>
+                    <td class="num-col"><strong>${fmt(row["NET AMT"])}</strong></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- 5. UTILITIES (COPY & EXPORT) ---
+
+        function getFilteredRows() {
+            // We use the current DOM state to ensure we copy/export exactly what is visible
+            const table = document.getElementById("dataTable");
+            const rows = [];
+            
+            // Loop through table rows
+            for (let i = 0; i < table.rows.length; i++) {
+                const cells = table.rows[i].cells;
+                const rowData = [];
+                for (let j = 0; j < cells.length; j++) {
+                    rowData.push(cells[j].innerText);
+                }
+                rows.push(rowData.join("\t")); // Tab separated for clipboard/Excel
+            }
+            
+            // Add header
+            const headers = [];
+            for (let i = 0; i < table.rows[0].cells.length; i++) {
+                headers.push(table.rows[0].cells[i].innerText);
+            }
+            
+            return headers.join("\t") + "\n" + rows.join("\n");
+        }
+
+        function getFilteredCSV() {
+            const table = document.getElementById("dataTable");
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Include BOM for Excel to recognize UTF-8 correctly
+            csvContent = "\uFEFF" + csvContent;
+
+            for (let i = 0; i < table.rows.length; i++) {
+                let rowData = [];
+                for (let j = 0; j < table.rows[i].cells.length; j++) {
+                    // Escape quotes if necessary
+                    let text = table.rows[i].cells[j].innerText.replace(/"/g, '""');
+                    rowData.push(`"${text}"`);
+                }
+                csvContent += rowData.join(",") + "\r\n";
+            }
+            return csvContent;
+        }
+
+        function copyData() {
+            const dataToCopy = getFilteredRows();
+            
+            if (!dataToCopy || dataToCopy.trim() === "") {
+                showToast("No data to copy", "error");
+                return;
+            }
+
+            navigator.clipboard.writeText(dataToCopy).then(() => {
+                showToast("Table copied to clipboard!", "success");
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                showToast("Failed to copy data", "error");
+            });
+        }
+
+        function exportToExcel() {
+            const csvData = getFilteredCSV();
+            const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            
+            // Create filename with date
+            const date = new Date().toISOString().slice(0,10);
+            const fileName = `vat_export_${date}.csv`;
+            
+            if (navigator.msSaveBlob) { // IE 10+
+                navigator.msSaveBlob(blob, fileName);
+            } else {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            showToast("Excel file downloaded!", "success");
+        }
+
+        // --- 6. UI FEEDBACK (Toast) ---
+        function showToast(message, type = "success") {
+            const toast = document.getElementById("toast");
+            toast.className = "show " + type;
+            toast.innerText = message;
+            
+            setTimeout(function(){ 
+                toast.className = toast.className.replace("show", ""); 
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
