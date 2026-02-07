@@ -125,7 +125,7 @@
             padding: 40px;
             text-align: center;
             color: #64748b;
-            display: none; /* Hidden by default */
+            display: none;
         }
 
         .spinner {
@@ -179,7 +179,6 @@
             letter-spacing: 0.05em;
         }
 
-        /* Footer specific styles */
         tfoot td {
             font-weight: 700;
             color: #0f172a;
@@ -189,7 +188,7 @@
             background-color: #f8fafc;
         }
 
-        /* Numeric columns alignment */
+        /* Numeric alignment */
         td.num-col, th.num-col {
             text-align: right;
         }
@@ -275,6 +274,8 @@
             <table id="dataTable">
                 <thead>
                     <tr>
+                        <!-- Added Date Column here -->
+                        <th>Date</th>
                         <th>Invoice No</th>
                         <th>DISPLAY NAME</th>
                         <th class="num-col">MRP</th>
@@ -289,7 +290,6 @@
                 <tbody id="tableBody">
                     <!-- Rows will be injected here -->
                 </tbody>
-                <!-- Footer for Totals -->
                 <tfoot id="tableFooter">
                     <!-- Totals injected here -->
                 </tfoot>
@@ -305,27 +305,27 @@
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
         
-        // IMPORTANT: Change 'sales_data' to the exact name of your table in Supabase
+        // IMPORTANT: Ensure these table names match exactly what is in Supabase
         const TABLE_NAME = 'sales_data'; 
+        const DATE_TABLE_NAME = 'invoice_date_map'; 
 
         let sbClient;
-        let allData = []; // Store full dataset locally for fast filtering
+        let allData = []; 
+        let dateMapData = []; 
 
         if (window.supabase) {
             sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else {
-            showToast("Supabase library failed to load. Check internet connection.", "error");
+            showToast("Supabase library failed to load.", "error");
             console.error("Supabase library failed to load.");
         }
 
         // --- 2. STATE MANAGEMENT & INITIALIZATION ---
         
-        // Listen for filter changes
         document.getElementById('vatFilter').addEventListener('change', function() {
             filterAndRender(this.value);
         });
 
-        // Initial fetch on page load
         document.addEventListener('DOMContentLoaded', () => {
             if (sbClient) fetchData();
         });
@@ -336,13 +336,25 @@
             const tableWrapper = document.getElementById('tableWrapper');
             const emptyState = document.getElementById('emptyState');
 
-            // UI State: Loading
             loading.style.display = 'block';
             tableWrapper.style.display = 'none';
             emptyState.style.display = 'none';
 
             try {
-                // Selecting all columns from the specific table
+                // 1. Fetch Date Map (Ranges)
+                const { data: dateMap, error: dateError } = await sbClient
+                    .from(DATE_TABLE_NAME)
+                    .select('*');
+
+                if (dateError) {
+                    console.error("Date Map Error:", dateError);
+                    // Don't stop execution, just log error and proceed without dates
+                    dateMapData = [];
+                } else {
+                    dateMapData = dateMap || [];
+                }
+
+                // 2. Fetch Sales Data
                 const { data, error } = await sbClient
                     .from(TABLE_NAME)
                     .select('*');
@@ -351,14 +363,13 @@
 
                 if (data && data.length > 0) {
                     allData = data;
-                    // Apply current filter selection immediately
                     const currentFilter = document.getElementById('vatFilter').value;
                     filterAndRender(currentFilter);
                 } else {
                     allData = [];
                     loading.style.display = 'none';
                     emptyState.style.display = 'block';
-                    showToast("No records found in table.", "error");
+                    showToast("No records found.", "error");
                 }
 
             } catch (err) {
@@ -366,6 +377,43 @@
                 loading.style.display = 'none';
                 showToast(`Error: ${err.message}`, "error");
             }
+        }
+
+        // --- HELPER: FIND DATE (ROBUST VERSION) ---
+        function getInvoiceDate(invNo) {
+            // 1. Check if we have any ranges loaded
+            if (!invNo || dateMapData.length === 0) {
+                return '-'; 
+            }
+            
+            const invStr = String(invNo).trim();
+
+            // 2. Use BigInt for robust matching (handles leading zeros automatically)
+            //    "01000" becomes 1000n. "1000" becomes 1000n. They match!
+            try {
+                const invNum = BigInt(invStr.replace(/[^0-9]/g, '')); 
+
+                const match = dateMapData.find(range => {
+                    const startStr = String(range.start_inv).trim();
+                    const startNum = BigInt(startStr.replace(/[^0-9]/g, ''));
+                    
+                    const endStr = String(range.end_inv).trim();
+                    const endNum = BigInt(endStr.replace(/[^0-9]/g, ''));
+
+                    return invNum >= startNum && invNum <= endNum;
+                });
+
+                if (match && match.invoice_date) {
+                    // Format: "1 Jan 26"
+                    const d = new Date(match.invoice_date);
+                    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+                }
+
+            } catch (e) {
+                console.warn("Date matching failed for invoice:", invNo, e);
+            }
+
+            return '-';
         }
 
         // --- 4. FILTERING & RENDERING ---
@@ -378,16 +426,14 @@
 
             loading.style.display = 'none';
 
-            // Filter logic
             const filteredData = allData.filter(row => {
                 const vatVal = row["VAT"]; 
                 if (filterValue === 'all') return true;
                 return String(vatVal) === filterValue;
             });
 
-            // Render
             tbody.innerHTML = ''; 
-            tfoot.innerHTML = ''; // Clear footer
+            tfoot.innerHTML = ''; 
 
             if (filteredData.length === 0) {
                 tableWrapper.style.display = 'none';
@@ -398,21 +444,22 @@
             tableWrapper.style.display = 'block';
             emptyState.style.display = 'none';
 
-            // --- CALCULATION VARIABLES ---
             let totalVatAmt = 0;
             let totalNetAmt = 0;
 
             filteredData.forEach(row => {
                 const tr = document.createElement('tr');
                 
-                // Helper to safely get numeric values and format them
                 const fmt = (val) => val !== null && val !== undefined ? Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
 
-                // Accumulate totals (Parse float to ensure number math)
                 totalVatAmt += parseFloat(row["VAT AMT"]) || 0;
                 totalNetAmt += parseFloat(row["NET AMT"]) || 0;
 
+                // Get the matching date using robust logic
+                const invoiceDate = getInvoiceDate(row["Invoice No"]);
+
                 tr.innerHTML = `
+                    <td style="font-weight:600;">${invoiceDate}</td>
                     <td>${row["Invoice No"] || '-'}</td>
                     <td>${row["DISPLAY NAME"] || '-'}</td>
                     <td class="num-col">${fmt(row["MRP"])}</td>
@@ -428,11 +475,11 @@
 
             // --- RENDER FOOTER ROW ---
             const trTotal = document.createElement('tr');
-            // Colspan 7 to skip first 7 columns, align text right
             const fmtTotal = (num) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+            // Colspan 8 (Date + Inv + Name + MRP + Qty + Disc + Disc Amt + VAT %)
             trTotal.innerHTML = `
-                <td colspan="7" style="text-align: right; padding-right: 20px; font-size: 1.1em;">TOTAL:</td>
+                <td colspan="8" style="text-align: right; padding-right: 20px; font-size: 1.1em;">TOTAL:</td>
                 <td class="num-col" style="font-size: 1.1em;">${fmtTotal(totalVatAmt)}</td>
                 <td class="num-col" style="font-size: 1.1em; color: var(--primary-color);">${fmtTotal(totalNetAmt)}</td>
             `;
@@ -445,7 +492,6 @@
             const table = document.getElementById("dataTable");
             let rows = [];
             
-            // Loop through table rows (excluding header for copy if desired, but usually header is good)
             for (let i = 0; i < table.rows.length; i++) {
                 const cells = table.rows[i].cells;
                 const rowData = [];
@@ -482,7 +528,7 @@
             }
 
             navigator.clipboard.writeText(dataToCopy).then(() => {
-                showToast("Table (with totals) copied!", "success");
+                showToast("Table copied to clipboard!", "success");
             }).catch(err => {
                 console.error('Failed to copy: ', err);
                 showToast("Failed to copy data", "error");
