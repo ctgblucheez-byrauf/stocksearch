@@ -264,6 +264,7 @@
         /* --- Requisition List Styles --- */
         .req-group { margin-bottom: 2rem; }
         .req-group h3 { font-size: 0.95rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+        .limit-notice { font-size: 0.8rem; color: var(--warning); margin-bottom: 1rem; font-style: italic; }
         
         /* Loader */
         .loader-overlay {
@@ -284,9 +285,6 @@
 
         .empty-state { text-align: center; padding: 2rem; color: var(--text-sub); }
         .empty-state i { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
-
-        /* Small loader inside dropdown area */
-        .small-spinner { border: 2px solid #f3f3f3; border-top: 2px solid var(--primary); border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; }
 
     </style>
 </head>
@@ -439,6 +437,7 @@
         // Requisition List State
         let currentReqData = [];
         let reqViewMode = 'grid';
+        let namesLoaded = false;
 
         // --- DOM Elements ---
         const barcodeInput = document.getElementById('barcode-input');
@@ -455,8 +454,7 @@
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
-            // Load names in background so page doesn't feel stuck
-            loadNames(); 
+            // Removed loadNames() from startup to improve speed
             loadRestockList(); 
             
             barcodeInput.addEventListener('keypress', (e) => {
@@ -487,17 +485,21 @@
             document.getElementById(`tab-${mode}`).classList.add('active');
             document.querySelectorAll('.search-panel').forEach(panel => panel.classList.remove('active'));
             document.getElementById(`panel-${mode}`).classList.add('active');
-            if (mode === 'name') stopScanner();
+            
+            if (mode === 'name') {
+                stopScanner();
+                // Lazy Load: Only load names when tab is clicked and not loaded yet
+                if (!namesLoaded) {
+                    loadNames();
+                }
+            }
         }
 
         async function loadNames() {
             const btnIcon = document.querySelector('#refresh-names-btn i');
-            if(btnIcon) {
-                btnIcon.classList.add('fa-spin');
-            }
+            if(btnIcon) btnIcon.classList.add('fa-spin');
 
             try {
-                // Increased range to 5000 to ensure all names are loaded
                 const { data, error } = await _supabaseClient
                     .from('inventory')
                     .select('name')
@@ -505,21 +507,33 @@
                 
                 if (error) throw error;
 
+                // Use DocumentFragment for faster DOM insertion
                 const uniqueNames = [...new Set(data.map(item => item.name))].sort();
-                nameSelect.innerHTML = '<option value="" disabled selected>Select Product Name...</option>';
+                const fragment = document.createDocumentFragment();
+                
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.disabled = true;
+                defaultOption.selected = true;
+                defaultOption.textContent = "Select Product Name...";
+                fragment.appendChild(defaultOption);
+
                 uniqueNames.forEach(name => {
                     const option = document.createElement('option');
                     option.value = name;
                     option.textContent = name;
-                    nameSelect.appendChild(option);
+                    fragment.appendChild(option);
                 });
+                
+                nameSelect.innerHTML = ''; // Clear existing
+                nameSelect.appendChild(fragment); // Append all at once
+                namesLoaded = true;
+
             } catch (err) {
                 console.error(err);
-                // Don't show toast on initial load error to avoid spam
+                showToast('Failed to load product names', 'error');
             } finally {
-                if(btnIcon) {
-                    btnIcon.classList.remove('fa-spin');
-                }
+                if(btnIcon) btnIcon.classList.remove('fa-spin');
             }
         }
 
@@ -581,7 +595,6 @@
                             .eq('style_code', barcodeMatch.style_code);
                         products = variants || [];
                     } else {
-                        // IMPORTANT FIX: Use .ilike for case-insensitive partial match (abc-002 works for ABC-002)
                         const { data: styleMatch } = await _supabaseClient
                             .from('inventory')
                             .select('*')
@@ -640,13 +653,15 @@
         }
 
         function renderGrid(items, container) {
-            container.innerHTML = '';
+            // OPTIMIZATION: Build string first, then inject once
+            let htmlBuffer = '';
+            
             items.forEach(item => {
                 const isZero = item.balance <= 0;
                 const cardClass = isZero ? 'critical' : 'instock';
                 const stockClass = isZero ? 'zero' : 'pos';
 
-                const html = `
+                htmlBuffer += `
                     <div class="product-card ${cardClass}">
                         <div class="card-header-row">
                             <span class="style-badge">${item.style_code}</span>
@@ -669,17 +684,19 @@
                         </div>
                     </div>
                 `;
-                container.innerHTML += html;
             });
+            container.innerHTML = htmlBuffer;
         }
 
         function renderTable(items, tbody) {
-            tbody.innerHTML = '';
+            // OPTIMIZATION: Build string first, then inject once
+            let htmlBuffer = '';
+            
             items.forEach(item => {
                 const isZero = item.balance <= 0;
                 const balanceClass = isZero ? 'td-zero' : 'td-pos';
 
-                const row = `
+                htmlBuffer += `
                     <tr>
                         <td class="td-bold">${item.barcode}</td>
                         <td>${item.name}</td>
@@ -692,8 +709,8 @@
                         <td>${item.mrp || 0}</td>
                     </tr>
                 `;
-                tbody.innerHTML += row;
             });
+            tbody.innerHTML = htmlBuffer;
         }
 
         // --- REQUISITION List Functions ---
@@ -713,6 +730,7 @@
                     return;
                 }
 
+                // Sort and Store
                 currentReqData = sortProductsBySize(data);
                 renderReqResults();
 
@@ -735,15 +753,38 @@
 
         function renderReqResults() {
             if (currentReqData.length === 0) return;
+            
+            // OPTIMIZATION: Render only first 100 items visually to prevent crash
+            // Excel export will still use the full list
+            const displayData = currentReqData.slice(0, 100);
+
             if (reqViewMode === 'grid') {
-                renderReqGrid(currentReqData);
+                renderReqGrid(displayData);
             } else {
-                renderReqTable(currentReqData);
+                renderReqTable(displayData);
+            }
+            
+            // Show warning if truncated
+            if (currentReqData.length > 100) {
+                const notice = document.createElement('div');
+                notice.className = 'limit-notice';
+                notice.innerHTML = `<i class="fa-solid fa-info-circle"></i> Showing top 100 of ${currentReqData.length} items. Use Export for full list.`;
+                
+                // Avoid duplicate notices
+                const existing = document.querySelector('.limit-notice');
+                if(existing) existing.remove();
+
+                if (reqViewMode === 'grid') {
+                    reqListContainer.insertBefore(notice, reqListContainer.firstChild);
+                } else {
+                    reqTableWrapper.insertBefore(notice, reqTableWrapper.firstChild);
+                }
             }
         }
 
         function renderReqGrid(items) {
-            reqListContainer.innerHTML = '';
+            // OPTIMIZATION: Build string first
+            let htmlBuffer = '';
             const grouped = {};
             items.forEach(p => {
                 const s = p.style_code || 'Unknown';
@@ -769,17 +810,16 @@
                 });
                 itemsHtml += '</div>';
 
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'req-group';
-                groupDiv.innerHTML = `<h3>${style} - <span style="font-weight:400; text-transform:capitalize;">${first.name}</span></h3>${itemsHtml}`;
-                reqListContainer.appendChild(groupDiv);
+                htmlBuffer += `<div class="req-group"><h3>${style} - <span style="font-weight:400; text-transform:capitalize;">${first.name}</span></h3>${itemsHtml}</div>`;
             });
+            reqListContainer.innerHTML = htmlBuffer;
         }
 
         function renderReqTable(items) {
-            reqTableBody.innerHTML = '';
+            // OPTIMIZATION: Build string first
+            let htmlBuffer = '';
             items.forEach(item => {
-                const row = `
+                htmlBuffer += `
                     <tr>
                         <td class="td-bold">${item.barcode}</td>
                         <td>${item.name}</td>
@@ -790,8 +830,8 @@
                         <td>${item.mrp || 0}</td>
                     </tr>
                 `;
-                reqTableBody.innerHTML += row;
             });
+            reqTableBody.innerHTML = htmlBuffer;
         }
 
         // --- Export Functions ---
@@ -802,6 +842,7 @@
 
         function exportReqToExcel() {
             if (!currentReqData.length) return showToast("No requisition data to export", "error");
+            // Export FULL list, not the truncated display list
             exportDataToExcel(currentReqData, "Requisition_List");
         }
 
@@ -851,7 +892,7 @@
                 stopScanner(); return;
             }
 
-            // Improved Configuration for speed and accuracy
+            // OPTIMIZATION: Reduced workers and settings for better mobile performance
             Quagga.init({
                 inputStream: {
                     name: "Live",
@@ -859,17 +900,17 @@
                     target: document.querySelector('#interactive'),
                     constraints: {
                         facingMode: "environment",
-                        width: { min: 640, ideal: 1280, max: 1920 },
-                        height: { min: 480, ideal: 720, max: 1080 },
+                        // Reduced resolution for better speed on mobile
+                        width: { min: 640, ideal: 800, max: 1024 },
+                        height: { min: 480, ideal: 600, max: 768 },
                     },
                 },
                 locator: {
                     patchSize: "medium",
                     halfSample: true
                 },
-                numOfWorkers: 2, // Reduce workers for slightly faster startup
+                numOfWorkers: 1, // Reduced from 2 to 1
                 decoder: {
-                    // Common readers
                     readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"]
                 },
                 locate: true
@@ -907,7 +948,6 @@
                 const btn = document.getElementById('toggle-scan-btn');
                 btn.innerHTML = '<i class="fa-solid fa-camera"></i>';
                 btn.style.background = ''; 
-                // Clear the canvas to ensure no ghosting
                 const interactive = document.querySelector('#interactive');
                 if(interactive) interactive.innerHTML = '';
             }
