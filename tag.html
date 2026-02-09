@@ -12,14 +12,15 @@
 
     <style>
         :root {
-            --tag-width: 230px;  /* Standard hangtag width */
-            --tag-height: 350px; /* Standard hangtag height */
+            /* 1.5 inches = 144px, 3 inches = 288px (at 96 DPI) */
+            --tag-width: 144px;  
+            --tag-height: 288px; 
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: Arial, Helvetica, sans-serif; /* Standard retail font */
+            font-family: Arial, Helvetica, sans-serif;
             background-color: #f0f0f0;
             color: #000;
             display: flex;
@@ -29,7 +30,7 @@
             padding: 40px 20px;
         }
 
-        /* --- Controls (Hidden when printing) --- */
+        /* --- Controls --- */
         .controls-container {
             background: white;
             padding: 20px;
@@ -75,7 +76,7 @@
         .status-error { color: red; }
         .status-success { color: green; }
 
-        /* --- THE TAG (Plain, Factory Style) --- */
+        /* --- THE TAG (1.5" x 3") --- */
         .tag-wrapper { margin: 20px; }
 
         #price-tag {
@@ -83,74 +84,84 @@
             width: var(--tag-width);
             height: var(--tag-height);
             position: relative;
-            padding: 20px 15px 15px 15px; /* Top padding for string/hole space */
+            /* Tight padding to fit narrow width */
+            padding: 12px 6px 6px 6px; 
             display: flex;
             flex-direction: column;
-            /* Border only for screen visibility. Print removes it. */
             border: 1px dashed #ccc; 
             overflow: hidden;
         }
 
-        /* Text Elements - Raw Style */
+        /* Text Elements */
         .tag-name {
-            font-size: 14px;
+            font-size: 10px; 
             font-weight: 900;
             text-transform: uppercase;
             text-align: center;
-            margin-bottom: 12px;
-            line-height: 1.2;
+            margin-bottom: 8px;
+            line-height: 1.1;
             color: #000;
+            /* Allow wrapping if name is long */
+            word-wrap: break-word; 
         }
 
         .tag-details {
-            font-size: 10px;
+            font-size: 7px; /* Very small for 1.5" width */
             font-weight: bold;
             text-transform: uppercase;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
         }
 
         .detail-row {
             display: flex;
             justify-content: space-between;
-            border-bottom: 1px solid #eee; /* Very subtle separator */
-            padding-bottom: 2px;
+            align-items: flex-start; /* Align top for wrapping text */
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1px;
+        }
+
+        /* Allow long style codes to wrap nicely */
+        .detail-value {
+            text-align: right;
+            max-width: 60%;
+            word-wrap: break-word;
+            line-height: 1.1;
         }
 
         /* Barcode Section */
         .tag-barcode-area {
-            flex: 1;
+            flex: 1; /* Fills remaining space */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            margin-top: 10px;
+            margin-top: 4px;
         }
 
-        /* The SVG styling */
         #barcode-canvas {
             width: 100%;
-            max-width: 200px;
+            max-width: 130px; /* Fits inside 144px with padding */
             height: auto;
         }
 
         /* Price Section */
         .tag-price-area {
-            margin-top: auto; /* Push to bottom */
+            margin-top: auto;
             text-align: center;
-            border-top: 2px solid #000; /* Strong separator like image */
-            padding-top: 10px;
+            border-top: 1px solid #000; /* Thinner line for small tag */
+            padding-top: 6px;
         }
 
         .tag-price {
-            font-size: 16px;
+            font-size: 11px; 
             font-weight: 900;
             color: #000;
         }
 
-        /* --- PRINT STYLES (Perfect Output) --- */
+        /* --- PRINT STYLES (Exact 1.5x3) --- */
         @media print {
             body { 
                 background: white; 
@@ -172,11 +183,10 @@
             }
 
             #price-tag {
-                border: none; /* No border on print */
+                border: none; /* Remove border for final print */
                 box-shadow: none;
                 width: var(--tag-width);
                 height: var(--tag-height);
-                /* Ensure black text prints sharply */
                 -webkit-print-color-adjust: exact; 
                 print-color-adjust: exact;
             }
@@ -191,38 +201,38 @@
 <body>
 
     <div class="controls-container no-print">
-        <h1>Tag Generator</h1>
+        <h1>Tag Generator (1.5x3 inch)</h1>
         <div class="input-group">
-            <input type="text" id="barcodeInput" placeholder="Barcode (e.g. A012397)" autocomplete="off">
+            <input type="text" id="barcodeInput" placeholder="Barcode" autocomplete="off">
             <button class="btn-fetch" onclick="fetchData()">Fetch</button>
         </div>
         <div id="statusMsg" class="status-message"></div>
         <button id="printBtn" class="btn-print no-print" onclick="printTag()">Print Tag</button>
     </div>
 
-    <!-- Plain Tag -->
+    <!-- 1.5" Wide x 3" High Tag -->
     <div class="tag-wrapper">
         <div id="price-tag">
             <!-- Name -->
             <div class="tag-name" id="tagName">--</div>
 
-            <!-- Details: Style, Color, Size -->
+            <!-- Details -->
             <div class="tag-details">
                 <div class="detail-row">
                     <span>STYLE:</span>
-                    <span id="tagStyle" style="text-align: right;">--</span>
+                    <span id="tagStyle" class="detail-value">--</span>
                 </div>
                 <div class="detail-row">
                     <span>COLOR:</span>
-                    <span id="tagColor" style="text-align: right;">--</span>
+                    <span id="tagColor">--</span>
                 </div>
                 <div class="detail-row" style="border: none;">
                     <span>SIZE:</span>
-                    <span id="tagSize" style="text-align: right;">--</span>
+                    <span id="tagSize">--</span>
                 </div>
             </div>
 
-            <!-- Barcode (With text underneath) -->
+            <!-- Barcode -->
             <div class="tag-barcode-area">
                 <svg id="barcode-canvas"></svg>
             </div>
@@ -244,8 +254,13 @@
         try {
             if (window.supabase) {
                 sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } else {
+                showStatus("Error: Supabase library failed to load.", "error");
             }
-        } catch (e) { console.error("Init error", e); }
+        } catch (e) { 
+            console.error("Init error", e); 
+            showStatus("Init Error: " + e.message, "error");
+        }
 
         const barcodeInput = document.getElementById('barcodeInput');
         const statusMsg = document.getElementById('statusMsg');
@@ -261,19 +276,18 @@
             statusMsg.textContent = msg;
             statusMsg.className = 'status-message ' + (type === 'error' ? 'status-error' : 'status-success');
             if(type === 'success') {
-                setTimeout(() => { if(statusMsg.textContent === msg) statusMsg.textContent = ''; }, 3000);
+                setTimeout(() => { if(statusMsg.textContent === msg) statusMsg.textContent = ''; }, 5000);
             }
         }
 
         function formatPrice(mrp) {
             if (!mrp) return "BDT. 0.00 + VAT";
-            // Format exactly like reference: "BDT. 2,295.00 + VAT"
             return "BDT. " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + " + VAT";
         }
 
         async function fetchData() {
             const query = barcodeInput.value.trim();
-            if (!query) { showStatus("Enter barcode", "error"); return; }
+            if (!query) { showStatus("Please enter a barcode.", "error"); return; }
             
             showStatus("Searching...", "success");
             printBtn.style.display = 'none';
@@ -285,15 +299,23 @@
                     .eq('barcode', query)
                     .maybeSingle();
 
-                if (error) throw error;
-                if (!data) { showStatus("Not found", "error"); resetTag(); return; }
+                if (error) {
+                    // Show specific Supabase error (e.g. permission denied)
+                    throw error; 
+                }
+                
+                if (!data) { 
+                    showStatus("Barcode not found in database.", "error"); 
+                    resetTag(); 
+                    return; 
+                }
 
                 populateTag(data);
-                showStatus("Loaded", "success");
+                showStatus("Loaded successfully!", "success");
                 printBtn.style.display = 'block';
             } catch (err) {
-                console.error(err);
-                showStatus("Error", "error");
+                console.error("Fetch Error:", err);
+                showStatus("DB Error: " + err.message, "error");
             }
         }
 
@@ -304,17 +326,17 @@
             elSize.textContent = item.size || "--";
             elPrice.textContent = formatPrice(item.mrp);
 
-            // Generate Barcode with text UNDERNEATH (displayValue: true)
+            // Barcode settings for 1.5" width
             try {
                 JsBarcode("#barcode-canvas", item.barcode, {
                     format: "CODE128",
                     lineColor: "#000",
-                    width: 1.5,
-                    height: 50,
-                    displayValue: true, // Prints number under bars
-                    fontSize: 12,      // Size of text under bars
-                    textMargin: 3,     // Space between bars and text
-                    font: "Arial",     // Match tag font
+                    width: 1.1,      /* Thinner bars for narrow tag */
+                    height: 40,      
+                    displayValue: true,
+                    fontSize: 10,    
+                    textMargin: 2,
+                    font: "Arial",
                     margin: 0
                 });
             } catch (e) {
