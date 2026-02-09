@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Price Tag Generator</title>
+    <title>Price Tag</title>
     
     <!-- Load JsBarcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -12,18 +12,16 @@
 
     <style>
         :root {
-            --brand-color: #1a1a1a;
-            --text-primary: #222;
-            --text-secondary: #777;
-            --bg-color: #eef1f5;
+            --tag-width: 230px;  /* Standard hangtag width */
+            --tag-height: 350px; /* Standard hangtag height */
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
+            font-family: Arial, Helvetica, sans-serif; /* Standard retail font */
+            background-color: #f0f0f0;
+            color: #000;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -31,259 +29,161 @@
             padding: 40px 20px;
         }
 
-        /* --- Controls Section --- */
+        /* --- Controls (Hidden when printing) --- */
         .controls-container {
             background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 450px;
-            margin-bottom: 40px;
+            max-width: 400px;
+            margin-bottom: 30px;
             text-align: center;
         }
 
-        h1 {
-            font-size: 1.4rem;
-            font-weight: 300;
-            margin-bottom: 1.5rem;
-            letter-spacing: 1px;
-            color: var(--brand-color);
-            text-transform: uppercase;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
+        h1 { font-size: 1.2rem; margin-bottom: 15px; }
+        
+        .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        
         input[type="text"] {
             flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
             font-size: 1rem;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--brand-color);
-            box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
         }
 
         button {
-            padding: 12px 24px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: transform 0.1s, opacity 0.2s;
+            font-weight: bold;
+            font-size: 0.9rem;
         }
 
-        .btn-fetch {
-            background-color: var(--brand-color);
-            color: white;
+        .btn-fetch { background-color: #333; color: white; }
+        .btn-print { 
+            background-color: #555; 
+            color: white; 
+            width: 100%; 
+            margin-top: 10px; 
+            display: none; 
         }
 
-        .btn-print {
-            background-color: white;
-            color: var(--brand-color);
-            border: 1px solid var(--brand-color);
-            width: 100%;
-            margin-top: 10px;
-            display: none;
-        }
+        .status-message { font-size: 0.85rem; margin-top: 10px; }
+        .status-error { color: red; }
+        .status-success { color: green; }
 
-        .btn-print:hover { background-color: #f5f5f5; }
-        button:active { transform: scale(0.98); }
-
-        .status-message {
-            font-size: 0.85rem;
-            height: 20px;
-            margin-top: 10px;
-        }
-        .status-error { color: #d32f2f; }
-        .status-success { color: #2e7d32; }
-
-        /* --- SMALLER TAG DESIGN --- */
-        .tag-wrapper {
-            perspective: 1000px;
-        }
+        /* --- THE TAG (Plain, Factory Style) --- */
+        .tag-wrapper { margin: 20px; }
 
         #price-tag {
             background: white;
-            width: 230px; /* Small Width */
-            height: 350px; /* Small Height */
+            width: var(--tag-width);
+            height: var(--tag-height);
             position: relative;
+            padding: 20px 15px 15px 15px; /* Top padding for string/hole space */
             display: flex;
             flex-direction: column;
-            border-radius: 8px;
+            /* Border only for screen visibility. Print removes it. */
+            border: 1px dashed #ccc; 
             overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
 
-        /* Realistic Hole Punch */
-        #price-tag::before {
-            content: '';
-            position: absolute;
-            top: 12px; /* Closer to top since header is gone */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 8px;
-            height: 8px;
-            background-color: #eef1f5;
-            border-radius: 50%;
-            z-index: 10;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+        /* Text Elements - Raw Style */
+        .tag-name {
+            font-size: 14px;
+            font-weight: 900;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 12px;
+            line-height: 1.2;
+            color: #000;
         }
 
-        /* Body Section */
-        .tag-body {
-            flex: 1;
-            padding: 25px 20px 10px 20px; /* Top padding allows space for hole */
+        .tag-details {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
             display: flex;
             flex-direction: column;
+            gap: 4px;
         }
 
-        .product-name {
-            font-size: 0.85rem; /* Slightly smaller */
-            font-weight: 800;
-            text-transform: uppercase;
-            color: var(--text-primary);
-            text-align: center;
-            line-height: 1.3;
-            margin-bottom: 15px;
-            min-height: 35px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Technical details */
-        .specs-row {
+        .detail-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 15px;
-            border-bottom: 1px dashed #ddd;
-            padding-bottom: 10px;
-        }
-
-        .spec-item {
-            text-align: center;
-            width: 32%;
-            display: flex;
-            flex-direction: column;
-            align-items: center; /* Center align items */
-        }
-
-        .spec-label {
-            display: block;
-            font-size: 0.5rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
-        }
-
-        .spec-value {
-            display: block;
-            font-size: 0.65rem; /* Smaller font to fit long style codes */
-            font-weight: 700;
-            color: var(--brand-color);
-            word-wrap: break-word; /* Allow wrapping for long codes */
-            hyphens: auto;
+            border-bottom: 1px solid #eee; /* Very subtle separator */
+            padding-bottom: 2px;
         }
 
         /* Barcode Section */
-        .barcode-container {
+        .tag-barcode-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            margin: 5px 0;
+            margin-top: 10px;
         }
 
+        /* The SVG styling */
         #barcode-canvas {
             width: 100%;
-            max-width: 190px;
+            max-width: 200px;
             height: auto;
         }
 
-        .barcode-number {
-            font-family: 'Courier New', monospace;
-            font-size: 0.65rem;
-            letter-spacing: 1px;
-            margin-top: 4px;
-            color: #555;
-        }
-
-        /* Footer / Price Section */
-        .tag-footer {
-            background-color: #fcfcfc;
-            border-top: 2px solid var(--brand-color);
-            padding: 12px 20px;
+        /* Price Section */
+        .tag-price-area {
+            margin-top: auto; /* Push to bottom */
             text-align: center;
+            border-top: 2px solid #000; /* Strong separator like image */
+            padding-top: 10px;
         }
 
-        .price-label {
-            font-size: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            margin-bottom: 1px;
+        .tag-price {
+            font-size: 16px;
+            font-weight: 900;
+            color: #000;
         }
 
-        .price-value {
-            font-size: 1.4rem; /* Slightly smaller */
-            font-weight: 800;
-            color: var(--brand-color);
-            line-height: 1;
-        }
-
-        .vat-info {
-            font-size: 0.55rem;
-            color: #888;
-            margin-top: 4px;
-            font-weight: 500;
-        }
-
-        /* --- Print Styles --- */
+        /* --- PRINT STYLES (Perfect Output) --- */
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #price-tag, #price-tag * {
-                visibility: visible;
-            }
-            
-            body {
-                background: white;
-                margin: 0;
+            body { 
+                background: white; 
+                margin: 0; 
                 padding: 0;
+                display: block;
+            }
+
+            .controls-container, .no-print {
+                display: none !important;
             }
 
             .tag-wrapper {
+                margin: 0;
                 position: absolute;
-                left: 50%;
                 top: 50%;
+                left: 50%;
                 transform: translate(-50%, -50%);
             }
 
             #price-tag {
+                border: none; /* No border on print */
                 box-shadow: none;
-                border: 1px solid #ccc;
-                width: 230px;
-                height: 350px;
-                page-break-inside: avoid;
+                width: var(--tag-width);
+                height: var(--tag-height);
+                /* Ensure black text prints sharply */
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
             }
-
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
+            
+            @page {
+                size: auto;
+                margin: 0mm;
             }
         }
     </style>
@@ -293,47 +193,43 @@
     <div class="controls-container no-print">
         <h1>Tag Generator</h1>
         <div class="input-group">
-            <input type="text" id="barcodeInput" placeholder="Enter Barcode (e.g. A012397)" autocomplete="off">
+            <input type="text" id="barcodeInput" placeholder="Barcode (e.g. A012397)" autocomplete="off">
             <button class="btn-fetch" onclick="fetchData()">Fetch</button>
         </div>
         <div id="statusMsg" class="status-message"></div>
         <button id="printBtn" class="btn-print no-print" onclick="printTag()">Print Tag</button>
     </div>
 
-    <!-- The Compact Tag -->
+    <!-- Plain Tag -->
     <div class="tag-wrapper">
         <div id="price-tag">
-            <!-- Header Removed -->
-            
-            <div class="tag-body">
-                <div class="product-name" id="tagName">--</div>
+            <!-- Name -->
+            <div class="tag-name" id="tagName">--</div>
 
-                <div class="specs-row">
-                    <div class="spec-item">
-                        <span class="spec-label">Style</span>
-                        <!-- Word wrap added to CSS to handle long codes like IMC-FL53-WWT-063 -->
-                        <span class="spec-value" id="tagStyle">--</span>
-                    </div>
-                    <div class="spec-item">
-                        <span class="spec-label">Color</span>
-                        <span class="spec-value" id="tagColor">--</span>
-                    </div>
-                    <div class="spec-item">
-                        <span class="spec-label">Size</span>
-                        <span class="spec-value" id="tagSize">--</span>
-                    </div>
+            <!-- Details: Style, Color, Size -->
+            <div class="tag-details">
+                <div class="detail-row">
+                    <span>STYLE:</span>
+                    <span id="tagStyle" style="text-align: right;">--</span>
                 </div>
-
-                <div class="barcode-container">
-                    <svg id="barcode-canvas"></svg>
-                    <div class="barcode-number" id="tagBarcodeText">--</div>
+                <div class="detail-row">
+                    <span>COLOR:</span>
+                    <span id="tagColor" style="text-align: right;">--</span>
+                </div>
+                <div class="detail-row" style="border: none;">
+                    <span>SIZE:</span>
+                    <span id="tagSize" style="text-align: right;">--</span>
                 </div>
             </div>
 
-            <div class="tag-footer">
-                <div class="price-label">Retail Price</div>
-                <div class="price-value" id="tagPrice">BDT 0.00</div>
-                <div class="vat-info">VAT Inclusive</div>
+            <!-- Barcode (With text underneath) -->
+            <div class="tag-barcode-area">
+                <svg id="barcode-canvas"></svg>
+            </div>
+
+            <!-- Price -->
+            <div class="tag-price-area">
+                <div class="tag-price" id="tagPrice">BDT. 0.00 + VAT</div>
             </div>
         </div>
     </div>
@@ -348,15 +244,9 @@
         try {
             if (window.supabase) {
                 sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            } else {
-                console.error("Supabase library failed to load.");
-                showStatus("Error: Library failed to load.", "error");
             }
-        } catch (e) {
-            console.error("Init error:", e);
-        }
+        } catch (e) { console.error("Init error", e); }
 
-        // --- 2. DOM ELEMENTS ---
         const barcodeInput = document.getElementById('barcodeInput');
         const statusMsg = document.getElementById('statusMsg');
         const printBtn = document.getElementById('printBtn');
@@ -366,31 +256,26 @@
         const elColor = document.getElementById('tagColor');
         const elSize = document.getElementById('tagSize');
         const elPrice = document.getElementById('tagPrice');
-        const elBarcodeText = document.getElementById('tagBarcodeText');
 
-        // --- 3. FUNCTIONS ---
         function showStatus(msg, type) {
             statusMsg.textContent = msg;
             statusMsg.className = 'status-message ' + (type === 'error' ? 'status-error' : 'status-success');
             if(type === 'success') {
-                setTimeout(() => {
-                    if(statusMsg.textContent === msg) statusMsg.textContent = '';
-                }, 3000);
+                setTimeout(() => { if(statusMsg.textContent === msg) statusMsg.textContent = ''; }, 3000);
             }
         }
 
         function formatPrice(mrp) {
-            if (!mrp) return "BDT 0.00";
-            return "BDT " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+            if (!mrp) return "BDT. 0.00 + VAT";
+            // Format exactly like reference: "BDT. 2,295.00 + VAT"
+            return "BDT. " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + " + VAT";
         }
 
         async function fetchData() {
             const query = barcodeInput.value.trim();
-            if (!query) {
-                showStatus("Please enter a barcode.", "error");
-                return;
-            }
-            showStatus("Searching database...", "success");
+            if (!query) { showStatus("Enter barcode", "error"); return; }
+            
+            showStatus("Searching...", "success");
             printBtn.style.display = 'none';
 
             try {
@@ -401,41 +286,39 @@
                     .maybeSingle();
 
                 if (error) throw error;
-                if (!data) {
-                    showStatus(`Not found: "${query}"`, "error");
-                    resetTag();
-                    return;
-                }
+                if (!data) { showStatus("Not found", "error"); resetTag(); return; }
 
                 populateTag(data);
-                showStatus("Item loaded successfully!", "success");
+                showStatus("Loaded", "success");
                 printBtn.style.display = 'block';
-
             } catch (err) {
                 console.error(err);
-                showStatus("Error connecting to database.", "error");
+                showStatus("Error", "error");
             }
         }
 
         function populateTag(item) {
-            elName.textContent = item.name || "Unknown Item";
+            elName.textContent = item.name || "UNKNOWN";
             elStyle.textContent = item.style_code || "--";
             elColor.textContent = item.color || "--";
             elSize.textContent = item.size || "--";
             elPrice.textContent = formatPrice(item.mrp);
-            elBarcodeText.textContent = item.barcode;
 
+            // Generate Barcode with text UNDERNEATH (displayValue: true)
             try {
                 JsBarcode("#barcode-canvas", item.barcode, {
                     format: "CODE128",
-                    width: 1.4,
-                    height: 40,
-                    displayValue: false,
-                    margin: 0,
-                    lineColor: "#000"
+                    lineColor: "#000",
+                    width: 1.5,
+                    height: 50,
+                    displayValue: true, // Prints number under bars
+                    fontSize: 12,      // Size of text under bars
+                    textMargin: 3,     // Space between bars and text
+                    font: "Arial",     // Match tag font
+                    margin: 0
                 });
             } catch (e) {
-                console.error("Barcode generation failed", e);
+                console.error("Barcode Error", e);
             }
         }
 
@@ -444,8 +327,7 @@
             elStyle.textContent = "--";
             elColor.textContent = "--";
             elSize.textContent = "--";
-            elPrice.textContent = "BDT 0.00";
-            elBarcodeText.textContent = "--";
+            elPrice.textContent = "BDT. 0.00 + VAT";
             document.getElementById('barcode-canvas').innerHTML = "";
         }
 
@@ -453,11 +335,8 @@
             window.print();
         }
 
-        barcodeInput.addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                fetchData();
-            }
+        barcodeInput.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") { e.preventDefault(); fetchData(); }
         });
     </script>
 </body>
