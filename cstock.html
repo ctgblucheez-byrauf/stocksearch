@@ -232,7 +232,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.85rem;
-            min-width: 800px;
+            min-width: 1000px; /* Wider to fit new columns */
         }
 
         th {
@@ -263,8 +263,32 @@
 
         /* --- Requisition List Styles --- */
         .req-group { margin-bottom: 2rem; }
-        .req-group h3 { font-size: 0.95rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
-        .limit-notice { font-size: 0.8rem; color: var(--warning); margin-bottom: 1rem; font-style: italic; }
+        .req-group h3 { 
+            font-size: 1rem; 
+            color: var(--text-main); 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px; 
+            margin-bottom: 1rem; 
+            padding-bottom: 0.5rem; 
+            border-bottom: 2px solid var(--border); 
+            font-weight: 700;
+        }
+
+        /* Color Sub-Header */
+        .color-sub-header {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            background: #e2e8f0;
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+        }
+        .color-sub-header i { margin-right: 5px; }
+
+        .limit-notice { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 1rem; font-style: italic; background: #fff3cd; padding: 0.5rem; border-radius: 6px; }
         
         /* Loader */
         .loader-overlay {
@@ -371,6 +395,8 @@
                             <th>Size</th>
                             <th>Rcv Qty</th>
                             <th>Sale Qty</th>
+                            <th>Trans Qty</th>
+                            <th>Adj Qty</th>
                             <th>Balance</th>
                             <th>MRP</th>
                         </tr>
@@ -411,6 +437,10 @@
                         <th>Style Code</th>
                         <th>Color</th>
                         <th>Size</th>
+                        <th>Rcv Qty</th>
+                        <th>Sale Qty</th>
+                        <th>Trans Qty</th>
+                        <th>Adj Qty</th>
                         <th>Balance</th>
                         <th>MRP</th>
                     </tr>
@@ -454,7 +484,6 @@
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
-            // Removed loadNames() from startup to improve speed
             loadRestockList(); 
             
             barcodeInput.addEventListener('keypress', (e) => {
@@ -485,13 +514,9 @@
             document.getElementById(`tab-${mode}`).classList.add('active');
             document.querySelectorAll('.search-panel').forEach(panel => panel.classList.remove('active'));
             document.getElementById(`panel-${mode}`).classList.add('active');
-            
             if (mode === 'name') {
                 stopScanner();
-                // Lazy Load: Only load names when tab is clicked and not loaded yet
-                if (!namesLoaded) {
-                    loadNames();
-                }
+                if (!namesLoaded) loadNames();
             }
         }
 
@@ -507,7 +532,6 @@
                 
                 if (error) throw error;
 
-                // Use DocumentFragment for faster DOM insertion
                 const uniqueNames = [...new Set(data.map(item => item.name))].sort();
                 const fragment = document.createDocumentFragment();
                 
@@ -525,8 +549,8 @@
                     fragment.appendChild(option);
                 });
                 
-                nameSelect.innerHTML = ''; // Clear existing
-                nameSelect.appendChild(fragment); // Append all at once
+                nameSelect.innerHTML = ''; 
+                nameSelect.appendChild(fragment);
                 namesLoaded = true;
 
             } catch (err) {
@@ -537,19 +561,28 @@
             }
         }
 
-        // --- Sorting Logic ---
-        function sortProductsBySize(products) {
+        // --- UNIVERSAL SORTING LOGIC: Style -> Color -> Size ---
+        function sortProducts(products) {
             const sizeOrder = {
-                'XS': 1, 'S': 2, 'M': 3, 'L': 4, 'XL': 5, 'XXL': 6, 'XXXL': 7, 
-                '2XL': 6, '3XL': 7, '4XL': 8, '5XL': 9
+                'XS':1, 'S':2, 'M':3, 'L':4, 'XL':5, 'XXL':6, 'XXXL':7, 
+                '2XL':6, '3XL':7, '4XL':8, '5XL':9
             };
             return products.sort((a, b) => {
-                let sizeA = (a.size || '').toString().toUpperCase().trim();
-                let sizeB = (b.size || '').toString().toUpperCase().trim();
-
+                // 1. Style Code
                 if (a.style_code !== b.style_code) {
                     return a.style_code.localeCompare(b.style_code);
                 }
+                
+                // 2. Color
+                const colorA = (a.color || '').toString().toUpperCase().trim();
+                const colorB = (b.color || '').toString().toUpperCase().trim();
+                if (colorA !== colorB) {
+                    return colorA.localeCompare(colorB);
+                }
+
+                // 3. Size
+                let sizeA = (a.size || '').toString().toUpperCase().trim();
+                let sizeB = (b.size || '').toString().toUpperCase().trim();
 
                 if (sizeOrder[sizeA] && !sizeOrder[sizeB]) return -1;
                 if (!sizeOrder[sizeA] && sizeOrder[sizeB]) return 1;
@@ -617,7 +650,8 @@
                 }
 
                 if (products.length > 0) {
-                    currentSearchData = sortProductsBySize(products);
+                    // APPLYING UNIVERSAL SORT HERE
+                    currentSearchData = sortProducts(products);
                     renderResults(); 
                     searchResultsArea.style.display = 'block';
                     searchResultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -653,7 +687,6 @@
         }
 
         function renderGrid(items, container) {
-            // OPTIMIZATION: Build string first, then inject once
             let htmlBuffer = '';
             
             items.forEach(item => {
@@ -689,7 +722,6 @@
         }
 
         function renderTable(items, tbody) {
-            // OPTIMIZATION: Build string first, then inject once
             let htmlBuffer = '';
             
             items.forEach(item => {
@@ -703,8 +735,10 @@
                         <td>${item.style_code}</td>
                         <td>${item.color || '-'}</td>
                         <td style="text-transform:uppercase;">${item.size || '-'}</td>
-                        <td>${item.rcv_qty}</td>
-                        <td>${item.sale_qty}</td>
+                        <td>${item.rcv_qty || 0}</td>
+                        <td>${item.sale_qty || 0}</td>
+                        <td>${item.trans_qty || 0}</td>
+                        <td>${item.adj_qty || 0}</td>
                         <td class="${balanceClass}">${item.balance}</td>
                         <td>${item.mrp || 0}</td>
                     </tr>
@@ -730,8 +764,8 @@
                     return;
                 }
 
-                // Sort and Store
-                currentReqData = sortProductsBySize(data);
+                // APPLYING UNIVERSAL SORT HERE
+                currentReqData = sortProducts(data);
                 renderReqResults();
 
             } catch (err) {
@@ -754,8 +788,6 @@
         function renderReqResults() {
             if (currentReqData.length === 0) return;
             
-            // OPTIMIZATION: Render only first 100 items visually to prevent crash
-            // Excel export will still use the full list
             const displayData = currentReqData.slice(0, 100);
 
             if (reqViewMode === 'grid') {
@@ -764,13 +796,11 @@
                 renderReqTable(displayData);
             }
             
-            // Show warning if truncated
             if (currentReqData.length > 100) {
                 const notice = document.createElement('div');
                 notice.className = 'limit-notice';
                 notice.innerHTML = `<i class="fa-solid fa-info-circle"></i> Showing top 100 of ${currentReqData.length} items. Use Export for full list.`;
                 
-                // Avoid duplicate notices
                 const existing = document.querySelector('.limit-notice');
                 if(existing) existing.remove();
 
@@ -783,42 +813,63 @@
         }
 
         function renderReqGrid(items) {
-            // OPTIMIZATION: Build string first
             let htmlBuffer = '';
-            const grouped = {};
+            
+            // 1. Group by Style Code
+            const groupedByStyle = {};
             items.forEach(p => {
                 const s = p.style_code || 'Unknown';
-                if (!grouped[s]) grouped[s] = [];
-                grouped[s].push(p);
+                if (!groupedByStyle[s]) groupedByStyle[s] = [];
+                groupedByStyle[s].push(p);
             });
 
-            Object.keys(grouped).forEach(style => {
-                const groupItems = grouped[style];
-                const first = groupItems[0];
-                
-                let itemsHtml = '<div class="product-grid">';
-                groupItems.forEach(item => {
-                    itemsHtml += `
-                        <div class="product-card critical" style="padding: 0.5rem;">
-                             <div class="card-header-row">
-                                <span style="font-weight:700;">${item.size || '-'}</span>
-                                <span style="color:var(--danger); font-weight:700;">0</span>
-                            </div>
-                            <div style="font-size:0.75rem; color:var(--text-sub);">${item.color || ''} | ${item.barcode}</div>
-                        </div>
-                    `;
+            // 2. Loop Styles and Sub-Group by Color
+            Object.keys(groupedByStyle).forEach(style => {
+                const styleItems = groupedByStyle[style];
+                const firstItem = styleItems[0];
+
+                htmlBuffer += `<div class="req-group"><h3>${style} - <span style="font-weight:400; text-transform:capitalize;">${firstItem.name}</span></h3>`;
+
+                const groupedByColor = {};
+                styleItems.forEach(p => {
+                    const c = (p.color || 'Unknown').toString();
+                    if (!groupedByColor[c]) groupedByColor[c] = [];
+                    groupedByColor[c].push(p);
                 });
-                itemsHtml += '</div>';
 
-                htmlBuffer += `<div class="req-group"><h3>${style} - <span style="font-weight:400; text-transform:capitalize;">${first.name}</span></h3>${itemsHtml}</div>`;
+                // 3. Render Color Groups
+                Object.keys(groupedByColor).forEach(color => {
+                    const colorItems = groupedByColor[color];
+                    
+                    htmlBuffer += `<div class="color-sub-header"><i class="fa-solid fa-palette"></i> ${color}</div>`;
+                    htmlBuffer += '<div class="product-grid">';
+                    
+                    colorItems.forEach(item => {
+                        htmlBuffer += `
+                            <div class="product-card critical" style="padding: 0.5rem;">
+                                 <div class="card-header-row">
+                                    <span style="font-weight:700;">${item.size || '-'}</span>
+                                    <span style="color:var(--danger); font-weight:700;">0</span>
+                                </div>
+                                <div style="font-size:0.75rem; color:var(--text-sub);">${item.barcode}</div>
+                            </div>
+                        `;
+                    });
+                    htmlBuffer += '</div>';
+                });
+
+                htmlBuffer += '</div>';
             });
+
             reqListContainer.innerHTML = htmlBuffer;
         }
 
         function renderReqTable(items) {
-            // OPTIMIZATION: Build string first
+            // Items are already sorted by Style -> Color -> Size via sortProducts()
             let htmlBuffer = '';
             items.forEach(item => {
+                const balanceClass = 'td-zero';
+
                 htmlBuffer += `
                     <tr>
                         <td class="td-bold">${item.barcode}</td>
@@ -826,7 +877,11 @@
                         <td>${item.style_code}</td>
                         <td>${item.color || '-'}</td>
                         <td style="text-transform:uppercase;">${item.size || '-'}</td>
-                        <td class="td-zero">${item.balance}</td>
+                        <td>${item.rcv_qty || 0}</td>
+                        <td>${item.sale_qty || 0}</td>
+                        <td>${item.trans_qty || 0}</td>
+                        <td>${item.adj_qty || 0}</td>
+                        <td class="${balanceClass}">${item.balance}</td>
                         <td>${item.mrp || 0}</td>
                     </tr>
                 `;
@@ -842,7 +897,7 @@
 
         function exportReqToExcel() {
             if (!currentReqData.length) return showToast("No requisition data to export", "error");
-            // Export FULL list, not the truncated display list
+            // Export FULL list
             exportDataToExcel(currentReqData, "Requisition_List");
         }
 
@@ -856,6 +911,8 @@
                 Size: item.size,
                 Rcv_Qty: item.rcv_qty || 0,
                 Sale_Qty: item.sale_qty || 0,
+                Trans_Qty: item.trans_qty || 0,
+                Adj_Qty: item.adj_qty || 0,
                 Balance: item.balance,
                 MRP: item.mrp || 0
             }));
@@ -892,7 +949,6 @@
                 stopScanner(); return;
             }
 
-            // OPTIMIZATION: Reduced workers and settings for better mobile performance
             Quagga.init({
                 inputStream: {
                     name: "Live",
@@ -900,7 +956,6 @@
                     target: document.querySelector('#interactive'),
                     constraints: {
                         facingMode: "environment",
-                        // Reduced resolution for better speed on mobile
                         width: { min: 640, ideal: 800, max: 1024 },
                         height: { min: 480, ideal: 600, max: 768 },
                     },
@@ -909,7 +964,7 @@
                     patchSize: "medium",
                     halfSample: true
                 },
-                numOfWorkers: 1, // Reduced from 2 to 1
+                numOfWorkers: 1,
                 decoder: {
                     readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"]
                 },
