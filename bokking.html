@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Booking System | Modern UI</title>
-    <!-- Google Fonts: Inter for a clean, professional look -->
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -13,19 +13,16 @@
 
     <style>
         :root {
-            /* Color Palette */
-            --primary: #3b82f6; /* Blue 500 */
-            --primary-dark: #2563eb; /* Blue 600 */
-            --bg-body: #f8fafc; /* Slate 50 */
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --bg-body: #f8fafc;
             --bg-card: #ffffff;
-            --text-main: #0f172a; /* Slate 900 */
-            --text-muted: #64748b; /* Slate 500 */
-            --border: #e2e8f0; /* Slate 200 */
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
             --danger: #ef4444;
             --success: #10b981;
             --warning: #f59e0b;
-            
-            /* Spacing & Radius */
             --radius-md: 12px;
             --radius-sm: 8px;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -44,9 +41,8 @@
             padding: 20px;
         }
 
-        /* Layout */
         .container {
-            max-width: 1280px;
+            max-width: 1400px; 
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr;
@@ -54,18 +50,11 @@
         }
 
         @media (min-width: 1024px) {
-            .container {
-                grid-template-columns: 380px 1fr; /* Sidebar width optimized */
-            }
+            .container { grid-template-columns: 380px 1fr; }
         }
 
         /* Header */
-        header {
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+        header { margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
         .header-title h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
         .header-title p { color: var(--text-muted); font-size: 0.9rem; }
 
@@ -119,7 +108,6 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
         }
 
-        /* Readonly fields */
         input[readonly] {
             background-color: #f1f5f9;
             color: var(--text-muted);
@@ -128,7 +116,6 @@
             font-weight: 500;
         }
 
-        /* Button */
         button.btn-primary {
             width: 100%;
             padding: 12px;
@@ -150,8 +137,6 @@
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
             transform: translateY(-1px);
         }
-        
-        button.btn-primary:active { transform: translateY(0); }
 
         /* Autocomplete */
         .autocomplete-items {
@@ -185,8 +170,8 @@
             margin-bottom: 20px;
         }
         .search-container input {
-            padding-left: 40px; /* Space for icon */
-            border-radius: 50px; /* Pill shape */
+            padding-left: 40px;
+            border-radius: 50px;
         }
         .search-icon {
             position: absolute;
@@ -202,11 +187,11 @@
             overflow-x: auto;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            max-height: 600px; /* Fixed height for inner scroll */
+            max-height: 650px;
             overflow-y: auto;
         }
 
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 700px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 900px; }
         
         thead {
             background-color: #f8fafc;
@@ -224,6 +209,7 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             border-bottom: 1px solid var(--border);
+            white-space: nowrap;
         }
 
         td {
@@ -246,14 +232,34 @@
             cursor: pointer;
             width: 100%;
             font-weight: 500;
-            transition: border-color 0.2s;
         }
         .status-select:hover { border-color: var(--primary); }
+
+        /* Copy Button */
+        .copy-btn {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+        .copy-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background-color: #eff6ff;
+        }
 
         /* Toast */
         #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; }
         .toast {
-            background: rgba(15, 23, 42, 0.9); /* Dark glass */
+            background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(8px);
             color: white; 
             padding: 14px 20px; 
@@ -285,7 +291,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Utility classes for table text */
         .text-sm { font-size: 0.85em; color: var(--text-muted); display: block; margin-top: 2px; }
         .badge {
             display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
@@ -301,7 +306,6 @@
             <p>Inter-branch requisition management</p>
         </div>
         <div class="user-profile">
-            <!-- Placeholder for user avatar or settings -->
             <div style="width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold;">AD</div>
         </div>
     </header>
@@ -409,14 +413,16 @@
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Customer Info</th>
+                            <th>Customer</th>
                             <th>Product Details</th>
                             <th>Branch</th>
-                            <th style="min-width: 180px;">Status</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="bookingsBody">
-                        <tr><td colspan="5" style="text-align:center; padding: 40px; color:var(--text-muted);">Loading data...</td></tr>
+                        <tr><td colspan="7" style="text-align:center; padding: 40px; color:var(--text-muted);">Loading data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -427,7 +433,7 @@
     <div id="toast-container"></div>
 
     <script>
-        // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+        // --- 1. CONFIGURATION ---
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
         
@@ -436,11 +442,10 @@
             if (window.supabase) {
                 sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             } else {
-                showToast("Connection failed. Check internet.", "error");
+                showToast("Connection failed.", "error");
             }
         } catch (e) {
             console.error(e);
-            showToast("System error.", "error");
         }
 
         // --- 2. DOM ELEMENTS ---
@@ -454,37 +459,25 @@
         const searchInput = document.getElementById('searchInput');
         const bookingsBody = document.getElementById('bookingsBody');
 
-        // Set today's date
         dateInput.valueAsDate = new Date();
 
         let currentStyleCode = null;
         let searchTimeout = null;
+        let bookingDataCache = []; // Cache data for copy function
 
-        const statusOptions = [
-            "Requirement Done", 
-            "On Hand", 
-            "Calling Customer Done", 
-            "Customer Bill Done"
-        ];
+        const statusOptions = ["Requirement Done", "On Hand", "Calling Customer Done", "Customer Bill Done"];
 
-        // --- 3. AUTOCOMPLETE & FETCH LOGIC ---
-
+        // --- 3. AUTOCOMPLETE ---
         styleCodeInput.addEventListener('input', function(e) {
             const val = this.value;
             closeAllLists();
             if (!val || val.length < 2) return false;
-
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => fetchStyleSuggestions(val), 300);
         });
+        document.addEventListener('click', function(e) { if (e.target !== styleCodeInput) closeAllLists(); });
 
-        document.addEventListener('click', function(e) {
-            if (e.target !== styleCodeInput) closeAllLists();
-        });
-
-        sizeSelect.addEventListener('change', function() {
-            if(currentStyleCode) fetchColorsAndPrice(currentStyleCode, this.value);
-        });
+        sizeSelect.addEventListener('change', function() { if(currentStyleCode) fetchColorsAndPrice(currentStyleCode, this.value); });
 
         async function fetchStyleSuggestions(query) {
             try {
@@ -493,137 +486,120 @@
                     .select('style_code, name, mrp')
                     .or(`style_code.ilike.%${query}%,name.ilike.%${query}%`)
                     .limit(10);
-
                 if (error) throw error;
                 styleCodeList.innerHTML = '';
-                
                 if (!data || data.length === 0) {
-                    const noResult = document.createElement("div");
-                    noResult.innerText = "No matches found";
-                    noResult.style.color = "var(--text-muted)";
-                    styleCodeList.appendChild(noResult);
-                    return;
+                    const noResult = document.createElement("div"); noResult.innerText = "No matches found";
+                    styleCodeList.appendChild(noResult); return;
                 }
-
                 data.forEach(item => {
                     const itemDiv = document.createElement("div");
                     itemDiv.innerHTML = `<strong>${item.style_code}</strong> <span style="color:#94a3b8; margin-left:auto;">${item.name}</span>`;
                     itemDiv.addEventListener('click', function() {
-                        styleCodeInput.value = item.style_code;
-                        currentStyleCode = item.style_code;
-                        closeAllLists();
+                        styleCodeInput.value = item.style_code; currentStyleCode = item.style_code; closeAllLists();
                         fetchColorsAndPrice(item.style_code, sizeSelect.value);
                     });
                     styleCodeList.appendChild(itemDiv);
                 });
-
-            } catch (err) { console.error("Suggestion error:", err); }
+            } catch (err) { console.error(err); }
         }
 
         async function fetchColorsAndPrice(styleCode, selectedSize) {
             if(!styleCode) return;
-            
-            let query = sbClient
-                .from('inventory')
-                .select('color, mrp')
-                .eq('style_code', styleCode);
-
+            let query = sbClient.from('inventory').select('color, mrp').eq('style_code', styleCode);
             if (selectedSize) query = query.eq('size', selectedSize);
-
             try {
                 const { data, error } = await query;
                 if (error) throw error;
-
                 const uniqueColors = [...new Set(data.map(item => item.color).filter(c => c))];
-                
                 colorSelect.innerHTML = '<option value="">Select Color</option>';
                 if (uniqueColors.length > 0) {
-                    colorSelect.disabled = false;
-                    uniqueColors.forEach(color => {
-                        const opt = document.createElement("option");
-                        opt.value = color; opt.textContent = color;
-                        colorSelect.appendChild(opt);
+                    colorSelect.disabled = false; uniqueColors.forEach(color => {
+                        const opt = document.createElement("option"); opt.value = color; opt.textContent = color; colorSelect.appendChild(opt);
                     });
-                } else {
-                    colorSelect.disabled = true;
-                    colorSelect.innerHTML = '<option value="">No stock</option>';
-                }
-
+                } else { colorSelect.disabled = true; colorSelect.innerHTML = '<option value="">No stock</option>'; }
                 if (data && data.length > 0) priceInput.value = data[0].mrp;
-
-            } catch (err) { console.error("Details error:", err); }
+            } catch (err) { console.error(err); }
         }
-
         function closeAllLists() { styleCodeList.innerHTML = ''; }
 
         // --- 4. FORM SUBMISSION ---
-
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            const spinner = document.getElementById('btnSpinner');
-            
-            btn.disabled = true;
-            spinner.style.display = 'inline-block';
-            btn.querySelector('span').textContent = "Processing...";
+            const btn = document.getElementById('submitBtn'); const spinner = document.getElementById('btnSpinner');
+            btn.disabled = true; spinner.style.display = 'inline-block'; btn.querySelector('span').textContent = "Processing...";
 
             const formData = {
-                booking_date: dateInput.value,
-                customer_name: document.getElementById('customerName').value,
-                phone: document.getElementById('phone').value,
-                size: sizeSelect.value,
-                style_code: styleCodeInput.value,
-                color: colorSelect.value,
-                price: parseFloat(priceInput.value),
-                requirement_from: document.getElementById('reqFrom').value,
+                booking_date: dateInput.value, customer_name: document.getElementById('customerName').value,
+                phone: document.getElementById('phone').value, size: sizeSelect.value,
+                style_code: styleCodeInput.value, color: colorSelect.value,
+                price: parseFloat(priceInput.value), requirement_from: document.getElementById('reqFrom').value,
                 status: document.getElementById('status').value
             };
 
             try {
                 const { error } = await sbClient.from('bookings').insert([formData]);
                 if (error) throw error;
-
                 showToast("Booking saved successfully", "success");
-                form.reset();
-                dateInput.valueAsDate = new Date();
-                colorSelect.disabled = true;
-                priceInput.value = '';
-                currentStyleCode = null;
-                searchBookings(); 
-
+                form.reset(); dateInput.valueAsDate = new Date(); colorSelect.disabled = true; priceInput.value = ''; currentStyleCode = null;
+                searchBookings();
             } catch (err) {
-                console.error("Insert error:", err);
-                showToast("Failed to save booking", "error");
+                console.error(err); showToast("Failed to save booking", "error");
             } finally {
-                btn.disabled = false;
-                spinner.style.display = 'none';
-                btn.querySelector('span').textContent = "Confirm Booking";
+                btn.disabled = false; spinner.style.display = 'none'; btn.querySelector('span').textContent = "Confirm Booking";
             }
         });
 
         // --- 5. UPDATE STATUS ---
-
         async function updateBookingStatus(id, newStatus) {
-            // Optimistic UI: No confirm dialog for speed, just toast on error
             try {
-                const { error } = await sbClient
-                    .from('bookings')
-                    .update({ status: newStatus })
-                    .eq('id', id);
-
+                const { error } = await sbClient.from('bookings').update({ status: newStatus }).eq('id', id);
                 if (error) throw error;
-
                 showToast("Status updated", "success");
-
             } catch (err) {
-                console.error("Update error:", err);
-                showToast("Failed to update status", "error");
-                searchBookings(searchInput.value); // Revert visual
+                console.error(err); showToast("Failed to update status", "error"); searchBookings(searchInput.value);
             }
         }
 
-        // --- 6. SEARCH & DISPLAY ---
+        // --- 6. COPY LOGIC (UPDATED FORMAT) ---
+        function timeSince(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " years ago";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " months ago";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " days ago";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " hours ago";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " mins ago";
+            return "Just now";
+        }
 
+        async function copyBooking(id) {
+            // Find booking in cache
+            const row = bookingDataCache.find(b => b.id === id);
+            if (!row) return;
+
+            // Updated Format Requested by User
+            const textToCopy = `DATE: ${row.booking_date}
+NAME: ${row.customer_name}
+PHONE: ${row.phone}
+STYLE CODE: ${row.style_code}
+SIZE: ${row.size}
+COLOR: ${row.color}
+REQUIREMENT FROM: ${row.requirement_from}`;
+
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                showToast("Copied to clipboard!", "success");
+            } catch (err) {
+                showToast("Failed to copy", "error");
+            }
+        }
+
+        // --- 7. SEARCH & DISPLAY ---
         searchInput.addEventListener('input', function(e) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => searchBookings(this.value), 500);
@@ -631,39 +607,32 @@
 
         async function searchBookings(queryTerm = '') {
             if (!sbClient) return;
-            bookingsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px;">Loading...</td></tr>';
-
+            bookingsBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;">Loading...</td></tr>';
             try {
-                let dbQuery = sbClient
-                    .from('bookings')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-
+                let dbQuery = sbClient.from('bookings').select('*').order('created_at', { ascending: false }).limit(50);
                 if (queryTerm && queryTerm.trim() !== '') {
                     dbQuery = dbQuery.or(`customer_name.ilike.%${queryTerm}%,phone.ilike.%${queryTerm}%,style_code.ilike.%${queryTerm}%`);
                 }
-
                 const { data, error } = await dbQuery;
                 if (error) throw error;
-
+                bookingDataCache = data; // Save to cache
                 renderTable(data);
-
             } catch (err) {
-                console.error("Search error:", err);
-                bookingsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading data</td></tr>';
+                console.error(err);
+                bookingsBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--danger);">Error loading data</td></tr>';
             }
         }
 
         function renderTable(data) {
             bookingsBody.innerHTML = '';
             if (!data || data.length === 0) {
-                bookingsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:var(--text-muted);">No bookings found.</td></tr>';
+                bookingsBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px; color:var(--text-muted);">No bookings found.</td></tr>';
                 return;
             }
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
+                const timeAgo = timeSince(new Date(row.created_at));
                 
                 let statusDropdownHtml = `<select class="status-select" onchange="updateBookingStatus(${row.id}, this.value)">`;
                 statusOptions.forEach(opt => {
@@ -673,9 +642,7 @@
                 statusDropdownHtml += `</select>`;
 
                 tr.innerHTML = `
-                    <td>
-                        <div style="font-weight:600;">${row.booking_date}</div>
-                    </td>
+                    <td><div style="font-weight:600;">${row.booking_date}</div></td>
                     <td>
                         <div style="font-weight:600;">${row.customer_name}</div>
                         <span class="text-sm">${row.phone}</span>
@@ -690,36 +657,34 @@
                     </td>
                     <td><span style="font-weight:500;">${row.requirement_from}</span></td>
                     <td>${statusDropdownHtml}</td>
+                    <td style="font-size:0.85rem; color:#64748b;">${timeAgo}</td>
+                    <td>
+                        <button class="copy-btn" onclick="copyBooking(${row.id})" title="Copy details">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy
+                        </button>
+                    </td>
                 `;
                 bookingsBody.appendChild(tr);
             });
         }
 
-        // --- 7. UTILITIES ---
+        // --- 8. UTILITIES ---
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            
-            // Icon based on type
             const icon = type === 'success' ? '✓' : '✕';
-            
             toast.className = `toast ${type}`;
             toast.innerHTML = `<span style="font-weight:bold; font-size:1.2em; margin-right:5px;">${icon}</span> ${message}`;
             container.appendChild(toast);
-            
-            // Animate in
             requestAnimationFrame(() => toast.classList.add('show'));
-
             setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
 
-        // Initial Load
-        window.addEventListener('DOMContentLoaded', () => {
-            searchBookings();
-        });
+        window.addEventListener('DOMContentLoaded', () => { searchBookings(); });
     </script>
 </body>
 </html>
