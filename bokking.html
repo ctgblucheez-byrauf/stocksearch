@@ -3,231 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Product Booking System</title>
+    <title>Booking System | Modern UI</title>
+    <!-- Google Fonts: Inter for a clean, professional look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS Library -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
-            --primary-color: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-            --text-color: #1f2937;
-            --border-color: #e5e7eb;
-            --success-color: #10b981;
-            --error-color: #ef4444;
+            /* Color Palette */
+            --primary: #3b82f6; /* Blue 500 */
+            --primary-dark: #2563eb; /* Blue 600 */
+            --bg-body: #f8fafc; /* Slate 50 */
+            --bg-card: #ffffff;
+            --text-main: #0f172a; /* Slate 900 */
+            --text-muted: #64748b; /* Slate 500 */
+            --border: #e2e8f0; /* Slate 200 */
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            
+            /* Spacing & Radius */
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
             line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            padding: 20px;
         }
 
+        /* Layout */
         .container {
-            max-width: 1200px;
+            max-width: 1280px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr;
-            gap: 20px;
+            gap: 24px;
         }
 
-        @media (min-width: 992px) {
+        @media (min-width: 1024px) {
             .container {
-                grid-template-columns: 400px 1fr;
+                grid-template-columns: 380px 1fr; /* Sidebar width optimized */
             }
         }
 
-        /* Card Styles */
+        /* Header */
+        header {
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-title h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+        .header-title p { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* Cards */
         .card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            padding: 20px;
-            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 24px;
+            border: 1px solid var(--border);
+            height: fit-content;
+            transition: box-shadow 0.3s ease;
         }
-
-        h1, h2, h3 { margin-bottom: 15px; color: #111827; }
-        h1 { font-size: 1.5rem; }
-        h2 { font-size: 1.25rem; font-weight: 600; }
-
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 15px;
-            position: relative;
+        
+        .card-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+        .card-title { font-size: 1.125rem; font-weight: 600; color: var(--text-main); }
 
+        /* Form Elements */
+        .form-group { margin-bottom: 16px; position: relative; }
+        
         label {
             display: block;
-            font-size: 0.875rem;
+            font-size: 0.85rem;
             font-weight: 500;
-            margin-bottom: 5px;
-            color: #374151;
+            color: var(--text-main);
+            margin-bottom: 6px;
         }
 
         input[type="text"], input[type="date"], input[type="tel"], input[type="number"], select {
             width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             font-size: 0.95rem;
-            transition: border-color 0.2s;
+            color: var(--text-main);
+            background-color: #fff;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
         }
 
         input:focus, select:focus {
             outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
         }
 
+        /* Readonly fields */
         input[readonly] {
-            background-color: #f9fafb;
-            color: #6b7280;
-            cursor: not-allowed;
+            background-color: #f1f5f9;
+            color: var(--text-muted);
+            border-color: transparent;
+            cursor: default;
+            font-weight: 500;
         }
 
+        /* Button */
         button.btn-primary {
             width: 100%;
-            padding: 10px;
-            background-color: var(--primary-color);
+            padding: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             font-size: 1rem;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: transform 0.1s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        button.btn-primary:hover { background-color: var(--primary-hover); }
+        button.btn-primary:hover {
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        button.btn-primary:active { transform: translateY(0); }
 
-        /* Autocomplete Suggestions */
+        /* Autocomplete */
         .autocomplete-items {
             position: absolute;
-            border: 1px solid #d1d5db;
-            border-bottom: none;
-            border-top: none;
-            z-index: 99;
+            border: 1px solid var(--border);
+            z-index: 100;
             top: 100%;
             left: 0;
             right: 0;
             background-color: #fff;
-            max-height: 200px;
+            max-height: 220px;
             overflow-y: auto;
-            border-radius: 0 0 6px 6px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            margin-top: 4px;
         }
-
         .autocomplete-items div {
-            padding: 10px;
+            padding: 10px 12px;
             cursor: pointer;
-            border-bottom: 1px solid #f3f4f6;
+            border-bottom: 1px solid #f1f5f9;
             font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .autocomplete-items div:hover { background-color: #f8fafc; }
+        .autocomplete-items div strong { color: var(--primary); }
+
+        /* Search Bar */
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-container input {
+            padding-left: 40px; /* Space for icon */
+            border-radius: 50px; /* Pill shape */
+        }
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
         }
 
-        .autocomplete-items div:hover { background-color: #f3f4f6; }
-        .autocomplete-items div strong { color: var(--primary-color); }
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            max-height: 600px; /* Fixed height for inner scroll */
+            overflow-y: auto;
+        }
 
-        /* Search & Table Section */
-        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
-        .search-bar input { flex: 1; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 700px; }
+        
+        thead {
+            background-color: #f8fafc;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
 
-        .table-container { overflow-x: auto; }
-        
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
-        
         th {
-            background-color: #f9fafb;
+            text-align: left;
+            padding: 14px 16px;
             font-weight: 600;
-            color: #4b5563;
-            white-space: nowrap;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
         }
-        
-        tr:hover { background-color: #f9fafb; }
 
-        /* Status Dropdown in Table */
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #fdfdfd; }
+
+        /* Status Select in Table */
         .status-select {
-            padding: 4px 8px;
+            padding: 6px 10px;
             font-size: 0.85rem;
-            border-radius: 4px;
-            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            border: 1px solid var(--border);
             background-color: white;
             cursor: pointer;
             width: 100%;
-            max-width: 200px;
+            font-weight: 500;
+            transition: border-color 0.2s;
         }
+        .status-select:hover { border-color: var(--primary); }
 
-        /* Toast Notification */
-        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        /* Toast */
+        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; }
         .toast {
-            background: #333; color: #fff; padding: 12px 20px; border-radius: 6px;
-            margin-top: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            opacity: 0; transform: translateY(20px); transition: opacity 0.3s, transform 0.3s;
+            background: rgba(15, 23, 42, 0.9); /* Dark glass */
+            backdrop-filter: blur(8px);
+            color: white; 
+            padding: 14px 20px; 
+            border-radius: 8px;
+            margin-top: 10px; 
+            box-shadow: var(--shadow-lg);
+            opacity: 0; 
+            transform: translateY(20px); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            min-width: 250px;
         }
         .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.success { background-color: var(--success-color); }
-        .toast.error { background-color: var(--error-color); }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
 
         /* Spinner */
         .spinner {
-            display: none; width: 16px; height: 16px; border: 2px solid #ffffff;
-            border-top: 2px solid transparent; border-radius: 50%;
-            animation: spin 1s linear infinite; margin-left: 10px; vertical-align: middle;
+            display: none; 
+            width: 18px; 
+            height: 18px; 
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid #ffffff; 
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite; 
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Utility classes for table text */
+        .text-sm { font-size: 0.85em; color: var(--text-muted); display: block; margin-top: 2px; }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+            background: #e2e8f0; color: #475569;
+        }
     </style>
-    <!-- Supabase JS Library -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-    <header style="margin-bottom: 20px;">
-        <h1>Product Booking Portal</h1>
-        <p style="color: #6b7280;">Inter-branch product requisition system</p>
+    <header>
+        <div class="header-title">
+            <h1>Booking Portal</h1>
+            <p>Inter-branch requisition management</p>
+        </div>
+        <div class="user-profile">
+            <!-- Placeholder for user avatar or settings -->
+            <div style="width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold;">AD</div>
+        </div>
     </header>
 
     <div class="container">
         
-        <!-- Booking Form Section -->
+        <!-- Sidebar: New Booking -->
         <aside class="card">
-            <h2>New Booking</h2>
+            <div class="card-header">
+                <span class="card-title">New Booking</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </div>
+            
             <form id="bookingForm">
-                
-                <!-- Date -->
                 <div class="form-group">
-                    <label for="date">Date</label>
+                    <label>Date</label>
                     <input type="date" id="date" name="date" required>
                 </div>
 
-                <!-- Customer Name -->
                 <div class="form-group">
-                    <label for="customerName">Customer Name</label>
-                    <input type="text" id="customerName" name="customerName" placeholder="Enter full name" required>
+                    <label>Customer Name</label>
+                    <input type="text" id="customerName" name="customerName" placeholder="e.g. Rahim Ahmed" required>
                 </div>
 
-                <!-- Phone -->
                 <div class="form-group">
-                    <label for="phone">Phone</label>
+                    <label>Phone Number</label>
                     <input type="tel" id="phone" name="phone" placeholder="017..." required>
                 </div>
 
-                <!-- Style Code (Autocomplete) -->
                 <div class="form-group">
-                    <label for="styleCode">Style Code</label>
-                    <input type="text" id="styleCode" name="styleCode" placeholder="Search code (e.g. ST001)" autocomplete="off" required>
+                    <label>Style Code</label>
+                    <input type="text" id="styleCode" name="styleCode" placeholder="Search code..." autocomplete="off" required>
                     <div id="styleCodeList" class="autocomplete-items"></div>
                 </div>
 
-                <!-- Size -->
                 <div class="form-group">
-                    <label for="size">Size</label>
+                    <label>Size</label>
                     <select id="size" name="size" required>
                         <option value="">Select Size</option>
                         <option value="S">S</option>
@@ -239,25 +350,22 @@
                     </select>
                 </div>
 
-                <!-- Color (Fetched from inventory) -->
                 <div class="form-group">
-                    <label for="color">Color</label>
+                    <label>Available Color</label>
                     <select id="color" name="color" required disabled>
-                        <option value="">Select Style First</option>
+                        <option value="">Select Style & Size</option>
                     </select>
                 </div>
 
-                <!-- Price (Auto fetched) -->
                 <div class="form-group">
-                    <label for="price">Price (BDT)</label>
-                    <input type="number" id="price" name="price" readonly>
+                    <label>Price (BDT)</label>
+                    <input type="number" id="price" name="price" readonly placeholder="Auto-calculated">
                 </div>
 
-                <!-- Requirement From -->
                 <div class="form-group">
-                    <label for="reqFrom">Requirement From</label>
+                    <label>Requirement From</label>
                     <select id="reqFrom" name="reqFrom" required>
-                        <option value="">Select Outlet</option>
+                        <option value="">Select Branch</option>
                         <option value="JFP">JFP</option>
                         <option value="BANANI">BANANI</option>
                         <option value="KHULNA">KHULNA</option>
@@ -267,9 +375,8 @@
                     </select>
                 </div>
 
-                <!-- Status -->
                 <div class="form-group">
-                    <label for="status">Status</label>
+                    <label>Initial Status</label>
                     <select id="status" name="status" required>
                         <option value="Requirement Done">Requirement Done</option>
                         <option value="On Hand">On Hand</option>
@@ -279,35 +386,37 @@
                 </div>
 
                 <button type="submit" class="btn-primary" id="submitBtn">
-                    Register Booking <div class="spinner" id="btnSpinner"></div>
+                    <span>Confirm Booking</span>
+                    <div class="spinner" id="btnSpinner"></div>
                 </button>
             </form>
         </aside>
 
-        <!-- Search and Status List Section -->
+        <!-- Main Content: Search & List -->
         <main class="card">
-            <h2>Booking Status</h2>
+            <div class="card-header">
+                <span class="card-title">Booking History</span>
+                <button onclick="searchBookings()" style="border:none; background:none; cursor:pointer; color:var(--primary); font-size:0.9rem; font-weight:500;">Refresh ↻</button>
+            </div>
             
-            <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Search by Name, Phone, or Style Code...">
-                <button class="btn-primary" style="width: auto;" onclick="searchBookings()">Search</button>
+            <div class="search-container">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="searchInput" placeholder="Search by name, phone, or style code...">
             </div>
 
-            <div class="table-container">
+            <div class="table-wrapper">
                 <table id="bookingsTable">
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Customer</th>
-                            <th>Details</th>
-                            <th>Req. From</th>
-                            <th>Status (Change)</th>
+                            <th>Customer Info</th>
+                            <th>Product Details</th>
+                            <th>Branch</th>
+                            <th style="min-width: 180px;">Status</th>
                         </tr>
                     </thead>
                     <tbody id="bookingsBody">
-                        <tr>
-                            <td colspan="5" style="text-align:center; color:#6b7280;">Loading bookings...</td>
-                        </tr>
+                        <tr><td colspan="5" style="text-align:center; padding: 40px; color:var(--text-muted);">Loading data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -327,11 +436,11 @@
             if (window.supabase) {
                 sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             } else {
-                showToast("Supabase library failed to load. Check internet.", "error");
+                showToast("Connection failed. Check internet.", "error");
             }
         } catch (e) {
             console.error(e);
-            showToast("Error initializing database client.", "error");
+            showToast("System error.", "error");
         }
 
         // --- 2. DOM ELEMENTS ---
@@ -348,11 +457,9 @@
         // Set today's date
         dateInput.valueAsDate = new Date();
 
-        // State variables
         let currentStyleCode = null;
         let searchTimeout = null;
 
-        // Global Status Options
         const statusOptions = [
             "Requirement Done", 
             "On Hand", 
@@ -360,7 +467,7 @@
             "Customer Bill Done"
         ];
 
-        // --- 3. INTEGRITY & AUTOCOMPLETE LOGIC ---
+        // --- 3. AUTOCOMPLETE & FETCH LOGIC ---
 
         styleCodeInput.addEventListener('input', function(e) {
             const val = this.value;
@@ -368,9 +475,7 @@
             if (!val || val.length < 2) return false;
 
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                fetchStyleSuggestions(val);
-            }, 300);
+            searchTimeout = setTimeout(() => fetchStyleSuggestions(val), 300);
         });
 
         document.addEventListener('click', function(e) {
@@ -395,13 +500,14 @@
                 if (!data || data.length === 0) {
                     const noResult = document.createElement("div");
                     noResult.innerText = "No matches found";
+                    noResult.style.color = "var(--text-muted)";
                     styleCodeList.appendChild(noResult);
                     return;
                 }
 
                 data.forEach(item => {
                     const itemDiv = document.createElement("div");
-                    itemDiv.innerHTML = `<strong>${item.style_code}</strong> - ${item.name}`;
+                    itemDiv.innerHTML = `<strong>${item.style_code}</strong> <span style="color:#94a3b8; margin-left:auto;">${item.name}</span>`;
                     itemDiv.addEventListener('click', function() {
                         styleCodeInput.value = item.style_code;
                         currentStyleCode = item.style_code;
@@ -411,7 +517,7 @@
                     styleCodeList.appendChild(itemDiv);
                 });
 
-            } catch (err) { console.error("Error fetching suggestions:", err); }
+            } catch (err) { console.error("Suggestion error:", err); }
         }
 
         async function fetchColorsAndPrice(styleCode, selectedSize) {
@@ -422,10 +528,7 @@
                 .select('color, mrp')
                 .eq('style_code', styleCode);
 
-            // If size is selected, we only want colors available for that size
-            if (selectedSize) {
-                query = query.eq('size', selectedSize);
-            }
+            if (selectedSize) query = query.eq('size', selectedSize);
 
             try {
                 const { data, error } = await query;
@@ -443,12 +546,12 @@
                     });
                 } else {
                     colorSelect.disabled = true;
-                    colorSelect.innerHTML = '<option value="">No stock available</option>';
+                    colorSelect.innerHTML = '<option value="">No stock</option>';
                 }
 
                 if (data && data.length > 0) priceInput.value = data[0].mrp;
 
-            } catch (err) { console.error("Error fetching details:", err); }
+            } catch (err) { console.error("Details error:", err); }
         }
 
         function closeAllLists() { styleCodeList.innerHTML = ''; }
@@ -462,6 +565,7 @@
             
             btn.disabled = true;
             spinner.style.display = 'inline-block';
+            btn.querySelector('span').textContent = "Processing...";
 
             const formData = {
                 booking_date: dateInput.value,
@@ -479,7 +583,7 @@
                 const { error } = await sbClient.from('bookings').insert([formData]);
                 if (error) throw error;
 
-                showToast("Booking registered successfully!", "success");
+                showToast("Booking saved successfully", "success");
                 form.reset();
                 dateInput.valueAsDate = new Date();
                 colorSelect.disabled = true;
@@ -489,23 +593,18 @@
 
             } catch (err) {
                 console.error("Insert error:", err);
-                showToast("Failed to register booking.", "error");
+                showToast("Failed to save booking", "error");
             } finally {
                 btn.disabled = false;
                 spinner.style.display = 'none';
+                btn.querySelector('span').textContent = "Confirm Booking";
             }
         });
 
-        // --- 5. UPDATE STATUS FUNCTIONALITY ---
+        // --- 5. UPDATE STATUS ---
 
         async function updateBookingStatus(id, newStatus) {
-            // Optional: simple confirmation to avoid accidental clicks
-            if (!confirm(`Update status to "${newStatus}"?`)) {
-                // Revert the select box to the current database value by reloading
-                searchBookings(searchInput.value);
-                return;
-            }
-
+            // Optimistic UI: No confirm dialog for speed, just toast on error
             try {
                 const { error } = await sbClient
                     .from('bookings')
@@ -514,19 +613,16 @@
 
                 if (error) throw error;
 
-                showToast(`Status updated to ${newStatus}`, "success");
-                // No need to reload the whole table as the visual is already updated,
-                // but we don't strictly need to do anything else here unless we want logs.
+                showToast("Status updated", "success");
 
             } catch (err) {
                 console.error("Update error:", err);
-                showToast("Failed to update status.", "error");
-                // Reload to revert the visual change on error
-                searchBookings(searchInput.value);
+                showToast("Failed to update status", "error");
+                searchBookings(searchInput.value); // Revert visual
             }
         }
 
-        // --- 6. SEARCH & DISPLAY LOGIC ---
+        // --- 6. SEARCH & DISPLAY ---
 
         searchInput.addEventListener('input', function(e) {
             clearTimeout(searchTimeout);
@@ -535,7 +631,7 @@
 
         async function searchBookings(queryTerm = '') {
             if (!sbClient) return;
-            bookingsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading...</td></tr>';
+            bookingsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px;">Loading...</td></tr>';
 
             try {
                 let dbQuery = sbClient
@@ -555,21 +651,20 @@
 
             } catch (err) {
                 console.error("Search error:", err);
-                bookingsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">Error loading data</td></tr>';
+                bookingsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading data</td></tr>';
             }
         }
 
         function renderTable(data) {
             bookingsBody.innerHTML = '';
             if (!data || data.length === 0) {
-                bookingsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">No bookings found.</td></tr>';
+                bookingsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:var(--text-muted);">No bookings found.</td></tr>';
                 return;
             }
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 
-                // Build the Status Dropdown HTML
                 let statusDropdownHtml = `<select class="status-select" onchange="updateBookingStatus(${row.id}, this.value)">`;
                 statusOptions.forEach(opt => {
                     const selected = row.status === opt ? 'selected' : '';
@@ -578,18 +673,22 @@
                 statusDropdownHtml += `</select>`;
 
                 tr.innerHTML = `
-                    <td>${row.booking_date}</td>
                     <td>
-                        <strong>${row.customer_name}</strong><br>
-                        <small style="color:#666">${row.phone}</small>
+                        <div style="font-weight:600;">${row.booking_date}</div>
                     </td>
                     <td>
-                        <div>Code: <strong>${row.style_code}</strong></div>
-                        <div style="font-size:0.85em; color:#555;">
-                            Size: ${row.size} | Color: ${row.color} | Price: ${row.price}
+                        <div style="font-weight:600;">${row.customer_name}</div>
+                        <span class="text-sm">${row.phone}</span>
+                    </td>
+                    <td>
+                        <div style="font-weight:600; color:var(--primary);">${row.style_code}</div>
+                        <div style="display:flex; gap:8px; font-size:0.85em; color:#475569; margin-top:2px;">
+                            <span class="badge">${row.size}</span>
+                            <span class="badge">${row.color}</span>
+                            <span>৳${row.price}</span>
                         </div>
                     </td>
-                    <td>${row.requirement_from}</td>
+                    <td><span style="font-weight:500;">${row.requirement_from}</span></td>
                     <td>${statusDropdownHtml}</td>
                 `;
                 bookingsBody.appendChild(tr);
@@ -600,10 +699,17 @@
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
+            
+            // Icon based on type
+            const icon = type === 'success' ? '✓' : '✕';
+            
             toast.className = `toast ${type}`;
-            toast.innerText = message;
+            toast.innerHTML = `<span style="font-weight:bold; font-size:1.2em; margin-right:5px;">${icon}</span> ${message}`;
             container.appendChild(toast);
-            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // Animate in
+            requestAnimationFrame(() => toast.classList.add('show'));
+
             setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => toast.remove(), 300);
@@ -614,7 +720,6 @@
         window.addEventListener('DOMContentLoaded', () => {
             searchBookings();
         });
-
     </script>
 </body>
 </html>
