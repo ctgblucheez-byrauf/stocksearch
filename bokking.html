@@ -387,6 +387,7 @@
                         <option value="On Hand">On Hand</option>
                         <option value="Calling Customer Done">Calling Customer Done</option>
                         <option value="Customer Bill Done">Customer Bill Done</option>
+                        <option value="Hold For Customer">Hold For Customer</option>
                     </select>
                 </div>
 
@@ -466,7 +467,7 @@
         let searchTimeout = null;
         let bookingDataCache = []; // Cache data for copy function
 
-        const statusOptions = ["Requirement Done", "On Hand", "Calling Customer Done", "Customer Bill Done"];
+        const statusOptions = ["Requirement Done", "On Hand", "Calling Customer Done", "Customer Bill Done", "Hold For Customer"];
 
         // --- 3. AUTOCOMPLETE ---
         styleCodeInput.addEventListener('input', function(e) {
