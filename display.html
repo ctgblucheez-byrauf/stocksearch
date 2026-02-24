@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Display Audit System</title>
-    <!-- Supabase JS Client from CDN -->
+    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -38,24 +38,28 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Step 1: Search --- */
+        /* --- Search Bars --- */
         .search-container { position: relative; margin-bottom: 1.5rem; }
-        .search-input { width: 100%; padding: 1rem; border: 2px solid var(--border); border-radius: 12px; font-size: 1rem; background: var(--surface); transition: border-color 0.2s; }
+        .search-input { width: 100%; padding: 0.85rem 1rem; border: 2px solid var(--border); border-radius: 10px; font-size: 1rem; background: var(--surface); transition: border-color 0.2s; }
         .search-input:focus { outline: none; border-color: var(--primary); }
-        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 12px 12px; max-height: 200px; overflow-y: auto; z-index: 50; display: none; box-shadow: var(--shadow); }
+        
+        .category-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 10px 10px; max-height: 200px; overflow-y: auto; z-index: 50; display: none; box-shadow: var(--shadow); }
         .suggestion-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border); }
         .suggestion-item:hover { background: #f1f5f9; }
 
         /* --- Dashboard Cards --- */
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
-        .stat-card { background: var(--surface); padding: 1rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
+        .stat-card { background: var(--surface); padding: 1rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .stat-val { font-size: 1.5rem; font-weight: 800; color: var(--text-main); display: block; }
         .stat-label { font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; }
 
         /* --- Style Cards --- */
-        .style-card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .style-card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+        /* Class to hide filtered items */
+        .style-card.hidden-style { display: none; }
+
         .style-header { padding: 1rem; background: #f8fafc; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .style-code { font-weight: 700; font-size: 1.1rem; }
+        .style-code { font-weight: 700; font-size: 1.1rem; color: var(--primary); }
         .style-meta { font-size: 0.85rem; color: var(--text-sub); }
         
         .color-row { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
@@ -67,7 +71,7 @@
         /* --- Audit Buttons --- */
         .audit-actions { display: flex; gap: 0.5rem; }
         .btn-audit { flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.25rem; transition: all 0.2s; color: var(--text-sub); }
-        .btn-audit:active { transform: scale(0.98); }
+        .btn-audit:active { transform: scale(0.95); }
         
         /* Status States */
         .btn-audit.status-displayed { background: #dcfce7; border-color: var(--success); color: #15803d; }
@@ -121,10 +125,10 @@
         <!-- AUDIT VIEW -->
         <section id="view-audit" class="view-section active">
             
-            <!-- Step 1: Search -->
+            <!-- Step 1: Category Search -->
             <div class="search-container">
-                <input type="text" id="category-search" class="search-input" placeholder="Search Category (e.g. Mens Polo)..." autocomplete="off">
-                <div id="suggestions" class="suggestions"></div>
+                <input type="text" id="category-search" class="search-input" placeholder="🔍 Search Category (e.g. Mens Polo)..." autocomplete="off">
+                <div id="category-suggestions" class="category-suggestions"></div>
             </div>
 
             <!-- Dashboard -->
@@ -142,6 +146,11 @@
                         <span class="stat-val" id="stat-completion">0%</span>
                         <span class="stat-label">Done</span>
                     </div>
+                </div>
+
+                <!-- NEW: Style Code Search Bar -->
+                <div class="search-container">
+                    <input type="text" id="style-search" class="search-input" placeholder="🔎 Search Style Code (e.g. WWT-008)..." autocomplete="off">
                 </div>
 
                 <div id="style-list">
@@ -168,7 +177,7 @@
     <footer id="action-bar" class="action-bar hidden">
         <div>
             <div class="progress-text">Audit Status</div>
-            <div style="font-size: 0.8rem; color: var(--text-sub);"><span id="footer-remaining">0</span> styles remaining</div>
+            <div style="font-size: 0.8rem; color: var(--text-sub);"><span id="footer-remaining">0</span> items remaining</div>
         </div>
         <button class="btn-submit" onclick="validateAndSubmit()">Submit Report</button>
     </footer>
@@ -181,7 +190,7 @@
         <div class="modal">
             <div class="modal-title">⚠️ Unaudited Items</div>
             <div class="modal-body" id="modal-msg">
-                You have 6 styles that were not checked. Do you want to proceed?
+                You have items that were not checked. These will be marked as "Unaudited" in the final report. Do you want to proceed?
             </div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeModal()">Go Back</button>
@@ -226,8 +235,9 @@
 
         // --- 3. DOM ELEMENTS ---
         const els = {
-            searchInput: document.getElementById('category-search'),
-            suggestions: document.getElementById('suggestions'),
+            categorySearch: document.getElementById('category-search'),
+            categorySuggestions: document.getElementById('category-suggestions'),
+            styleSearch: document.getElementById('style-search'), // NEW
             dashboard: document.getElementById('dashboard'),
             styleList: document.getElementById('style-list'),
             emptyState: document.getElementById('empty-state'),
@@ -243,7 +253,8 @@
 
         // --- 4. INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
-            setupSearch();
+            setupCategorySearch();
+            setupStyleSearch(); // NEW
         });
 
         function switchTab(tab) {
@@ -257,15 +268,14 @@
         }
 
         // --- 5. CATEGORY SEARCH LOGIC ---
-        async function setupSearch() {
-            els.searchInput.addEventListener('input', async (e) => {
+        async function setupCategorySearch() {
+            els.categorySearch.addEventListener('input', async (e) => {
                 const query = e.target.value.trim();
                 if (query.length < 2) {
-                    els.suggestions.style.display = 'none';
+                    els.categorySuggestions.style.display = 'none';
                     return;
                 }
 
-                // Fetch distinct category names
                 const { data, error } = await sbClient
                     .from('inventory')
                     .select('name')
@@ -277,31 +287,51 @@
                     return;
                 }
 
-                // Get unique names
                 const uniqueNames = [...new Set(data.map(item => item.name))];
 
                 if (uniqueNames.length > 0) {
-                    els.suggestions.innerHTML = uniqueNames.map(name => 
+                    els.categorySuggestions.innerHTML = uniqueNames.map(name => 
                         `<div class="suggestion-item" onclick="selectCategory('${name}')">${name}</div>`
                     ).join('');
-                    els.suggestions.style.display = 'block';
+                    els.categorySuggestions.style.display = 'block';
                 } else {
-                    els.suggestions.style.display = 'none';
+                    els.categorySuggestions.style.display = 'none';
                 }
             });
 
-            // Hide suggestions on click outside
             document.addEventListener('click', (e) => {
-                if (!els.searchInput.contains(e.target) && !els.suggestions.contains(e.target)) {
-                    els.suggestions.style.display = 'none';
+                if (!els.categorySearch.contains(e.target) && !els.categorySuggestions.contains(e.target)) {
+                    els.categorySuggestions.style.display = 'none';
                 }
+            });
+        }
+
+        // --- 5.5 STYLE SEARCH LOGIC (NEW) ---
+        function setupStyleSearch() {
+            els.styleSearch.addEventListener('input', (e) => {
+                const term = e.target.value.toUpperCase().trim();
+                const cards = document.querySelectorAll('.style-card');
+
+                cards.forEach(card => {
+                    // Find the style code inside the card
+                    const codeEl = card.querySelector('.style-code');
+                    if (codeEl) {
+                        const code = codeEl.textContent.toUpperCase();
+                        if (code.includes(term)) {
+                            card.classList.remove('hidden-style');
+                        } else {
+                            card.classList.add('hidden-style');
+                        }
+                    }
+                });
             });
         }
 
         async function selectCategory(categoryName) {
             state.currentCategory = categoryName;
-            els.searchInput.value = categoryName;
-            els.suggestions.style.display = 'none';
+            els.categorySearch.value = categoryName;
+            els.categorySuggestions.style.display = 'none';
+            els.styleSearch.value = ''; // Reset style search on new category
             
             // Reset State
             state.inventoryData = [];
@@ -319,8 +349,6 @@
         }
 
         async function loadInventoryData(categoryName) {
-            // Get all items in category with stock > 0
-            // We group by Style + Color to aggregate sizes
             const { data, error } = await sbClient
                 .from('inventory')
                 .select('*')
@@ -338,12 +366,10 @@
                 return;
             }
 
-            // Process Data: Group by Style Code, Aggregate Colors
+            // Process Data: Group by Style Code
             state.inventoryData = data;
             state.groupedData = {};
             let totalQty = 0;
-
-            // Temporary map to aggregate color quantities
             const styleMap = {};
 
             data.forEach(item => {
@@ -355,7 +381,6 @@
                     };
                 }
                 
-                // Aggregate by Color
                 if (!styleMap[item.style_code].colors[item.color]) {
                     styleMap[item.style_code].colors[item.color] = {
                         name: item.color,
@@ -367,7 +392,6 @@
                 totalQty += item.balance;
             });
 
-            // Convert map to array for easier iteration
             state.groupedData = Object.values(styleMap);
             state.totalQty = totalQty;
             state.totalStyles = state.groupedData.length;
@@ -383,7 +407,7 @@
 
             state.groupedData.forEach(style => {
                 const card = document.createElement('div');
-                card.className = 'style-card';
+                card.className = 'style-card'; // Default visible
                 
                 // Header
                 const header = document.createElement('div');
@@ -426,7 +450,6 @@
         function setAuditStatus(uniqueId, status) {
             state.auditState[uniqueId] = status;
             
-            // Update UI Buttons
             const btnMissing = document.getElementById(`btn-missing-${uniqueId}`);
             const btnDisplay = document.getElementById(`btn-display-${uniqueId}`);
 
@@ -476,7 +499,7 @@
 
             if (report.unauditedStyles.length > 0) {
                 document.getElementById('modal-msg').innerHTML = 
-                    `⚠️ <strong>${report.unauditedStyles.length} styles/colors</strong> were not audited.<br><br>These will be marked as "Unaudited" in the final report.<br>Do you want to proceed?`;
+                    `⚠️ <strong>${report.unauditedStyles.length} items</strong> were not audited.<br><br>These will be marked as "Unaudited" in the final report.<br>Do you want to proceed?`;
                 els.warningModal.style.display = 'flex';
             } else {
                 submitToDB(report);
@@ -493,7 +516,6 @@
             submitToDB(report);
         }
 
-        // CORE DETECTION LOGIC
         function generateReportData() {
             const missingColors = [];
             const fullMissingStyles = [];
@@ -505,7 +527,7 @@
 
                 Object.entries(style.colors).forEach(([colorName, colorData]) => {
                     const uniqueId = `${style.code}-${colorName}`;
-                    const status = state.auditState[uniqueId]; // 'displayed', 'missing', or undefined
+                    const status = state.auditState[uniqueId];
 
                     if (status === 'displayed') {
                         styleHasDisplayed = true;
@@ -518,7 +540,6 @@
                         });
                         styleHasAudited = true;
                     } else {
-                        // Status is undefined (Unaudited)
                         unauditedItems.push({
                             style_code: style.code,
                             color: colorName,
@@ -527,8 +548,6 @@
                     }
                 });
 
-                // Rule 2: Full Style Not Displayed
-                // IF style has stock AND no color is marked Displayed
                 if (!styleHasDisplayed) {
                     fullMissingStyles.push({
                         style_code: style.code,
@@ -554,7 +573,6 @@
             const completion = totalColors === 0 ? 0 : Math.round((audited / totalColors) * 100);
 
             try {
-                // 1. Insert Main Report
                 const { data: reportData, error: reportError } = await sbClient
                     .from('audit_reports')
                     .insert([{
@@ -571,11 +589,8 @@
                 if (reportError) throw reportError;
 
                 const reportId = reportData[0].id;
-
-                // 2. Insert Report Items (Batch)
                 const itemsToInsert = [];
 
-                // Missing Colors
                 report.missingColors.forEach(item => {
                     itemsToInsert.push({
                         report_id: reportId,
@@ -586,18 +601,16 @@
                     });
                 });
 
-                // Full Missing Styles
                 report.fullMissingStyles.forEach(item => {
                     itemsToInsert.push({
                         report_id: reportId,
                         style_code: item.style_code,
-                        color: null, // Full style issue
+                        color: null,
                         quantity: item.quantity,
                         issue_type: 'full_style_missing'
                     });
                 });
 
-                // Unaudited Styles
                 report.unauditedStyles.forEach(item => {
                     itemsToInsert.push({
                         report_id: reportId,
@@ -612,11 +625,9 @@
                     const { error: itemsError } = await sbClient
                         .from('audit_report_items')
                         .insert(itemsToInsert);
-                    
                     if (itemsError) throw itemsError;
                 }
 
-                // Success
                 els.successModal.style.display = 'flex';
 
             } catch (err) {
@@ -629,7 +640,7 @@
 
         function resetAudit() {
             els.successModal.style.display = 'none';
-            location.reload(); // Simplest way to clear everything
+            location.reload();
         }
 
         // --- 8. VIEW REPORTS ---
@@ -655,7 +666,6 @@
             els.reportsList.innerHTML = '';
 
             for (const report of data) {
-                // Fetch details for this report
                 const { data: items } = await sbClient
                     .from('audit_report_items')
                     .select('*')
@@ -666,7 +676,6 @@
 
                 const dateStr = new Date(report.created_at).toLocaleString();
 
-                // Build Items HTML
                 let missingHtml = '';
                 let fullMissingHtml = '';
                 let unauditedHtml = '';
@@ -734,7 +743,6 @@
                 els.reportsList.appendChild(reportCard);
             }
         }
-
     </script>
 </body>
 </html>
