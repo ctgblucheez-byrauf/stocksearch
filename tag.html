@@ -12,16 +12,16 @@
 
     <style>
         :root {
-            /* 1.5 inches = 144px, 3 inches = 288px (at 96 DPI) */
-            --tag-width: 144px;  
-            --tag-height: 288px; 
+            /* 1 inch = 96px, 2.5 inches = 240px */
+            --tag-width: 96px;  
+            --tag-height: 240px; 
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            background-color: #f0f0f0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #e0e0e0;
             color: #000;
             display: flex;
             flex-direction: column;
@@ -35,14 +35,14 @@
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 400px;
             margin-bottom: 30px;
             text-align: center;
         }
 
-        h1 { font-size: 1.2rem; margin-bottom: 15px; }
+        h1 { font-size: 1.2rem; margin-bottom: 15px; font-weight: 500; }
         
         .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
         
@@ -63,9 +63,9 @@
             font-size: 0.9rem;
         }
 
-        .btn-fetch { background-color: #333; color: white; }
+        .btn-fetch { background-color: #000; color: white; }
         .btn-print { 
-            background-color: #555; 
+            background-color: #333; 
             color: white; 
             width: 100%; 
             margin-top: 10px; 
@@ -73,10 +73,10 @@
         }
 
         .status-message { font-size: 0.85rem; margin-top: 10px; }
-        .status-error { color: red; }
-        .status-success { color: green; }
+        .status-error { color: #d32f2f; }
+        .status-success { color: #2e7d32; }
 
-        /* --- THE TAG (1.5" x 3") --- */
+        /* --- THE TAG (1" x 2.5") --- */
         .tag-wrapper { margin: 20px; }
 
         #price-tag {
@@ -84,84 +84,124 @@
             width: var(--tag-width);
             height: var(--tag-height);
             position: relative;
-            /* Tight padding to fit narrow width */
-            padding: 12px 6px 6px 6px; 
             display: flex;
             flex-direction: column;
-            border: 1px dashed #ccc; 
+            align-items: center;
+            border: 1px solid #000; /* Solid black outer border */
             overflow: hidden;
+            padding-top: 4px; /* Small top padding for border breathing room */
         }
 
-        /* Text Elements */
-        .tag-name {
-            font-size: 10px; 
+        /* --- HEADER --- */
+        .brand-box {
+            margin: 0 4px;
+            margin-bottom: 15px; /* GAP: Brand to Name (15px) */
+            padding: 2px 0;
+            border: 1px solid #000;
+            text-align: center;
+            width: calc(100% - 8px); /* Full width minus margins */
+        }
+
+        .brand-name {
+            font-size: 9px;
+            font-weight: 900; 
+            text-transform: uppercase;
+            color: #000;
+        }
+
+        .product-name {
+            text-align: center;
+            font-size: 8px;
             font-weight: 900;
             text-transform: uppercase;
-            text-align: center;
-            margin-bottom: 8px;
-            line-height: 1.1;
-            color: #000;
-            /* Allow wrapping if name is long */
-            word-wrap: break-word; 
+            margin-bottom: 15px; /* GAP: Name to Style (15px) */
+            padding: 0 2px;
+            line-height: 1.2;
         }
 
-        .tag-details {
-            font-size: 7px; /* Very small for 1.5" width */
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 8px;
+        /* --- CONTENT WRAPPER (Style, Color, Size, Barcode) --- */
+        /* GAP: Barcode to Price handled by margin-bottom on this wrapper */
+        .content-wrapper {
             display: flex;
             flex-direction: column;
-            gap: 2px;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start; /* Align top for wrapping text */
-            border-bottom: 1px solid #eee;
-            padding-bottom: 1px;
-        }
-
-        /* Allow long style codes to wrap nicely */
-        .detail-value {
-            text-align: right;
-            max-width: 60%;
-            word-wrap: break-word;
-            line-height: 1.1;
-        }
-
-        /* Barcode Section */
-        .tag-barcode-area {
-            flex: 1; /* Fills remaining space */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
-            margin-top: 4px;
+            gap: 10px; /* STRICT 10PX GAP (Style, Color, Size, Barcode) */
+            padding: 0 4px;
+            margin-bottom: 15px; /* GAP: Barcode to Price (15px) */
+            width: 100%;
+        }
+
+        /* --- ELEMENTS --- */
+        .info-text {
+            text-align: center;
+            font-weight: 900;
+            font-size: 7px;
+            line-height: 1.1;
+            word-wrap: break-word;
+            width: 100%;
+        }
+
+        .size-block {
+            text-align: center;
+        }
+
+        .size-label {
+            font-size: 6px;
+            font-weight: 800;
+            display: block;
+            margin-bottom: 1px;
+        }
+
+        .size-value {
+            font-size: 13px; 
+            font-weight: 900; 
+            display: block;
+            line-height: 1;
+        }
+
+        .barcode-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
         }
 
         #barcode-canvas {
             width: 100%;
-            max-width: 130px; /* Fits inside 144px with padding */
+            max-width: 84px;
             height: auto;
         }
 
-        /* Price Section */
-        .tag-price-area {
-            margin-top: auto;
-            text-align: center;
-            border-top: 1px solid #000; /* Thinner line for small tag */
-            padding-top: 6px;
-        }
-
-        .tag-price {
-            font-size: 11px; 
+        .barcode-number {
+            font-family: 'Courier New', monospace;
+            font-size: 8px; /* INCREASED FONT SIZE (Previously 7px) */
             font-weight: 900;
-            color: #000;
+            margin-top: 2px;
+            letter-spacing: 0.5px;
         }
 
-        /* --- PRINT STYLES (Exact 1.5x3) --- */
+        /* --- FOOTER --- */
+        .tag-footer {
+            border-top: 1px solid #000;
+            padding: 4px 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%; /* Ensure footer touches borders */
+        }
+
+        .price-left {
+            font-size: 7px;
+            font-weight: 900; 
+            text-transform: uppercase;
+        }
+
+        .price-right {
+            font-size: 9px;
+            font-weight: 900; 
+        }
+
+        /* --- PRINT STYLES --- */
         @media print {
             body { 
                 background: white; 
@@ -176,14 +216,13 @@
 
             .tag-wrapper {
                 margin: 0;
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
+                /* PRINT TOP AND LEFT OF PAPER */
+                top: 0;
+                left: 0;
+                transform: none;
             }
 
             #price-tag {
-                border: none; /* Remove border for final print */
                 box-shadow: none;
                 width: var(--tag-width);
                 height: var(--tag-height);
@@ -193,7 +232,7 @@
             
             @page {
                 size: auto;
-                margin: 0mm;
+                margin: 0mm; /* Ensure no printer margins interfere */
             }
         }
     </style>
@@ -201,45 +240,54 @@
 <body>
 
     <div class="controls-container no-print">
-        <h1>Tag Generator (1.5x3 inch)</h1>
+        <h1>Tag Generator (Blucheez)</h1>
         <div class="input-group">
-            <input type="text" id="barcodeInput" placeholder="Barcode" autocomplete="off">
+            <input type="text" id="barcodeInput" placeholder="Barcode (e.g. A021103)" autocomplete="off">
             <button class="btn-fetch" onclick="fetchData()">Fetch</button>
         </div>
         <div id="statusMsg" class="status-message"></div>
         <button id="printBtn" class="btn-print no-print" onclick="printTag()">Print Tag</button>
     </div>
 
-    <!-- 1.5" Wide x 3" High Tag -->
+    <!-- 1" x 2.5" Tag -->
     <div class="tag-wrapper">
         <div id="price-tag">
-            <!-- Name -->
-            <div class="tag-name" id="tagName">--</div>
-
-            <!-- Details -->
-            <div class="tag-details">
-                <div class="detail-row">
-                    <span>STYLE:</span>
-                    <span id="tagStyle" class="detail-value">--</span>
-                </div>
-                <div class="detail-row">
-                    <span>COLOR:</span>
-                    <span id="tagColor">--</span>
-                </div>
-                <div class="detail-row" style="border: none;">
-                    <span>SIZE:</span>
-                    <span id="tagSize">--</span>
-                </div>
+            <!-- Header: Blucheez -->
+            <div class="brand-box">
+                <div class="brand-name">Blucheez</div>
             </div>
 
-            <!-- Barcode -->
-            <div class="tag-barcode-area">
-                <svg id="barcode-canvas"></svg>
+            <!-- Product Name: Jacket -->
+            <div class="product-name" id="tagName">JACKET</div>
+
+            <!-- Balanced Layout Wrapper (10px gaps) -->
+            <div class="content-wrapper">
+                
+                <!-- 1. Style Code -->
+                <div class="info-text" id="tagStyle">AB-WIN54-BMJ-039</div>
+
+                <!-- 2. Color -->
+                <div class="info-text" id="tagColor">BLACK</div>
+
+                <!-- 3. Size -->
+                <div class="size-block">
+                    <span class="size-label">SIZE</span>
+                    <span class="size-value" id="tagSize">S</span>
+                </div>
+
+                <!-- 4. Barcode -->
+                <div class="barcode-block">
+                    <svg id="barcode-canvas"></svg>
+                    <!-- Larger Text: A021103 -->
+                    <div class="barcode-number" id="tagBarcodeText">A021103</div>
+                </div>
+                
             </div>
 
-            <!-- Price -->
-            <div class="tag-price-area">
-                <div class="tag-price" id="tagPrice">BDT. 0.00 + VAT</div>
+            <!-- Footer -->
+            <div class="tag-footer">
+                <span class="price-left">BDT+VAT</span>
+                <span class="price-right" id="tagPrice">5,490</span>
             </div>
         </div>
     </div>
@@ -271,6 +319,7 @@
         const elColor = document.getElementById('tagColor');
         const elSize = document.getElementById('tagSize');
         const elPrice = document.getElementById('tagPrice');
+        const elBarcodeText = document.getElementById('tagBarcodeText');
 
         function showStatus(msg, type) {
             statusMsg.textContent = msg;
@@ -281,8 +330,8 @@
         }
 
         function formatPrice(mrp) {
-            if (!mrp) return "BDT. 0.00 + VAT";
-            return "BDT. " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + " + VAT";
+            if (!mrp) return "0";
+            return parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
         }
 
         async function fetchData() {
@@ -300,7 +349,6 @@
                     .maybeSingle();
 
                 if (error) {
-                    // Show specific Supabase error (e.g. permission denied)
                     throw error; 
                 }
                 
@@ -320,23 +368,20 @@
         }
 
         function populateTag(item) {
-            elName.textContent = item.name || "UNKNOWN";
+            elName.textContent = item.name || "ITEM";
             elStyle.textContent = item.style_code || "--";
             elColor.textContent = item.color || "--";
             elSize.textContent = item.size || "--";
             elPrice.textContent = formatPrice(item.mrp);
+            elBarcodeText.textContent = item.barcode;
 
-            // Barcode settings for 1.5" width
             try {
                 JsBarcode("#barcode-canvas", item.barcode, {
                     format: "CODE128",
                     lineColor: "#000",
-                    width: 1.1,      /* Thinner bars for narrow tag */
-                    height: 40,      
-                    displayValue: true,
-                    fontSize: 10,    
-                    textMargin: 2,
-                    font: "Arial",
+                    width: 1.0,      
+                    height: 30,      
+                    displayValue: false, 
                     margin: 0
                 });
             } catch (e) {
@@ -345,11 +390,12 @@
         }
 
         function resetTag() {
-            elName.textContent = "--";
+            elName.textContent = "ITEM";
             elStyle.textContent = "--";
             elColor.textContent = "--";
             elSize.textContent = "--";
-            elPrice.textContent = "BDT. 0.00 + VAT";
+            elPrice.textContent = "0.00";
+            elBarcodeText.textContent = "--";
             document.getElementById('barcode-canvas').innerHTML = "";
         }
 
