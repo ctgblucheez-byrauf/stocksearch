@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking System | Responsive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Booking System | Fully Responsive</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,9 +27,10 @@
             --radius-sm: 8px;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
         body {
             font-family: 'Inter', sans-serif;
@@ -37,32 +38,34 @@
             color: var(--text-main);
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
-            padding: 15px;
+            padding: 10px; /* Reduced padding for small phones */
+            width: 100%;
+            overflow-x: hidden; /* PREVENTS HORIZONTAL SCROLL */
+            min-height: 100vh;
         }
 
         .container {
             max-width: 1400px; 
             margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr; /* Mobile: Stacked */
+            width: 100%;
+            display: flex; /* Use Flexbox for easier stacking */
+            flex-direction: column; /* Mobile Default: Stacked (Form Top, List Bottom) */
             gap: 24px;
         }
 
-        /* Tablet and Desktop: Side by Side */
+        /* Desktop Layout: Side by Side */
         @media (min-width: 1024px) {
-            .container { grid-template-columns: 380px 1fr; }
-            body { padding: 20px; }
+            .container { 
+                display: grid; 
+                grid-template-columns: 380px 1fr; 
+            }
+            body { padding: 24px; }
         }
 
         /* Header */
-        header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
-        .header-title h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-main); }
-        .header-title p { color: var(--text-muted); font-size: 0.8rem; }
-
-        @media (min-width: 600px) {
-            .header-title h1 { font-size: 1.5rem; }
-            .header-title p { font-size: 0.9rem; }
-        }
+        header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .header-title h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); line-height: 1.2; }
+        .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
 
         /* Cards */
         .card {
@@ -72,6 +75,7 @@
             padding: 20px;
             border: 1px solid var(--border);
             height: fit-content;
+            width: 100%; /* Ensures card fits container */
         }
         
         .card-header {
@@ -87,7 +91,7 @@
         .card-title { font-size: 1.125rem; font-weight: 600; color: var(--text-main); }
 
         /* Form Elements */
-        .form-group { margin-bottom: 16px; position: relative; }
+        .form-group { margin-bottom: 16px; position: relative; width: 100%; }
         
         label {
             display: block;
@@ -98,8 +102,8 @@
         }
 
         input[type="text"], input[type="date"], input[type="tel"], input[type="number"], select {
-            width: 100%;
-            padding: 12px 12px; /* Taller for touch */
+            width: 100%; /* Full width inputs for mobile */
+            padding: 12px; 
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             font-size: 16px; /* Prevents iOS zoom */
@@ -107,20 +111,29 @@
             background-color: #fff;
             transition: all 0.2s ease;
             font-family: 'Inter', sans-serif;
+            appearance: none;
+        }
+
+        /* Custom Select Arrow */
+        .select-wrapper { position: relative; width: 100%; }
+        .select-wrapper::after {
+            content: "▼"; font-size: 0.7rem; color: var(--text-muted);
+            position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none;
         }
 
         input:focus, select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            z-index: 10; /* Ensure focus ring is on top */
         }
 
         input[readonly] {
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
             color: var(--text-muted);
             border-color: transparent;
             cursor: default;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         button.btn-primary {
@@ -138,19 +151,17 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
         }
 
-        button.btn-primary:hover {
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-            transform: translateY(-1px);
-        }
-        button.btn-primary:active { transform: translateY(0); }
+        button.btn-primary:hover { box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
+        button.btn-primary:active { transform: translateY(1px); }
 
         /* Autocomplete */
         .autocomplete-items {
             position: absolute;
             border: 1px solid var(--border);
-            z-index: 100;
+            z-index: 9999; /* High z-index to float over everything */
             top: 100%;
             left: 0;
             right: 0;
@@ -158,8 +169,9 @@
             max-height: 220px;
             overflow-y: auto;
             border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-lg);
             margin-top: 4px;
+            width: 100%; /* Ensure it matches input width */
         }
         .autocomplete-items div {
             padding: 12px;
@@ -176,10 +188,17 @@
         .search-container {
             position: relative;
             margin-bottom: 20px;
+            width: 100%;
         }
         .search-container input {
             padding-left: 44px;
             border-radius: 50px;
+            background-color: #f8fafc;
+            border-color: transparent;
+        }
+        .search-container input:focus {
+            background-color: #fff;
+            border-color: var(--primary);
         }
         .search-icon {
             position: absolute;
@@ -190,13 +209,15 @@
             pointer-events: none;
         }
 
-        /* Table & Responsive Table (Card View) */
+        /* --- TABLET/MOBILE LIST VIEW CSS --- */
+        
         .table-wrapper {
             overflow-x: auto;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            max-height: 600px; /* Limit height on desktop */
+            max-height: 700px; 
             overflow-y: auto;
+            width: 100%;
         }
 
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 800px; }
@@ -232,7 +253,7 @@
 
         /* Status Select */
         .status-select {
-            padding: 6px 10px;
+            padding: 8px 12px;
             font-size: 0.85rem;
             border-radius: 6px;
             border: 1px solid var(--border);
@@ -240,27 +261,28 @@
             cursor: pointer;
             width: 100%;
             font-weight: 500;
+            color: var(--text-main);
         }
-        .status-select:hover { border-color: var(--primary); }
 
         /* Action Buttons */
-        .action-cell { display: flex; gap: 6px; }
+        .action-cell { display: flex; gap: 8px; }
 
         .copy-btn, .print-btn {
             background: white;
             border: 1px solid var(--border);
-            padding: 6px 10px;
+            padding: 8px 12px;
             border-radius: 6px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 6px;
             font-size: 0.8rem;
             font-weight: 500;
             color: var(--text-main);
             transition: all 0.2s;
-            flex: 1; /* Make buttons equal width on mobile */
+            white-space: nowrap;
+            flex: 1;
         }
 
         .copy-btn:hover, .print-btn:hover {
@@ -271,82 +293,114 @@
 
         .text-sm { font-size: 0.85em; color: var(--text-muted); display: block; margin-top: 2px; }
         .badge {
-            display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+            display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
             background: #e2e8f0; color: #475569;
         }
 
-        /* --- RESPONSIVE TABLE (MOBILE CARD VIEW) --- */
-        @media screen and (max-width: 768px) {
+        /* --- RESPONSIVE TRANSFORMATION (LIST VIEW) --- */
+        @media screen and (max-width: 1024px) {
             .table-wrapper {
-                max-height: none; /* Remove scroll limit on mobile */
+                max-height: none; 
                 overflow-x: visible;
+                overflow-y: visible;
                 border: none;
                 background: transparent;
                 box-shadow: none;
             }
 
-            table, thead, tbody, th, td, tr {
-                display: block;
-            }
+            /* Hide Grid */
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
 
-            thead tr {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
-            }
-
+            /* Cards for Rows */
             tr {
-                margin: 0 0 16px 0;
+                margin: 0 0 20px 0; 
                 border: 1px solid var(--border);
                 border-radius: var(--radius-md);
                 background: var(--bg-card);
-                padding-bottom: 10px;
-                box-shadow: var(--shadow-sm);
+                padding: 5px 0; 
+                box-shadow: var(--shadow-md);
+                position: relative;
+                width: 100%;
             }
 
             td {
                 border: none;
                 position: relative;
-                padding-left: 50%; /* Space for the label */
+                padding-left: 45%; /* Space for label */
                 padding-top: 12px;
                 padding-bottom: 12px;
+                padding-right: 16px;
                 display: flex;
                 align-items: center;
                 justify-content: flex-end;
                 min-height: 40px;
+                text-align: right;
+                border-bottom: 1px solid #f1f5f9;
+                width: 100%;
             }
+
+            td:last-child { border-bottom: none; }
 
             td:before {
                 position: absolute;
                 top: 12px;
-                left: 12px;
-                width: 45%;
+                left: 16px;
+                width: 40%;
                 padding-right: 10px;
                 white-space: nowrap;
                 text-align: left;
                 font-weight: 600;
                 color: var(--text-muted);
-                font-size: 0.8rem;
+                font-size: 0.75rem;
                 text-transform: uppercase;
                 content: attr(data-label);
             }
 
-            /* Specific adjustments for mobile cells */
+            /* Specific Mobile Adjustments */
             td[data-label="Action"] {
-                padding-left: 12px; /* No label for actions usually, or full width */
+                padding-left: 16px;
+                padding-top: 16px;
+                padding-bottom: 16px;
                 justify-content: flex-start;
+                background-color: #f8fafc;
+                margin-top: 8px;
+                border-top: 1px solid var(--border);
             }
-            td[data-label="Action"]:before {
-                display: none; /* Hide the label "Action" */
-            }
+            td[data-label="Action"]:before { display: none; }
+            
             td[data-label="Customer"] {
                 flex-direction: column;
                 align-items: flex-end;
             }
         }
 
+        /* Extra Small Phones (< 400px) */
+        @media (max-width: 400px) {
+            body { padding: 5px; }
+            .card { padding: 15px; border-radius: 8px; }
+            td { 
+                padding-left: 10px; 
+                flex-direction: column; 
+                align-items: flex-start !important; 
+                text-align: left !important; 
+                padding-right: 10px;
+            }
+            td:before { 
+                position: relative; 
+                top: 0; 
+                left: 0; 
+                width: 100%; 
+                display: block; 
+                margin-bottom: 4px; 
+                text-align: left;
+            }
+            td[data-label="Action"] { flex-direction: row; flex-wrap: wrap; }
+            .copy-btn, .print-btn { padding: 10px; }
+        }
+
         /* Toast */
-        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 2000; }
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 20000; pointer-events: none; }
         .toast {
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(8px);
@@ -354,7 +408,7 @@
             padding: 14px 20px; 
             border-radius: 8px;
             margin-top: 10px; 
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-lg);
             opacity: 0; 
             transform: translateY(20px); 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -362,6 +416,7 @@
             align-items: center;
             gap: 10px;
             font-size: 0.9rem;
+            pointer-events: auto;
         }
         .toast.show { opacity: 1; transform: translateY(0); }
         .toast.success { border-left: 4px solid var(--success); }
@@ -410,15 +465,11 @@
             <h1>Booking Portal</h1>
             <p>Inter-branch requisition management</p>
         </div>
-        <!-- Hide profile on very small screens or keep simple -->
-        <div class="user-profile" style="display: none;"> 
-            <div style="width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold;">AD</div>
-        </div>
     </header>
 
     <div class="container">
         
-        <!-- Sidebar: New Booking -->
+        <!-- Sidebar: New Booking (Full Width on Mobile) -->
         <aside class="card">
             <div class="card-header">
                 <span class="card-title">New Booking</span>
@@ -433,12 +484,12 @@
 
                 <div class="form-group">
                     <label>Customer Name</label>
-                    <input type="text" id="customerName" name="customerName" placeholder="e.g. Rahim Ahmed" required>
+                    <input type="text" id="customerName" name="customerName" placeholder="e.g. Rahim Ahmed" required autocomplete="off">
                 </div>
 
                 <div class="form-group">
                     <label>Phone Number</label>
-                    <input type="tel" id="phone" name="phone" placeholder="017..." required>
+                    <input type="tel" id="phone" name="phone" placeholder="017..." required inputmode="tel">
                 </div>
 
                 <div class="form-group">
@@ -448,17 +499,21 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Size</label>
-                    <select id="size" name="size" required disabled>
-                        <option value="">Select Style First</option>
-                    </select>
+                    <div class="select-wrapper">
+                        <label>Size</label>
+                        <select id="size" name="size" required disabled>
+                            <option value="">Select Style First</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Available Color</label>
-                    <select id="color" name="color" required disabled>
-                        <option value="">Select Style & Size</option>
-                    </select>
+                    <div class="select-wrapper">
+                        <label>Available Color</label>
+                        <select id="color" name="color" required disabled>
+                            <option value="">Select Style & Size</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -467,28 +522,32 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Requirement From</label>
-                    <select id="reqFrom" name="reqFrom" required>
-                        <option value="">Select Branch</option>
-                        <option value="JFP">JFP</option>
-                        <option value="BANANI">BANANI</option>
-                        <option value="KHULNA">KHULNA</option>
-                        <option value="TANGAIL">TANGAIL</option>
-                        <option value="PMC">PMC</option>
-                        <option value="WARI">WARI</option>
-                        <option value="BOOKING">Booking</option>
-                    </select>
+                    <div class="select-wrapper">
+                        <label>Requirement From</label>
+                        <select id="reqFrom" name="reqFrom" required>
+                            <option value="">Select Branch</option>
+                            <option value="JFP">JFP</option>
+                            <option value="BANANI">BANANI</option>
+                            <option value="KHULNA">KHULNA</option>
+                            <option value="TANGAIL">TANGAIL</option>
+                            <option value="PMC">PMC</option>
+                            <option value="WARI">WARI</option>
+                            <option value="BOOKING">Booking</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Initial Status</label>
-                    <select id="status" name="status" required>
-                        <option value="Requirement Done">Requirement Done</option>
-                        <option value="On Hand">On Hand</option>
-                        <option value="Hold for customer">Hold for customer</option>
-                        <option value="Calling Customer Done">Calling Customer Done</option>
-                        <option value="Customer Bill Done">Customer Bill Done</option>
-                    </select>
+                    <div class="select-wrapper">
+                        <label>Initial Status</label>
+                        <select id="status" name="status" required>
+                            <option value="Requirement Done">Requirement Done</option>
+                            <option value="On Hand">On Hand</option>
+                            <option value="Hold for customer">Hold for customer</option>
+                            <option value="Calling Customer Done">Calling Customer Done</option>
+                            <option value="Customer Bill Done">Customer Bill Done</option>
+                        </select>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-primary" id="submitBtn">
@@ -502,7 +561,9 @@
         <main class="card">
             <div class="card-header">
                 <span class="card-title">Booking History</span>
-                <button onclick="searchBookings()" style="border:none; background:none; cursor:pointer; color:var(--primary); font-size:0.9rem; font-weight:500;">Refresh ↻</button>
+                <button onclick="searchBookings()" style="border:none; background:none; cursor:pointer; color:var(--primary); font-size:0.9rem; font-weight:500; display:flex; align-items:center; gap:5px;">
+                    Refresh <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                </button>
             </div>
             
             <div class="search-container">
@@ -716,6 +777,7 @@
                 const { error } = await sbClient.from('bookings').update({ status: newStatus }).eq('id', id);
                 if (error) throw error;
                 showToast("Status updated", "success");
+                searchBookings(searchInput.value); 
             } catch (err) {
                 console.error(err); showToast("Failed to update status", "error"); searchBookings(searchInput.value);
             }
@@ -820,7 +882,6 @@ REQUIREMENT FROM: ${row.requirement_from}`;
                 });
                 statusDropdownHtml += `</select>`;
 
-                // NOTE: Added data-label attributes for Mobile Card View
                 tr.innerHTML = `
                     <td data-label="Date"><div style="font-weight:600;">${row.booking_date}</div></td>
                     <td data-label="Customer">
@@ -829,7 +890,7 @@ REQUIREMENT FROM: ${row.requirement_from}`;
                     </td>
                     <td data-label="Product Details">
                         <div style="font-weight:600; color:var(--primary);">${row.style_code}</div>
-                        <div style="display:flex; gap:8px; font-size:0.85em; color:#475569; margin-top:2px;">
+                        <div style="display:flex; gap:8px; font-size:0.85em; color:#475569; margin-top:2px; align-items:center;">
                             <span class="badge">${row.size}</span>
                             <span class="badge">${row.color}</span>
                             <span>৳${row.price}</span>
