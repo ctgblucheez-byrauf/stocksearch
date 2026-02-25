@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking System | Modern UI</title>
+    <title>Booking System | Responsive</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,7 @@
         :root {
             --primary: #3b82f6;
             --primary-dark: #2563eb;
-            --bg-body: #f8fafc;
+            --bg-body: #f1f5f9;
             --bg-card: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
@@ -27,7 +27,6 @@
             --radius-sm: 8px;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,35 +37,41 @@
             color: var(--text-main);
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
-            padding: 20px;
+            padding: 15px;
         }
 
         .container {
             max-width: 1400px; 
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr; /* Mobile: Stacked */
             gap: 24px;
         }
 
+        /* Tablet and Desktop: Side by Side */
         @media (min-width: 1024px) {
             .container { grid-template-columns: 380px 1fr; }
+            body { padding: 20px; }
         }
 
         /* Header */
-        header { margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
-        .header-title h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
-        .header-title p { color: var(--text-muted); font-size: 0.9rem; }
+        header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+        .header-title h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-main); }
+        .header-title p { color: var(--text-muted); font-size: 0.8rem; }
+
+        @media (min-width: 600px) {
+            .header-title h1 { font-size: 1.5rem; }
+            .header-title p { font-size: 0.9rem; }
+        }
 
         /* Cards */
         .card {
             background: var(--bg-card);
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-md);
-            padding: 24px;
+            padding: 20px;
             border: 1px solid var(--border);
             height: fit-content;
-            transition: box-shadow 0.3s ease;
         }
         
         .card-header {
@@ -76,6 +81,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         .card-title { font-size: 1.125rem; font-weight: 600; color: var(--text-main); }
 
@@ -92,10 +99,10 @@
 
         input[type="text"], input[type="date"], input[type="tel"], input[type="number"], select {
             width: 100%;
-            padding: 10px 12px;
+            padding: 12px 12px; /* Taller for touch */
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            font-size: 0.95rem;
+            font-size: 16px; /* Prevents iOS zoom */
             color: var(--text-main);
             background-color: #fff;
             transition: all 0.2s ease;
@@ -118,7 +125,7 @@
 
         button.btn-primary {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border: none;
@@ -137,6 +144,7 @@
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
             transform: translateY(-1px);
         }
+        button.btn-primary:active { transform: translateY(0); }
 
         /* Autocomplete */
         .autocomplete-items {
@@ -150,11 +158,11 @@
             max-height: 220px;
             overflow-y: auto;
             border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-md);
             margin-top: 4px;
         }
         .autocomplete-items div {
-            padding: 10px 12px;
+            padding: 12px;
             cursor: pointer;
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.9rem;
@@ -170,28 +178,28 @@
             margin-bottom: 20px;
         }
         .search-container input {
-            padding-left: 40px;
+            padding-left: 44px;
             border-radius: 50px;
         }
         .search-icon {
             position: absolute;
-            left: 14px;
+            left: 16px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-muted);
             pointer-events: none;
         }
 
-        /* Table */
+        /* Table & Responsive Table (Card View) */
         .table-wrapper {
             overflow-x: auto;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            max-height: 650px;
+            max-height: 600px; /* Limit height on desktop */
             overflow-y: auto;
         }
 
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 900px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 800px; }
         
         thead {
             background-color: #f8fafc;
@@ -222,7 +230,7 @@
         tr:last-child td { border-bottom: none; }
         tr:hover td { background-color: #fdfdfd; }
 
-        /* Status Select in Table */
+        /* Status Select */
         .status-select {
             padding: 6px 10px;
             font-size: 0.85rem;
@@ -235,8 +243,10 @@
         }
         .status-select:hover { border-color: var(--primary); }
 
-        /* Copy Button */
-        .copy-btn {
+        /* Action Buttons */
+        .action-cell { display: flex; gap: 6px; }
+
+        .copy-btn, .print-btn {
             background: white;
             border: 1px solid var(--border);
             padding: 6px 10px;
@@ -244,28 +254,107 @@
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
+            gap: 4px;
             font-size: 0.8rem;
             font-weight: 500;
             color: var(--text-main);
             transition: all 0.2s;
+            flex: 1; /* Make buttons equal width on mobile */
         }
-        .copy-btn:hover {
+
+        .copy-btn:hover, .print-btn:hover {
             border-color: var(--primary);
             color: var(--primary);
             background-color: #eff6ff;
         }
 
+        .text-sm { font-size: 0.85em; color: var(--text-muted); display: block; margin-top: 2px; }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+            background: #e2e8f0; color: #475569;
+        }
+
+        /* --- RESPONSIVE TABLE (MOBILE CARD VIEW) --- */
+        @media screen and (max-width: 768px) {
+            .table-wrapper {
+                max-height: none; /* Remove scroll limit on mobile */
+                overflow-x: visible;
+                border: none;
+                background: transparent;
+                box-shadow: none;
+            }
+
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            tr {
+                margin: 0 0 16px 0;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-md);
+                background: var(--bg-card);
+                padding-bottom: 10px;
+                box-shadow: var(--shadow-sm);
+            }
+
+            td {
+                border: none;
+                position: relative;
+                padding-left: 50%; /* Space for the label */
+                padding-top: 12px;
+                padding-bottom: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                min-height: 40px;
+            }
+
+            td:before {
+                position: absolute;
+                top: 12px;
+                left: 12px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: 600;
+                color: var(--text-muted);
+                font-size: 0.8rem;
+                text-transform: uppercase;
+                content: attr(data-label);
+            }
+
+            /* Specific adjustments for mobile cells */
+            td[data-label="Action"] {
+                padding-left: 12px; /* No label for actions usually, or full width */
+                justify-content: flex-start;
+            }
+            td[data-label="Action"]:before {
+                display: none; /* Hide the label "Action" */
+            }
+            td[data-label="Customer"] {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+        }
+
         /* Toast */
-        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; }
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 2000; }
         .toast {
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(8px);
             color: white; 
             padding: 14px 20px; 
             border-radius: 8px;
             margin-top: 10px; 
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-md);
             opacity: 0; 
             transform: translateY(20px); 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -273,7 +362,6 @@
             align-items: center;
             gap: 10px;
             font-size: 0.9rem;
-            min-width: 250px;
         }
         .toast.show { opacity: 1; transform: translateY(0); }
         .toast.success { border-left: 4px solid var(--success); }
@@ -291,10 +379,27 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .text-sm { font-size: 0.85em; color: var(--text-muted); display: block; margin-top: 2px; }
-        .badge {
-            display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
-            background: #e2e8f0; color: #475569;
+        /* --- PRINT STYLES --- */
+        #print-container { display: none; }
+
+        @media print {
+            body > * { display: none !important; }
+            #print-container {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 20px;
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 16px;
+                line-height: 1.8;
+                color: black;
+                background: white;
+            }
+            .print-header { text-align: center; font-weight: bold; font-size: 20px; margin-bottom: 20px; border-bottom: 2px solid black; padding-bottom: 10px; }
+            .print-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+            .print-label { font-weight: bold; }
         }
     </style>
 </head>
@@ -305,7 +410,8 @@
             <h1>Booking Portal</h1>
             <p>Inter-branch requisition management</p>
         </div>
-        <div class="user-profile">
+        <!-- Hide profile on very small screens or keep simple -->
+        <div class="user-profile" style="display: none;"> 
             <div style="width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold;">AD</div>
         </div>
     </header>
@@ -343,14 +449,8 @@
 
                 <div class="form-group">
                     <label>Size</label>
-                    <select id="size" name="size" required>
-                        <option value="">Select Size</option>
-                        <option value="S">S</option>
-                        <option value="M">M</option>
-                        <option value="L">L</option>
-                        <option value="XL">XL</option>
-                        <option value="XXL">XXL</option>
-                        <option value="XXXL">XXXL</option>
+                    <select id="size" name="size" required disabled>
+                        <option value="">Select Style First</option>
                     </select>
                 </div>
 
@@ -376,7 +476,7 @@
                         <option value="TANGAIL">TANGAIL</option>
                         <option value="PMC">PMC</option>
                         <option value="WARI">WARI</option>
-                        <option value="BOOKING">BOOKING</option>
+                        <option value="BOOKING">Booking</option>
                     </select>
                 </div>
 
@@ -385,9 +485,9 @@
                     <select id="status" name="status" required>
                         <option value="Requirement Done">Requirement Done</option>
                         <option value="On Hand">On Hand</option>
+                        <option value="Hold for customer">Hold for customer</option>
                         <option value="Calling Customer Done">Calling Customer Done</option>
                         <option value="Customer Bill Done">Customer Bill Done</option>
-                        <option value="Hold For Customer">Hold For Customer</option>
                     </select>
                 </div>
 
@@ -431,6 +531,9 @@
         </main>
     </div>
 
+    <!-- Hidden Print Container -->
+    <div id="print-container"></div>
+
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
@@ -465,11 +568,18 @@
 
         let currentStyleCode = null;
         let searchTimeout = null;
-        let bookingDataCache = []; // Cache data for copy function
+        let bookingDataCache = [];
 
-        const statusOptions = ["Requirement Done", "On Hand", "Calling Customer Done", "Customer Bill Done", "Hold For Customer"];
+        const statusOptions = [
+            "Requirement Done", 
+            "On Hand", 
+            "Hold for customer",
+            "Calling Customer Done", 
+            "Customer Bill Done"
+        ];
 
-        // --- 3. AUTOCOMPLETE ---
+        // --- 3. AUTOCOMPLETE & FETCH LOGIC ---
+
         styleCodeInput.addEventListener('input', function(e) {
             const val = this.value;
             closeAllLists();
@@ -477,9 +587,12 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => fetchStyleSuggestions(val), 300);
         });
+
         document.addEventListener('click', function(e) { if (e.target !== styleCodeInput) closeAllLists(); });
 
-        sizeSelect.addEventListener('change', function() { if(currentStyleCode) fetchColorsAndPrice(currentStyleCode, this.value); });
+        sizeSelect.addEventListener('change', function() {
+            if(currentStyleCode) fetchColorsAndPrice(currentStyleCode, this.value);
+        });
 
         async function fetchStyleSuggestions(query) {
             try {
@@ -498,31 +611,76 @@
                     const itemDiv = document.createElement("div");
                     itemDiv.innerHTML = `<strong>${item.style_code}</strong> <span style="color:#94a3b8; margin-left:auto;">${item.name}</span>`;
                     itemDiv.addEventListener('click', function() {
-                        styleCodeInput.value = item.style_code; currentStyleCode = item.style_code; closeAllLists();
-                        fetchColorsAndPrice(item.style_code, sizeSelect.value);
+                        styleCodeInput.value = item.style_code;
+                        currentStyleCode = item.style_code;
+                        closeAllLists();
+                        fetchSizes(item.style_code);
                     });
                     styleCodeList.appendChild(itemDiv);
                 });
             } catch (err) { console.error(err); }
         }
 
-        async function fetchColorsAndPrice(styleCode, selectedSize) {
+        async function fetchSizes(styleCode) {
             if(!styleCode) return;
+            colorSelect.innerHTML = '<option value="">Select Size</option>';
+            colorSelect.disabled = true;
+            priceInput.value = '';
+            
+            try {
+                const { data, error } = await sbClient
+                    .from('inventory')
+                    .select('size')
+                    .eq('style_code', styleCode);
+
+                if (error) throw error;
+                const uniqueSizes = [...new Set(data.map(item => item.size).filter(s => s))];
+                
+                sizeSelect.innerHTML = '<option value="">Select Size</option>';
+                
+                if (uniqueSizes.length > 0) {
+                    sizeSelect.disabled = false;
+                    uniqueSizes.forEach(size => {
+                        const opt = document.createElement("option");
+                        opt.value = size; 
+                        opt.textContent = size;
+                        sizeSelect.appendChild(opt);
+                    });
+                } else {
+                    sizeSelect.disabled = true;
+                    sizeSelect.innerHTML = '<option value="">No sizes available</option>';
+                }
+
+            } catch (err) { 
+                console.error("Error fetching sizes:", err);
+                sizeSelect.disabled = true;
+            }
+        }
+
+        async function fetchColorsAndPrice(styleCode, selectedSize) {
+            if(!styleCode || !selectedSize) return;
+            
             let query = sbClient.from('inventory').select('color, mrp').eq('style_code', styleCode);
-            if (selectedSize) query = query.eq('size', selectedSize);
+            query = query.eq('size', selectedSize);
+
             try {
                 const { data, error } = await query;
                 if (error) throw error;
+
                 const uniqueColors = [...new Set(data.map(item => item.color).filter(c => c))];
+                
                 colorSelect.innerHTML = '<option value="">Select Color</option>';
                 if (uniqueColors.length > 0) {
                     colorSelect.disabled = false; uniqueColors.forEach(color => {
                         const opt = document.createElement("option"); opt.value = color; opt.textContent = color; colorSelect.appendChild(opt);
                     });
-                } else { colorSelect.disabled = true; colorSelect.innerHTML = '<option value="">No stock</option>'; }
+                } else { colorSelect.disabled = true; colorSelect.innerHTML = '<option value="">No color</option>'; }
+                
                 if (data && data.length > 0) priceInput.value = data[0].mrp;
+
             } catch (err) { console.error(err); }
         }
+
         function closeAllLists() { styleCodeList.innerHTML = ''; }
 
         // --- 4. FORM SUBMISSION ---
@@ -563,7 +721,7 @@
             }
         }
 
-        // --- 6. COPY LOGIC (UPDATED FORMAT) ---
+        // --- 6. COPY LOGIC ---
         function timeSince(date) {
             const seconds = Math.floor((new Date() - date) / 1000);
             let interval = seconds / 31536000;
@@ -580,11 +738,9 @@
         }
 
         async function copyBooking(id) {
-            // Find booking in cache
             const row = bookingDataCache.find(b => b.id === id);
             if (!row) return;
 
-            // Updated Format Requested by User
             const textToCopy = `DATE: ${row.booking_date}
 NAME: ${row.customer_name}
 PHONE: ${row.phone}
@@ -599,6 +755,27 @@ REQUIREMENT FROM: ${row.requirement_from}`;
             } catch (err) {
                 showToast("Failed to copy", "error");
             }
+        }
+
+        // --- 6.5 PRINT LOGIC ---
+        function printBooking(id) {
+            const row = bookingDataCache.find(b => b.id === id);
+            if (!row) return;
+
+            const printContent = `
+                <div class="print-header">BOOKING SLIP</div>
+                <div class="print-row"><span class="print-label">DATE:</span> <span>${row.booking_date}</span></div>
+                <div class="print-row"><span class="print-label">NAME:</span> <span>${row.customer_name}</span></div>
+                <div class="print-row"><span class="print-label">PHONE:</span> <span>${row.phone}</span></div>
+                <div class="print-row"><span class="print-label">STYLE CODE:</span> <span>${row.style_code}</span></div>
+                <div class="print-row"><span class="print-label">SIZE:</span> <span>${row.size}</span></div>
+                <div class="print-row"><span class="print-label">COLOR:</span> <span>${row.color}</span></div>
+                <div class="print-row"><span class="print-label">REQUIREMENT FROM:</span> <span>${row.requirement_from}</span></div>
+            `;
+
+            const printContainer = document.getElementById('print-container');
+            printContainer.innerHTML = printContent;
+            window.print();
         }
 
         // --- 7. SEARCH & DISPLAY ---
@@ -617,7 +794,7 @@ REQUIREMENT FROM: ${row.requirement_from}`;
                 }
                 const { data, error } = await dbQuery;
                 if (error) throw error;
-                bookingDataCache = data; // Save to cache
+                bookingDataCache = data; 
                 renderTable(data);
             } catch (err) {
                 console.error(err);
@@ -643,13 +820,14 @@ REQUIREMENT FROM: ${row.requirement_from}`;
                 });
                 statusDropdownHtml += `</select>`;
 
+                // NOTE: Added data-label attributes for Mobile Card View
                 tr.innerHTML = `
-                    <td><div style="font-weight:600;">${row.booking_date}</div></td>
-                    <td>
+                    <td data-label="Date"><div style="font-weight:600;">${row.booking_date}</div></td>
+                    <td data-label="Customer">
                         <div style="font-weight:600;">${row.customer_name}</div>
                         <span class="text-sm">${row.phone}</span>
                     </td>
-                    <td>
+                    <td data-label="Product Details">
                         <div style="font-weight:600; color:var(--primary);">${row.style_code}</div>
                         <div style="display:flex; gap:8px; font-size:0.85em; color:#475569; margin-top:2px;">
                             <span class="badge">${row.size}</span>
@@ -657,14 +835,20 @@ REQUIREMENT FROM: ${row.requirement_from}`;
                             <span>৳${row.price}</span>
                         </div>
                     </td>
-                    <td><span style="font-weight:500;">${row.requirement_from}</span></td>
-                    <td>${statusDropdownHtml}</td>
-                    <td style="font-size:0.85rem; color:#64748b;">${timeAgo}</td>
-                    <td>
-                        <button class="copy-btn" onclick="copyBooking(${row.id})" title="Copy details">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            Copy
-                        </button>
+                    <td data-label="Branch"><span style="font-weight:500;">${row.requirement_from}</span></td>
+                    <td data-label="Status">${statusDropdownHtml}</td>
+                    <td data-label="Created" style="font-size:0.85rem; color:#64748b;">${timeAgo}</td>
+                    <td data-label="Action">
+                        <div class="action-cell">
+                            <button class="copy-btn" onclick="copyBooking(${row.id})" title="Copy details">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy
+                            </button>
+                            <button class="print-btn" onclick="printBooking(${row.id})" title="Print slip">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                                Print
+                            </button>
+                        </div>
                     </td>
                 `;
                 bookingsBody.appendChild(tr);
