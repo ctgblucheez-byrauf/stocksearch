@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Booking System | Fully Responsive</title>
+    <title>Booking System | Fixed Validation</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Supabase JS Library -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
@@ -23,11 +23,12 @@
             --danger: #ef4444;
             --success: #10b981;
             --warning: #f59e0b;
+            --info: #8b5cf6;
+            --dark: #334155;
             --radius-md: 12px;
             --radius-sm: 8px;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -37,37 +38,33 @@
             background-color: var(--bg-body);
             color: var(--text-main);
             line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-            padding: 10px; /* Reduced padding for small phones */
+            padding: 10px;
             width: 100%;
-            overflow-x: hidden; /* PREVENTS HORIZONTAL SCROLL */
+            overflow-x: hidden;
             min-height: 100vh;
+            padding-bottom: 90px; /* Space for sticky footer */
         }
 
         .container {
             max-width: 1400px; 
             margin: 0 auto;
             width: 100%;
-            display: flex; /* Use Flexbox for easier stacking */
-            flex-direction: column; /* Mobile Default: Stacked (Form Top, List Bottom) */
+            display: flex;
+            flex-direction: column;
             gap: 24px;
         }
 
-        /* Desktop Layout: Side by Side */
         @media (min-width: 1024px) {
-            .container { 
-                display: grid; 
-                grid-template-columns: 380px 1fr; 
-            }
-            body { padding: 24px; }
+            .container { display: grid; grid-template-columns: 380px 1fr; }
+            body { padding: 24px; padding-bottom: 24px; }
         }
 
-        /* Header */
+        /* HEADER */
         header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
-        .header-title h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); line-height: 1.2; }
+        .header-title h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
         .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
 
-        /* Cards */
+        /* CARDS */
         .card {
             background: var(--bg-card);
             border-radius: var(--radius-md);
@@ -75,383 +72,209 @@
             padding: 20px;
             border: 1px solid var(--border);
             height: fit-content;
-            width: 100%; /* Ensures card fits container */
+            width: 100%;
         }
         
-        .card-header {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .card-title { font-size: 1.125rem; font-weight: 600; color: var(--text-main); }
+        .card-header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .card-title { font-size: 1.125rem; font-weight: 600; }
 
-        /* Form Elements */
-        .form-group { margin-bottom: 16px; position: relative; width: 100%; }
+        /* FORMS */
+        .form-group { margin-bottom: 16px; position: relative; }
+        label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-main); margin-bottom: 6px; }
         
-        label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text-main);
-            margin-bottom: 6px;
+        input, select {
+            width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 16px; color: var(--text-main); background: #fff; appearance: none; font-family: 'Inter', sans-serif;
         }
 
-        input[type="text"], input[type="date"], input[type="tel"], input[type="number"], select {
-            width: 100%; /* Full width inputs for mobile */
-            padding: 12px; 
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            font-size: 16px; /* Prevents iOS zoom */
-            color: var(--text-main);
-            background-color: #fff;
-            transition: all 0.2s ease;
-            font-family: 'Inter', sans-serif;
-            appearance: none;
-        }
-
-        /* Custom Select Arrow */
-        .select-wrapper { position: relative; width: 100%; }
+        .select-wrapper { position: relative; }
         .select-wrapper::after {
             content: "▼"; font-size: 0.7rem; color: var(--text-muted);
             position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none;
         }
 
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-            z-index: 10; /* Ensure focus ring is on top */
-        }
+        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); z-index: 10; }
+        input[readonly] { background-color: #f8fafc; color: var(--text-muted); border-color: transparent; cursor: default; font-weight: 600; }
 
-        input[readonly] {
-            background-color: #f8fafc;
-            color: var(--text-muted);
-            border-color: transparent;
-            cursor: default;
-            font-weight: 600;
+        /* BUTTONS */
+        .btn {
+            width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm);
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
         }
-
-        button.btn-primary {
-            width: 100%;
-            padding: 14px;
+        .btn-secondary { background: #e2e8f0; color: var(--text-main); margin-top: 8px; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        
+        .btn-primary {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+            color: white; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+        }
+        .btn-primary:hover { box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
+
+        /* STICKY FOOTER (MOBILE) */
+        .mobile-sticky-footer {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 15px;
+            border-top: 1px solid var(--border);
+            z-index: 100; /* Below Modals */
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+            display: block;
+        }
+        @media (min-width: 769px) {
+            .mobile-sticky-footer { display: none; }
+            .desktop-submit-btn { display: flex; }
+        }
+        @media (max-width: 768px) {
+            .desktop-submit-btn { display: none; }
         }
 
-        button.btn-primary:hover { box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
-        button.btn-primary:active { transform: translateY(1px); }
+        /* CART PREVIEW */
+        .cart-preview {
+            background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 10px; margin-top: 15px; display: none;
+        }
+        .cart-preview.active { display: block; }
+        .cart-item { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
+        .cart-item:last-child { border-bottom: none; }
+        .cart-count-badge { background: var(--primary); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; margin-left: 5px; }
 
-        /* Autocomplete */
+        /* AUTOCOMPLETE */
         .autocomplete-items {
-            position: absolute;
-            border: 1px solid var(--border);
-            z-index: 9999; /* High z-index to float over everything */
-            top: 100%;
-            left: 0;
-            right: 0;
-            background-color: #fff;
-            max-height: 220px;
-            overflow-y: auto;
-            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-            box-shadow: var(--shadow-lg);
-            margin-top: 4px;
-            width: 100%; /* Ensure it matches input width */
+            position: absolute; z-index: 10000; top: 100%; left: 0; right: 0;
+            background: #fff; max-height: 200px; overflow-y: auto;
+            border: 1px solid var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+            box-shadow: var(--shadow-md); margin-top: 4px;
         }
-        .autocomplete-items div {
-            padding: 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 0.9rem;
-            display: flex;
-            justify-content: space-between;
-        }
+        .autocomplete-items div { padding: 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; }
         .autocomplete-items div:hover { background-color: #f8fafc; }
         .autocomplete-items div strong { color: var(--primary); }
 
-        /* Search Bar */
-        .search-container {
-            position: relative;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-        .search-container input {
-            padding-left: 44px;
-            border-radius: 50px;
-            background-color: #f8fafc;
-            border-color: transparent;
-        }
-        .search-container input:focus {
-            background-color: #fff;
-            border-color: var(--primary);
-        }
-        .search-icon {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            pointer-events: none;
-        }
-
-        /* --- TABLET/MOBILE LIST VIEW CSS --- */
+        /* --- CUSTOM STATUS DROPDOWN UI --- */
+        .status-dropdown { position: relative; width: 100%; }
         
+        .status-btn {
+            width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);
+            background: white; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+            font-size: 0.85rem; font-weight: 500; transition: all 0.2s;
+        }
+        .status-btn:hover { border-color: var(--primary); }
+        
+        .status-left { display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        
+        .status-menu {
+            position: absolute; top: 100%; left: 0; width: 100%; background: white;
+            border: 1px solid var(--border); border-radius: 6px; box-shadow: var(--shadow-md);
+            z-index: 2000; /* Above Sticky Footer */
+            margin-top: 4px; display: none; overflow: hidden;
+        }
+        .status-menu.show { display: block; animation: slideDown 0.15s ease; }
+        
+        .status-option {
+            padding: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;
+            font-size: 0.9rem; color: var(--text-main); border-bottom: 1px solid #f1f5f9;
+            transition: background 0.1s;
+        }
+        .status-option:last-child { border-bottom: none; }
+        .status-option:hover { background: #f8fafc; }
+        
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- TABLE & LIST VIEW --- */
         .table-wrapper {
-            overflow-x: auto;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            max-height: 700px; 
-            overflow-y: auto;
-            width: 100%;
+            overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm);
+            max-height: 700px; overflow-y: auto;
         }
-
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 800px; }
         
-        thead {
-            background-color: #f8fafc;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        th {
-            text-align: left;
-            padding: 14px 16px;
-            font-weight: 600;
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        td {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-main);
-            vertical-align: middle;
-        }
-
-        tr:last-child td { border-bottom: none; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 800px; }
+        thead { background-color: #f8fafc; position: sticky; top: 0; z-index: 10; }
+        th { text-align: left; padding: 14px 16px; font-weight: 600; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
         tr:hover td { background-color: #fdfdfd; }
 
-        /* Status Select */
-        .status-select {
-            padding: 8px 12px;
-            font-size: 0.85rem;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            background-color: white;
-            cursor: pointer;
-            width: 100%;
-            font-weight: 500;
-            color: var(--text-main);
+        /* Items inside Table */
+        .item-list { display: flex; flex-direction: column; gap: 6px; }
+        .mini-item {
+            background: #f1f5f9; padding: 8px 10px; border-radius: 6px;
+            font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;
         }
+        .mini-item-code { font-weight: 600; color: var(--primary); }
+        .mini-item-meta { color: var(--text-muted); font-size: 0.8rem; }
 
-        /* Action Buttons */
-        .action-cell { display: flex; gap: 8px; }
-
-        .copy-btn, .print-btn {
-            background: white;
-            border: 1px solid var(--border);
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--text-main);
-            transition: all 0.2s;
-            white-space: nowrap;
-            flex: 1;
-        }
-
-        .copy-btn:hover, .print-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            background-color: #eff6ff;
-        }
-
-        .text-sm { font-size: 0.85em; color: var(--text-muted); display: block; margin-top: 2px; }
-        .badge {
-            display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
-            background: #e2e8f0; color: #475569;
-        }
-
-        /* --- RESPONSIVE TRANSFORMATION (LIST VIEW) --- */
+        /* --- MOBILE LIST VIEW --- */
         @media screen and (max-width: 1024px) {
             .table-wrapper {
-                max-height: none; 
-                overflow-x: visible;
-                overflow-y: visible;
-                border: none;
-                background: transparent;
-                box-shadow: none;
+                max-height: none; overflow-x: visible; overflow-y: visible;
+                border: none; background: transparent; box-shadow: none;
             }
-
-            /* Hide Grid */
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
 
-            /* Cards for Rows */
+            /* Rows become Cards */
             tr {
-                margin: 0 0 20px 0; 
-                border: 1px solid var(--border);
-                border-radius: var(--radius-md);
-                background: var(--bg-card);
-                padding: 5px 0; 
-                box-shadow: var(--shadow-md);
-                position: relative;
-                width: 100%;
+                margin: 0 0 20px 0; border: 1px solid var(--border);
+                border-radius: var(--radius-md); background: var(--bg-card);
+                padding: 16px; box-shadow: var(--shadow-sm); position: relative;
             }
-
             td {
-                border: none;
-                position: relative;
-                padding-left: 45%; /* Space for label */
-                padding-top: 12px;
-                padding-bottom: 12px;
-                padding-right: 16px;
-                display: flex;
-                align-items: center;
-                justify-content: flex-end;
-                min-height: 40px;
-                text-align: right;
-                border-bottom: 1px solid #f1f5f9;
-                width: 100%;
+                border: none; padding: 8px 0; text-align: right;
+                position: relative; padding-left: 40%;
+                display: flex; justify-content: flex-end; align-items: center;
             }
-
-            td:last-child { border-bottom: none; }
-
             td:before {
-                position: absolute;
-                top: 12px;
-                left: 16px;
-                width: 40%;
-                padding-right: 10px;
-                white-space: nowrap;
-                text-align: left;
-                font-weight: 600;
-                color: var(--text-muted);
-                font-size: 0.75rem;
-                text-transform: uppercase;
+                position: absolute; top: 10px; left: 0; width: 35%; padding-right: 10px;
+                white-space: nowrap; text-align: left; font-weight: 600;
+                color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;
                 content: attr(data-label);
             }
+            td[data-label="Customer"] { flex-direction: column; align-items: flex-end; padding-left: 0; }
+            td[data-label="Customer"]:before { display: none; }
+            td[data-label="Product Details"] { flex-direction: column; align-items: flex-end; padding-left: 0; }
+            td[data-label="Product Details"]:before { display: none; }
 
-            /* Specific Mobile Adjustments */
-            td[data-label="Action"] {
-                padding-left: 16px;
-                padding-top: 16px;
-                padding-bottom: 16px;
-                justify-content: flex-start;
-                background-color: #f8fafc;
-                margin-top: 8px;
-                border-top: 1px solid var(--border);
-            }
-            td[data-label="Action"]:before { display: none; }
+            .item-list { width: 100%; align-items: flex-end; margin-top: 10px; }
+            .mini-item { width: 100%; justify-content: space-between; background: #f8fafc; }
             
-            td[data-label="Customer"] {
-                flex-direction: column;
-                align-items: flex-end;
+            /* Mobile Status Menu: Slide Up Modal */
+            .status-menu {
+                position: fixed; bottom: 0; left: 0; right: 0; width: 100%;
+                border-radius: 12px 12px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+                animation: slideUp 0.2s ease; max-height: 50vh; overflow-y: auto;
             }
-        }
+            @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        /* Extra Small Phones (< 400px) */
+            /* Action Buttons Stack */
+            .action-cell { flex-direction: column; gap: 8px; width: 100%; }
+            .icon-btn { width: 100%; justify-content: center; padding: 10px; }
+        }
+        
+        /* Very small phones */
         @media (max-width: 400px) {
-            body { padding: 5px; }
-            .card { padding: 15px; border-radius: 8px; }
-            td { 
-                padding-left: 10px; 
-                flex-direction: column; 
-                align-items: flex-start !important; 
-                text-align: left !important; 
-                padding-right: 10px;
-            }
-            td:before { 
-                position: relative; 
-                top: 0; 
-                left: 0; 
-                width: 100%; 
-                display: block; 
-                margin-bottom: 4px; 
-                text-align: left;
-            }
-            td[data-label="Action"] { flex-direction: row; flex-wrap: wrap; }
-            .copy-btn, .print-btn { padding: 10px; }
+            td { padding-left: 0; flex-direction: column; align-items: flex-start !important; text-align: left !important; }
+            td:before { position: relative; top: 0; left: 0; width: 100%; margin-bottom: 5px; text-align: left; }
+            .item-list { align-items: flex-start; }
+            .mini-item { flex-direction: column; align-items: flex-start; gap: 4px; }
         }
 
-        /* Toast */
-        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 20000; pointer-events: none; }
-        .toast {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(8px);
-            color: white; 
-            padding: 14px 20px; 
-            border-radius: 8px;
-            margin-top: 10px; 
-            box-shadow: var(--shadow-lg);
-            opacity: 0; 
-            transform: translateY(20px); 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9rem;
-            pointer-events: auto;
-        }
+        /* TOAST */
+        #toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 20000; pointer-events: none; }
+        @media (min-width: 769px) { #toast-container { bottom: 20px; } }
+        .toast { background: rgba(15, 23, 42, 0.95); color: white; padding: 14px 20px; border-radius: 8px; margin-top: 10px; box-shadow: var(--shadow-md); opacity: 0; transform: translateY(20px); transition: all 0.3s; display: flex; align-items: center; gap: 10px; pointer-events: auto; }
         .toast.show { opacity: 1; transform: translateY(0); }
         .toast.success { border-left: 4px solid var(--success); }
         .toast.error { border-left: 4px solid var(--danger); }
 
-        /* Spinner */
-        .spinner {
-            display: none; 
-            width: 18px; 
-            height: 18px; 
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top: 2px solid #ffffff; 
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite; 
-        }
+        /* SPINNER */
+        .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- PRINT STYLES --- */
+        /* PRINT */
         #print-container { display: none; }
-
         @media print {
             body > * { display: none !important; }
-            #print-container {
-                display: block !important;
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                padding: 20px;
-                font-family: 'Courier New', Courier, monospace;
-                font-size: 16px;
-                line-height: 1.8;
-                color: black;
-                background: white;
-            }
+            #print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; padding: 20px; font-family: monospace; font-size: 16px; color: black; background: white; }
             .print-header { text-align: center; font-weight: bold; font-size: 20px; margin-bottom: 20px; border-bottom: 2px solid black; padding-bottom: 10px; }
             .print-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
             .print-label { font-weight: bold; }
@@ -463,112 +286,121 @@
     <header>
         <div class="header-title">
             <h1>Booking Portal</h1>
-            <p>Inter-branch requisition management</p>
+            <p>Multi-Item Grouped System</p>
         </div>
     </header>
 
     <div class="container">
         
-        <!-- Sidebar: New Booking (Full Width on Mobile) -->
+        <!-- Booking Form -->
         <aside class="card">
             <div class="card-header">
                 <span class="card-title">New Booking</span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             </div>
             
-            <form id="bookingForm">
-                <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="date" name="date" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Customer Name</label>
-                    <input type="text" id="customerName" name="customerName" placeholder="e.g. Rahim Ahmed" required autocomplete="off">
-                </div>
-
-                <div class="form-group">
-                    <label>Phone Number</label>
-                    <input type="tel" id="phone" name="phone" placeholder="017..." required inputmode="tel">
-                </div>
-
-                <div class="form-group">
-                    <label>Style Code</label>
-                    <input type="text" id="styleCode" name="styleCode" placeholder="Search code..." autocomplete="off" required>
-                    <div id="styleCodeList" class="autocomplete-items"></div>
-                </div>
-
-                <div class="form-group">
-                    <div class="select-wrapper">
-                        <label>Size</label>
-                        <select id="size" name="size" required disabled>
-                            <option value="">Select Style First</option>
-                        </select>
+            <!-- NOVALIDATE IS THE KEY FIX HERE -->
+            <form id="bookingForm" novalidate>
+                <!-- Customer Details -->
+                <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--border);">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 10px;">Customer</div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="customerName" placeholder="Name" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="phone" placeholder="017..." required inputmode="tel">
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <div class="select-wrapper">
-                        <label>Available Color</label>
-                        <select id="color" name="color" required disabled>
-                            <option value="">Select Style & Size</option>
-                        </select>
+                <!-- Product Details -->
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--primary); font-weight: 700; margin-bottom: 10px;">Product</div>
+                    
+                    <div class="form-group">
+                        <label>Style Code</label>
+                        <input type="text" id="styleCode" placeholder="Search code..." autocomplete="off" required>
+                        <div id="styleCodeList" class="autocomplete-items"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <div class="select-wrapper"><label>Size</label><select id="size" required disabled><option value="">Select</option></select></div>
+                        </div>
+                        <div class="form-group">
+                            <div class="select-wrapper"><label>Color</label><select id="color" required disabled><option value="">Select</option></select></div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label>Price</label>
+                            <input type="number" id="price" readonly>
+                        </div>
+                        <div class="form-group">
+                            <div class="select-wrapper"><label>Branch</label>
+                                <select id="reqFrom" required>
+                                    <option value="">Select</option>
+                                    <option value="JFP">JFP</option>
+                                    <option value="BANANI">BANANI</option>
+                                    <option value="KHULNA">KHULNA</option>
+                                    <option value="TANGAIL">TANGAIL</option>
+                                    <option value="PMC">PMC</option>
+                                    <option value="WARI">WARI</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Price (BDT)</label>
-                    <input type="number" id="price" name="price" readonly placeholder="Auto-calculated">
-                </div>
-
-                <div class="form-group">
-                    <div class="select-wrapper">
-                        <label>Requirement From</label>
-                        <select id="reqFrom" name="reqFrom" required>
-                            <option value="">Select Branch</option>
-                            <option value="JFP">JFP</option>
-                            <option value="BANANI">BANANI</option>
-                            <option value="KHULNA">KHULNA</option>
-                            <option value="TANGAIL">TANGAIL</option>
-                            <option value="PMC">PMC</option>
-                            <option value="WARI">WARI</option>
-                            <option value="BOOKING">Booking</option>
-                        </select>
+                <!-- Cart Preview -->
+                <div id="cartPreview" class="cart-preview">
+                    <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 5px;">
+                        Items in List: <span id="cartCount" class="cart-count-badge">0</span>
                     </div>
+                    <div id="cartList"></div>
+                    <button type="button" onclick="clearCart()" style="background:none; border:none; color:var(--danger); font-size:0.8rem; cursor:pointer; margin-top:5px; text-decoration:underline;">Clear List</button>
                 </div>
 
-                <div class="form-group">
+                <!-- Buttons -->
+                <button type="button" class="btn btn-secondary" onclick="addToCart()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Add Another Item
+                </button>
+
+                <div class="form-group" style="margin-top: 15px;">
                     <div class="select-wrapper">
-                        <label>Initial Status</label>
-                        <select id="status" name="status" required>
+                        <label>Status</label>
+                        <select id="status" required>
                             <option value="Requirement Done">Requirement Done</option>
                             <option value="On Hand">On Hand</option>
-                            <option value="Hold for customer">Hold for customer</option>
-                            <option value="Calling Customer Done">Calling Customer Done</option>
-                            <option value="Customer Bill Done">Customer Bill Done</option>
+                            <option value="Hold for customer">Hold</option>
                         </select>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-primary" id="submitBtn">
+                <!-- Desktop Submit Button -->
+                <button type="submit" class="btn btn-primary desktop-submit-btn" id="submitBtnDesktop">
                     <span>Confirm Booking</span>
-                    <div class="spinner" id="btnSpinner"></div>
+                    <div class="spinner" id="btnSpinnerDesktop"></div>
                 </button>
             </form>
         </aside>
 
-        <!-- Main Content: Search & List -->
+        <!-- Booking History -->
         <main class="card">
             <div class="card-header">
-                <span class="card-title">Booking History</span>
-                <button onclick="searchBookings()" style="border:none; background:none; cursor:pointer; color:var(--primary); font-size:0.9rem; font-weight:500; display:flex; align-items:center; gap:5px;">
-                    Refresh <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                </button>
+                <span class="card-title">History</span>
+                <button onclick="loadBookings()" style="border:none; background:none; cursor:pointer; color:var(--primary);">Refresh ↻</button>
             </div>
             
-            <div class="search-container">
-                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" id="searchInput" placeholder="Search by name, phone, or style code...">
+            <div class="search-container" style="position: relative; margin-bottom: 15px;">
+                <input type="text" id="searchInput" placeholder="Search..." style="padding-left: 35px; border-radius: 20px;">
+                <svg style="position: absolute; left: 12px; top: 13px; color: #94a3b8;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             </div>
 
             <div class="table-wrapper">
@@ -577,361 +409,398 @@
                         <tr>
                             <th>Date</th>
                             <th>Customer</th>
-                            <th>Product Details</th>
-                            <th>Branch</th>
+                            <th style="width: 40%;">Products</th>
+                            <th>Branches</th>
                             <th>Status</th>
-                            <th>Created</th>
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody id="bookingsBody">
-                        <tr><td colspan="7" style="text-align:center; padding: 40px; color:var(--text-muted);">Loading data...</td></tr>
-                    </tbody>
+                    <tbody id="bookingsBody"></tbody>
                 </table>
             </div>
         </main>
     </div>
 
-    <!-- Hidden Print Container -->
-    <div id="print-container"></div>
+    <!-- STICKY MOBILE FOOTER -->
+    <div class="mobile-sticky-footer">
+        <button type="submit" form="bookingForm" class="btn btn-primary" id="submitBtnMobile">
+            <span>Confirm Booking</span>
+            <div class="spinner" id="btnSpinnerMobile"></div>
+        </button>
+    </div>
 
-    <!-- Toast Container -->
+    <div id="print-container"></div>
     <div id="toast-container"></div>
 
     <script>
-        // --- 1. CONFIGURATION ---
+        // --- CONFIG ---
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
         
         let sbClient;
-        try {
-            if (window.supabase) {
-                sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            } else {
-                showToast("Connection failed.", "error");
-            }
-        } catch (e) {
-            console.error(e);
-        }
+        try { sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { console.error(e); }
 
-        // --- 2. DOM ELEMENTS ---
-        const form = document.getElementById('bookingForm');
-        const styleCodeInput = document.getElementById('styleCode');
-        const styleCodeList = document.getElementById('styleCodeList');
-        const sizeSelect = document.getElementById('size');
-        const colorSelect = document.getElementById('color');
-        const priceInput = document.getElementById('price');
-        const dateInput = document.getElementById('date');
-        const searchInput = document.getElementById('searchInput');
-        const bookingsBody = document.getElementById('bookingsBody');
+        // Status Config
+        const STATUS_CONFIG = {
+            "Requirement Done": { color: "#3b82f6", label: "Requirement Done", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>` },
+            "On Hand": { color: "#10b981", label: "On Hand", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>` },
+            "Hold for customer": { color: "#f59e0b", label: "Hold", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>` },
+            "Calling Customer Done": { color: "#8b5cf6", label: "Calling Done", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>` },
+            "Customer Bill Done": { color: "#334155", label: "Bill Done", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>` }
+        };
 
-        dateInput.valueAsDate = new Date();
-
-        let currentStyleCode = null;
-        let searchTimeout = null;
+        // --- STATE ---
+        let cart = [];
+        let currentStyle = null;
         let bookingDataCache = [];
 
-        const statusOptions = [
-            "Requirement Done", 
-            "On Hand", 
-            "Hold for customer",
-            "Calling Customer Done", 
-            "Customer Bill Done"
-        ];
+        // --- DOM ---
+        const form = document.getElementById('bookingForm');
+        const cartPreview = document.getElementById('cartPreview');
+        const cartList = document.getElementById('cartList');
+        const cartCount = document.getElementById('cartCount');
+        const dateInput = document.getElementById('date');
+        
+        dateInput.valueAsDate = new Date();
 
-        // --- 3. AUTOCOMPLETE & FETCH LOGIC ---
+        // --- CART LOGIC ---
+        function addToCart() {
+            const style = document.getElementById('styleCode').value;
+            const size = document.getElementById('size').value;
+            const color = document.getElementById('color').value;
+            const price = document.getElementById('price').value;
+            const branch = document.getElementById('reqFrom').value;
 
-        styleCodeInput.addEventListener('input', function(e) {
-            const val = this.value;
-            closeAllLists();
-            if (!val || val.length < 2) return false;
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => fetchStyleSuggestions(val), 300);
-        });
+            if(!style || !size || !color || !price || !branch) { showToast("Fill product details", "error"); return; }
 
-        document.addEventListener('click', function(e) { if (e.target !== styleCodeInput) closeAllLists(); });
+            cart.push({ style, size, color, price, branch, id: Date.now() });
+            updateCartUI();
+            resetProductFields();
+            showToast("Item added", "success");
+        }
 
-        sizeSelect.addEventListener('change', function() {
-            if(currentStyleCode) fetchColorsAndPrice(currentStyleCode, this.value);
-        });
+        function updateCartUI() {
+            cartList.innerHTML = '';
+            cartCount.textContent = cart.length;
+            
+            if(cart.length > 0) cartPreview.classList.add('active');
+            else cartPreview.classList.remove('active');
 
-        async function fetchStyleSuggestions(query) {
+            cart.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'cart-item';
+                div.innerHTML = `<span>${item.style} (${item.size}, ${item.color})</span> <span>৳${item.price}</span>`;
+                cartList.appendChild(div);
+            });
+        }
+
+        function clearCart() {
+            cart = [];
+            updateCartUI();
+        }
+
+        function resetProductFields() {
+            document.getElementById('styleCode').value = '';
+            document.getElementById('size').innerHTML = '<option value="">Select</option>'; document.getElementById('size').disabled = true;
+            document.getElementById('color').innerHTML = '<option value="">Select</option>'; document.getElementById('color').disabled = true;
+            document.getElementById('price').value = '';
+            document.getElementById('reqFrom').value = '';
+            currentStyle = null;
+        }
+
+        // --- AUTOCOMPLETE & FETCH ---
+        document.getElementById('styleCode').addEventListener('input', async (e) => {
+            const val = e.target.value;
+            const list = document.getElementById('styleCodeList');
+            list.innerHTML = '';
+            if(!val || val.length < 2) return;
+            
             try {
-                const { data, error } = await sbClient
-                    .from('inventory')
-                    .select('style_code, name, mrp')
-                    .or(`style_code.ilike.%${query}%,name.ilike.%${query}%`)
-                    .limit(10);
-                if (error) throw error;
-                styleCodeList.innerHTML = '';
-                if (!data || data.length === 0) {
-                    const noResult = document.createElement("div"); noResult.innerText = "No matches found";
-                    styleCodeList.appendChild(noResult); return;
-                }
+                const { data } = await sbClient.from('inventory').select('style_code, name, mrp').or(`style_code.ilike.%${val}%,name.ilike.%${val}%`).limit(10);
                 data.forEach(item => {
-                    const itemDiv = document.createElement("div");
-                    itemDiv.innerHTML = `<strong>${item.style_code}</strong> <span style="color:#94a3b8; margin-left:auto;">${item.name}</span>`;
-                    itemDiv.addEventListener('click', function() {
-                        styleCodeInput.value = item.style_code;
-                        currentStyleCode = item.style_code;
-                        closeAllLists();
+                    const div = document.createElement('div');
+                    div.innerHTML = `<strong>${item.style_code}</strong> <span style="color:#94a3b8; font-size:0.8em">${item.name}</span>`;
+                    div.onclick = () => {
+                        document.getElementById('styleCode').value = item.style_code;
+                        currentStyle = item.style_code;
+                        list.innerHTML = '';
                         fetchSizes(item.style_code);
-                    });
-                    styleCodeList.appendChild(itemDiv);
+                    };
+                    list.appendChild(div);
                 });
-            } catch (err) { console.error(err); }
-        }
+            } catch(err) { console.error(err); }
+        });
 
-        async function fetchSizes(styleCode) {
-            if(!styleCode) return;
-            colorSelect.innerHTML = '<option value="">Select Size</option>';
-            colorSelect.disabled = true;
-            priceInput.value = '';
-            
+        document.addEventListener('click', (e) => { if(e.target.id !== 'styleCode') document.getElementById('styleCodeList').innerHTML = ''; });
+
+        document.getElementById('size').addEventListener('change', async (e) => {
+            if(!currentStyle) return;
             try {
-                const { data, error } = await sbClient
-                    .from('inventory')
-                    .select('size')
-                    .eq('style_code', styleCode);
+                const { data } = await sbClient.from('inventory').select('color, mrp').eq('style_code', currentStyle).eq('size', e.target.value);
+                const colors = [...new Set(data.map(d => d.color))];
+                const sel = document.getElementById('color');
+                sel.innerHTML = '<option value="">Select</option>';
+                colors.forEach(c => { sel.innerHTML += `<option value="${c}">${c}</option>`; });
+                sel.disabled = false;
+                if(data.length) document.getElementById('price').value = data[0].mrp;
+            } catch(err) { console.error(err); }
+        });
 
-                if (error) throw error;
-                const uniqueSizes = [...new Set(data.map(item => item.size).filter(s => s))];
-                
-                sizeSelect.innerHTML = '<option value="">Select Size</option>';
-                
-                if (uniqueSizes.length > 0) {
-                    sizeSelect.disabled = false;
-                    uniqueSizes.forEach(size => {
-                        const opt = document.createElement("option");
-                        opt.value = size; 
-                        opt.textContent = size;
-                        sizeSelect.appendChild(opt);
-                    });
-                } else {
-                    sizeSelect.disabled = true;
-                    sizeSelect.innerHTML = '<option value="">No sizes available</option>';
-                }
-
-            } catch (err) { 
-                console.error("Error fetching sizes:", err);
-                sizeSelect.disabled = true;
-            }
-        }
-
-        async function fetchColorsAndPrice(styleCode, selectedSize) {
-            if(!styleCode || !selectedSize) return;
-            
-            let query = sbClient.from('inventory').select('color, mrp').eq('style_code', styleCode);
-            query = query.eq('size', selectedSize);
-
+        async function fetchSizes(code) {
             try {
-                const { data, error } = await query;
-                if (error) throw error;
-
-                const uniqueColors = [...new Set(data.map(item => item.color).filter(c => c))];
-                
-                colorSelect.innerHTML = '<option value="">Select Color</option>';
-                if (uniqueColors.length > 0) {
-                    colorSelect.disabled = false; uniqueColors.forEach(color => {
-                        const opt = document.createElement("option"); opt.value = color; opt.textContent = color; colorSelect.appendChild(opt);
-                    });
-                } else { colorSelect.disabled = true; colorSelect.innerHTML = '<option value="">No color</option>'; }
-                
-                if (data && data.length > 0) priceInput.value = data[0].mrp;
-
-            } catch (err) { console.error(err); }
+                const { data } = await sbClient.from('inventory').select('size').eq('style_code', code);
+                const sizes = [...new Set(data.map(d => d.size))];
+                const sel = document.getElementById('size');
+                sel.innerHTML = '<option value="">Select</option>';
+                sizes.forEach(s => { sel.innerHTML += `<option value="${s}">${s}</option>`; });
+                sel.disabled = false;
+            } catch(err) { console.error(err); }
         }
 
-        function closeAllLists() { styleCodeList.innerHTML = ''; }
-
-        // --- 4. FORM SUBMISSION ---
+        // --- SUBMISSION (FIXED LOGIC) ---
         form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn'); const spinner = document.getElementById('btnSpinner');
-            btn.disabled = true; spinner.style.display = 'inline-block'; btn.querySelector('span').textContent = "Processing...";
+            e.preventDefault(); // Stop native validation
 
-            const formData = {
-                booking_date: dateInput.value, customer_name: document.getElementById('customerName').value,
-                phone: document.getElementById('phone').value, size: sizeSelect.value,
-                style_code: styleCodeInput.value, color: colorSelect.value,
-                price: parseFloat(priceInput.value), requirement_from: document.getElementById('reqFrom').value,
-                status: document.getElementById('status').value
-            };
+            // Identify button
+            const btn = window.innerWidth <= 768 ? document.getElementById('submitBtnMobile') : document.getElementById('submitBtnDesktop');
+            const spin = window.innerWidth <= 768 ? document.getElementById('btnSpinnerMobile') : document.getElementById('btnSpinnerDesktop');
+            
+            const cName = document.getElementById('customerName').value;
+            const cPhone = document.getElementById('phone').value;
+            const cDate = dateInput.value;
+            const cStatus = document.getElementById('status').value;
 
-            try {
-                const { error } = await sbClient.from('bookings').insert([formData]);
-                if (error) throw error;
-                showToast("Booking saved successfully", "success");
-                form.reset(); dateInput.valueAsDate = new Date(); colorSelect.disabled = true; priceInput.value = ''; currentStyleCode = null;
-                searchBookings();
-            } catch (err) {
-                console.error(err); showToast("Failed to save booking", "error");
-            } finally {
-                btn.disabled = false; spinner.style.display = 'none'; btn.querySelector('span').textContent = "Confirm Booking";
-            }
-        });
-
-        // --- 5. UPDATE STATUS ---
-        async function updateBookingStatus(id, newStatus) {
-            try {
-                const { error } = await sbClient.from('bookings').update({ status: newStatus }).eq('id', id);
-                if (error) throw error;
-                showToast("Status updated", "success");
-                searchBookings(searchInput.value); 
-            } catch (err) {
-                console.error(err); showToast("Failed to update status", "error"); searchBookings(searchInput.value);
-            }
-        }
-
-        // --- 6. COPY LOGIC ---
-        function timeSince(date) {
-            const seconds = Math.floor((new Date() - date) / 1000);
-            let interval = seconds / 31536000;
-            if (interval > 1) return Math.floor(interval) + " years ago";
-            interval = seconds / 2592000;
-            if (interval > 1) return Math.floor(interval) + " months ago";
-            interval = seconds / 86400;
-            if (interval > 1) return Math.floor(interval) + " days ago";
-            interval = seconds / 3600;
-            if (interval > 1) return Math.floor(interval) + " hours ago";
-            interval = seconds / 60;
-            if (interval > 1) return Math.floor(interval) + " mins ago";
-            return "Just now";
-        }
-
-        async function copyBooking(id) {
-            const row = bookingDataCache.find(b => b.id === id);
-            if (!row) return;
-
-            const textToCopy = `DATE: ${row.booking_date}
-NAME: ${row.customer_name}
-PHONE: ${row.phone}
-STYLE CODE: ${row.style_code}
-SIZE: ${row.size}
-COLOR: ${row.color}
-REQUIREMENT FROM: ${row.requirement_from}`;
-
-            try {
-                await navigator.clipboard.writeText(textToCopy);
-                showToast("Copied to clipboard!", "success");
-            } catch (err) {
-                showToast("Failed to copy", "error");
-            }
-        }
-
-        // --- 6.5 PRINT LOGIC ---
-        function printBooking(id) {
-            const row = bookingDataCache.find(b => b.id === id);
-            if (!row) return;
-
-            const printContent = `
-                <div class="print-header">BOOKING SLIP</div>
-                <div class="print-row"><span class="print-label">DATE:</span> <span>${row.booking_date}</span></div>
-                <div class="print-row"><span class="print-label">NAME:</span> <span>${row.customer_name}</span></div>
-                <div class="print-row"><span class="print-label">PHONE:</span> <span>${row.phone}</span></div>
-                <div class="print-row"><span class="print-label">STYLE CODE:</span> <span>${row.style_code}</span></div>
-                <div class="print-row"><span class="print-label">SIZE:</span> <span>${row.size}</span></div>
-                <div class="print-row"><span class="print-label">COLOR:</span> <span>${row.color}</span></div>
-                <div class="print-row"><span class="print-label">REQUIREMENT FROM:</span> <span>${row.requirement_from}</span></div>
-            `;
-
-            const printContainer = document.getElementById('print-container');
-            printContainer.innerHTML = printContent;
-            window.print();
-        }
-
-        // --- 7. SEARCH & DISPLAY ---
-        searchInput.addEventListener('input', function(e) {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => searchBookings(this.value), 500);
-        });
-
-        async function searchBookings(queryTerm = '') {
-            if (!sbClient) return;
-            bookingsBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;">Loading...</td></tr>';
-            try {
-                let dbQuery = sbClient.from('bookings').select('*').order('created_at', { ascending: false }).limit(50);
-                if (queryTerm && queryTerm.trim() !== '') {
-                    dbQuery = dbQuery.or(`customer_name.ilike.%${queryTerm}%,phone.ilike.%${queryTerm}%,style_code.ilike.%${queryTerm}%`);
-                }
-                const { data, error } = await dbQuery;
-                if (error) throw error;
-                bookingDataCache = data; 
-                renderTable(data);
-            } catch (err) {
-                console.error(err);
-                bookingsBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--danger);">Error loading data</td></tr>';
-            }
-        }
-
-        function renderTable(data) {
-            bookingsBody.innerHTML = '';
-            if (!data || data.length === 0) {
-                bookingsBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px; color:var(--text-muted);">No bookings found.</td></tr>';
+            // 1. Validate Customer Details (Always required)
+            if (!cName || !cPhone) {
+                showToast("Please enter Customer Name and Phone", "error");
                 return;
             }
 
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                const timeAgo = timeSince(new Date(row.created_at));
-                
-                let statusDropdownHtml = `<select class="status-select" onchange="updateBookingStatus(${row.id}, this.value)">`;
-                statusOptions.forEach(opt => {
-                    const selected = row.status === opt ? 'selected' : '';
-                    statusDropdownHtml += `<option value="${opt}" ${selected}>${opt}</option>`;
+            let itemsToBook = [];
+
+            // 2. Logic: Check Cart vs Input Fields
+            if (cart.length > 0) {
+                // We have items in cart. Use them.
+                itemsToBook = cart.map(i => ({
+                    booking_date: cDate, customer_name: cName, phone: cPhone, 
+                    style_code: i.style, size: i.size, color: i.color, price: i.price, requirement_from: i.branch, status: cStatus
+                }));
+            } else {
+                // Cart is empty. Check inputs.
+                const style = document.getElementById('styleCode').value;
+                const size = document.getElementById('size').value;
+                const color = document.getElementById('color').value;
+                const price = document.getElementById('price').value;
+                const branch = document.getElementById('reqFrom').value;
+
+                if(!style || !size || !color || !price || !branch) {
+                    showToast("Add items or fill product details", "error"); return;
+                }
+                itemsToBook.push({
+                    booking_date: cDate, customer_name: cName, phone: cPhone, 
+                    style_code: style, size: size, color: color, price: price, requirement_from: branch, status: cStatus
                 });
-                statusDropdownHtml += `</select>`;
+            }
+
+            if (itemsToBook.length === 0) {
+                showToast("No items to book", "error");
+                return;
+            }
+
+            // Submit
+            btn.disabled = true; spin.style.display = 'inline-block';
+            try {
+                const { error } = await sbClient.from('bookings').insert(itemsToBook);
+                if(error) throw error;
+                showToast(`Success: ${itemsToBook.length} booking(s)`, "success");
+                form.reset(); dateInput.valueAsDate = new Date(); clearCart(); resetProductFields();
+                loadBookings();
+            } catch(err) {
+                console.error(err); showToast("Error saving", "error");
+            } finally {
+                btn.disabled = false; spin.style.display = 'none';
+            }
+        });
+
+        // --- GROUPED HISTORY & CUSTOM STATUS UI ---
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            const filtered = bookingDataCache.filter(b => 
+                b.customer_name.toLowerCase().includes(val) || 
+                b.phone.includes(val) || 
+                b.style_code.toLowerCase().includes(val)
+            );
+            renderGroupedBookings(filtered);
+        });
+
+        async function loadBookings() {
+            try {
+                const { data } = await sbClient.from('bookings').select('*').order('created_at', { ascending: false }).limit(100);
+                bookingDataCache = data || [];
+                renderGroupedBookings(bookingDataCache);
+            } catch(err) { console.error(err); }
+        }
+
+        function toggleDropdown(menuId) {
+            document.querySelectorAll('.status-menu').forEach(el => {
+                if(el.id !== menuId) el.classList.remove('show');
+            });
+            const el = document.getElementById(menuId);
+            el.classList.toggle('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.status-dropdown')) {
+                document.querySelectorAll('.status-menu').forEach(el => el.classList.remove('show'));
+            }
+        });
+
+        function renderGroupedBookings(data) {
+            const tbody = document.getElementById('bookingsBody');
+            tbody.innerHTML = '';
+
+            if(!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#94a3b8">No bookings</td></tr>'; return; }
+
+            const groups = {};
+            data.forEach(b => {
+                const key = `${b.booking_date}_${b.customer_name}_${b.phone}`;
+                if(!groups[key]) groups[key] = { main: b, items: [], allIds: [] };
+                groups[key].items.push(b);
+                groups[key].allIds.push(b.id);
+            });
+
+            Object.values(groups).forEach(group => {
+                const tr = document.createElement('tr');
+                const main = group.main;
+                const items = group.items;
+                const ids = group.allIds;
+
+                // Items HTML
+                let itemsHtml = '<div class="item-list">';
+                items.forEach(i => {
+                    itemsHtml += `
+                        <div class="mini-item">
+                            <span class="mini-item-code">${i.style_code}</span>
+                            <span class="mini-item-meta">${i.size} / ${i.color} / ৳${i.price}</span>
+                        </div>`;
+                });
+                itemsHtml += '</div>';
+
+                // Branch Logic
+                let branchDisplay = items[0].requirement_from;
+                if(items.length > 1) {
+                    const uniqueBranches = [...new Set(items.map(i => i.requirement_from))];
+                    branchDisplay = uniqueBranches.join(', ');
+                }
+
+                // Status Dropdown
+                const currentStatus = main.status;
+                const config = STATUS_CONFIG[currentStatus] || STATUS_CONFIG["Requirement Done"];
+                const menuId = `menu-${ids[0]}`;
+                const idsJson = JSON.stringify(ids);
+
+                let statusHtml = `
+                    <div class="status-dropdown">
+                        <div class="status-btn" onclick="toggleDropdown('${menuId}')">
+                            <div class="status-left">
+                                <div class="status-dot" style="background-color: ${config.color}"></div>
+                                <span>${config.label}</span>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div id="${menuId}" class="status-menu">
+                `;
+
+                Object.values(STATUS_CONFIG).forEach(opt => {
+                    statusHtml += `
+                        <div class="status-option" onclick="updateGroupStatus(${idsJson}, '${opt.label}')">
+                            <div style="color: ${opt.color}; display:flex; align-items:center; gap:8px;">
+                                ${opt.icon}
+                            </div>
+                            <span>${opt.label}</span>
+                        </div>
+                    `;
+                });
+
+                statusHtml += `</div></div>`;
 
                 tr.innerHTML = `
-                    <td data-label="Date"><div style="font-weight:600;">${row.booking_date}</div></td>
+                    <td data-label="Date"><div style="font-weight:600;">${main.booking_date}</div></td>
                     <td data-label="Customer">
-                        <div style="font-weight:600;">${row.customer_name}</div>
-                        <span class="text-sm">${row.phone}</span>
+                        <div style="font-weight:600;">${main.customer_name}</div>
+                        <div style="font-size:0.8em; color:#64748b;">${main.phone}</div>
                     </td>
-                    <td data-label="Product Details">
-                        <div style="font-weight:600; color:var(--primary);">${row.style_code}</div>
-                        <div style="display:flex; gap:8px; font-size:0.85em; color:#475569; margin-top:2px; align-items:center;">
-                            <span class="badge">${row.size}</span>
-                            <span class="badge">${row.color}</span>
-                            <span>৳${row.price}</span>
-                        </div>
-                    </td>
-                    <td data-label="Branch"><span style="font-weight:500;">${row.requirement_from}</span></td>
-                    <td data-label="Status">${statusDropdownHtml}</td>
-                    <td data-label="Created" style="font-size:0.85rem; color:#64748b;">${timeAgo}</td>
+                    <td data-label="Products">${itemsHtml}</td>
+                    <td data-label="Branches" style="font-size:0.85rem;">${branchDisplay}</td>
+                    <td data-label="Status">${statusHtml}</td>
                     <td data-label="Action">
                         <div class="action-cell">
-                            <button class="copy-btn" onclick="copyBooking(${row.id})" title="Copy details">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem;" onclick="copyBookingGroup('${main.booking_date}', '${main.customer_name}', '${main.phone}')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                 Copy
                             </button>
-                            <button class="print-btn" onclick="printBooking(${row.id})" title="Print slip">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem;" onclick="printGroup('${main.booking_date}', '${main.customer_name}', '${main.phone}')">
                                 Print
                             </button>
                         </div>
                     </td>
                 `;
-                bookingsBody.appendChild(tr);
+                tbody.appendChild(tr);
             });
         }
 
-        // --- 8. UTILITIES ---
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            const icon = type === 'success' ? '✓' : '✕';
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `<span style="font-weight:bold; font-size:1.2em; margin-right:5px;">${icon}</span> ${message}`;
-            container.appendChild(toast);
-            requestAnimationFrame(() => toast.classList.add('show'));
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+        // --- ACTIONS ---
+        async function updateGroupStatus(ids, newStatus) {
+            try {
+                const { error } = await sbClient.from('bookings').update({ status: newStatus }).in('id', ids);
+                if(error) throw error;
+                showToast("Status updated", "success");
+                document.querySelectorAll('.status-menu').forEach(el => el.classList.remove('show'));
+                loadBookings();
+            } catch(err) { showToast("Error", "error"); }
         }
 
-        window.addEventListener('DOMContentLoaded', () => { searchBookings(); });
+        function copyBookingGroup(date, name, phone) {
+            const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
+            let text = `DATE: ${date}\nNAME: ${name}\nPHONE: ${phone}\n\nITEMS:\n`;
+            group.forEach(i => {
+                text += `- ${i.style_code} | ${i.size} | ${i.color} | ৳${i.price} | Branch: ${i.requirement_from}\n`;
+            });
+
+            navigator.clipboard.writeText(text).then(() => showToast("Copied!", "success")).catch(() => showToast("Failed", "error"));
+        }
+
+        function printGroup(date, name, phone) {
+            const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
+            let itemsHtml = '';
+            group.forEach(i => {
+                itemsHtml += `<div style="border-bottom:1px dashed #ccc; padding:5px 0;">${i.style_code} - ${i.size} - ${i.color} (৳${i.price}) <br> <small>Branch: ${i.requirement_from}</small></div>`;
+            });
+
+            const html = `
+                <div class="print-header">BOOKING SLIP</div>
+                <div class="print-row"><span class="print-label">DATE:</span> <span>${date}</span></div>
+                <div class="print-row"><span class="print-label">NAME:</span> <span>${name}</span></div>
+                <div class="print-row"><span class="print-label">PHONE:</span> <span>${phone}</span></div>
+                <hr style="margin:10px 0;">
+                <div style="margin-bottom:10px;"><strong>ITEMS:</strong></div>
+                ${itemsHtml}
+            `;
+            document.getElementById('print-container').innerHTML = html;
+            window.print();
+        }
+
+        function showToast(msg, type='success') {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.innerHTML = `<span>${type==='success'?'✓':'✕'}</span> ${msg}`;
+            c.appendChild(t);
+            setTimeout(()=>t.classList.add('show'), 10);
+            setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 300); }, 3000);
+        }
+
+        window.addEventListener('DOMContentLoaded', loadBookings);
     </script>
 </body>
 </html>
