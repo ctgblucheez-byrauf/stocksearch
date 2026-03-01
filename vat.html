@@ -188,7 +188,6 @@
             background-color: #f8fafc;
         }
 
-        /* Numeric alignment */
         td.num-col, th.num-col {
             text-align: right;
         }
@@ -236,45 +235,39 @@
         <h1><i class="fa-solid fa-file-invoice-dollar"></i> VAT Viewer</h1>
         
         <div class="controls">
-            <!-- Filter Dropdown -->
             <select id="vatFilter">
                 <option value="all">Show All Records</option>
                 <option value="10">10% VAT (Garments)</option>
                 <option value="7.5">7.5% VAT (Accessories)</option>
             </select>
 
-            <!-- Action Buttons -->
             <button id="refreshBtn" class="btn-primary" onclick="fetchData()">
-                <i class="fa-solid fa-rotate-right"></i> Load Data
+                <i class="fa-solid fa-rotate-right"></i> Load All Data
             </button>
             <button id="copyBtn" class="btn-outline" onclick="copyData()">
                 <i class="fa-regular fa-copy"></i> Copy
             </button>
             <button id="exportBtn" class="btn-outline" onclick="exportToExcel()">
-                <i class="fa-solid fa-file-csv"></i> Export
+                <i class="fa-solid fa-file-csv"></i> Export All
             </button>
         </div>
     </header>
 
     <main class="table-container">
-        <!-- Loading Indicator -->
         <div id="loading" class="loading-overlay">
             <div class="spinner"></div>
-            <p>Loading data from Supabase...</p>
+            <p>Loading data (Fetching all pages)...</p>
         </div>
 
-        <!-- Empty State -->
         <div id="emptyState" class="empty-state">
             <i class="fa-solid fa-box-open" style="font-size: 2rem; margin-bottom: 10px;"></i>
             <p>No data found matching your criteria.</p>
         </div>
 
-        <!-- Table -->
         <div class="responsive-table" id="tableWrapper" style="display:none;">
             <table id="dataTable">
                 <thead>
                     <tr>
-                        <!-- Added Date Column here -->
                         <th>Date</th>
                         <th>Invoice No</th>
                         <th>DISPLAY NAME</th>
@@ -287,41 +280,34 @@
                         <th class="num-col">NET AMT</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody">
-                    <!-- Rows will be injected here -->
-                </tbody>
-                <tfoot id="tableFooter">
-                    <!-- Totals injected here -->
-                </tfoot>
+                <tbody id="tableBody"></tbody>
+                <tfoot id="tableFooter"></tfoot>
             </table>
         </div>
     </main>
 
-    <!-- Toast Notification -->
     <div id="toast">Message here</div>
 
     <script>
-        // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+        // --- 1. CONFIGURATION ---
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
         
-        // IMPORTANT: Ensure these table names match exactly what is in Supabase
         const TABLE_NAME = 'sales_data'; 
         const DATE_TABLE_NAME = 'invoice_date_map'; 
 
         let sbClient;
         let allData = []; 
         let dateMapData = []; 
+        let currentFilteredData = []; // Store currently visible data for Export
 
         if (window.supabase) {
             sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else {
             showToast("Supabase library failed to load.", "error");
-            console.error("Supabase library failed to load.");
         }
 
-        // --- 2. STATE MANAGEMENT & INITIALIZATION ---
-        
+        // --- 2. EVENTS ---
         document.getElementById('vatFilter').addEventListener('change', function() {
             filterAndRender(this.value);
         });
@@ -330,7 +316,7 @@
             if (sbClient) fetchData();
         });
 
-        // --- 3. DATA FETCHING ---
+        // --- 3. PAGINATED DATA FETCHING ---
         async function fetchData() {
             const loading = document.getElementById('loading');
             const tableWrapper = document.getElementById('tableWrapper');
@@ -341,35 +327,48 @@
             emptyState.style.display = 'none';
 
             try {
-                // 1. Fetch Date Map (Ranges)
+                // 1. Fetch Date Map
                 const { data: dateMap, error: dateError } = await sbClient
                     .from(DATE_TABLE_NAME)
                     .select('*');
 
-                if (dateError) {
-                    console.error("Date Map Error:", dateError);
-                    // Don't stop execution, just log error and proceed without dates
-                    dateMapData = [];
-                } else {
-                    dateMapData = dateMap || [];
+                if (!dateError && dateMap) {
+                    dateMapData = dateMap;
                 }
 
-                // 2. Fetch Sales Data
-                const { data, error } = await sbClient
-                    .from(TABLE_NAME)
-                    .select('*');
+                // 2. Fetch ALL Sales Data (Pagination Loop)
+                let allFetchedData = [];
+                let from = 0;
+                let to = 999; // Fetch 1000 rows at a time
+                let hasMore = true;
 
-                if (error) throw error;
+                while (hasMore) {
+                    const { data, error } = await sbClient
+                        .from(TABLE_NAME)
+                        .select('*')
+                        .range(from, to)
+                        .order('id', { ascending: true }); // Order ensures we don't miss rows
 
-                if (data && data.length > 0) {
-                    allData = data;
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        allFetchedData = allFetchedData.concat(data);
+                        // Increment range
+                        from += 1000;
+                        to += 1000;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+
+                allData = allFetchedData;
+
+                if (allData.length > 0) {
                     const currentFilter = document.getElementById('vatFilter').value;
                     filterAndRender(currentFilter);
                 } else {
-                    allData = [];
                     loading.style.display = 'none';
                     emptyState.style.display = 'block';
-                    showToast("No records found.", "error");
                 }
 
             } catch (err) {
@@ -379,44 +378,24 @@
             }
         }
 
-        // --- HELPER: FIND DATE (ROBUST VERSION) ---
+        // --- 4. DATE MATCHING HELPER ---
         function getInvoiceDate(invNo) {
-            // 1. Check if we have any ranges loaded
-            if (!invNo || dateMapData.length === 0) {
-                return '-'; 
-            }
-            
-            const invStr = String(invNo).trim();
-
-            // 2. Use BigInt for robust matching (handles leading zeros automatically)
-            //    "01000" becomes 1000n. "1000" becomes 1000n. They match!
+            if (!invNo || dateMapData.length === 0) return '-';
             try {
-                const invNum = BigInt(invStr.replace(/[^0-9]/g, '')); 
-
+                const invNum = BigInt(String(invNo).trim().replace(/[^0-9]/g, '')); 
                 const match = dateMapData.find(range => {
-                    const startStr = String(range.start_inv).trim();
-                    const startNum = BigInt(startStr.replace(/[^0-9]/g, ''));
-                    
-                    const endStr = String(range.end_inv).trim();
-                    const endNum = BigInt(endStr.replace(/[^0-9]/g, ''));
-
+                    const startNum = BigInt(String(range.start_inv).trim().replace(/[^0-9]/g, ''));
+                    const endNum = BigInt(String(range.end_inv).trim().replace(/[^0-9]/g, ''));
                     return invNum >= startNum && invNum <= endNum;
                 });
-
                 if (match && match.invoice_date) {
-                    // Format: "1 Jan 26"
-                    const d = new Date(match.invoice_date);
-                    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+                    return new Date(match.invoice_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
                 }
-
-            } catch (e) {
-                console.warn("Date matching failed for invoice:", invNo, e);
-            }
-
+            } catch (e) {}
             return '-';
         }
 
-        // --- 4. FILTERING & RENDERING ---
+        // --- 5. RENDERING ---
         function filterAndRender(filterValue) {
             const loading = document.getElementById('loading');
             const tableWrapper = document.getElementById('tableWrapper');
@@ -426,7 +405,8 @@
 
             loading.style.display = 'none';
 
-            const filteredData = allData.filter(row => {
+            // Filter logic
+            currentFilteredData = allData.filter(row => {
                 const vatVal = row["VAT"]; 
                 if (filterValue === 'all') return true;
                 return String(vatVal) === filterValue;
@@ -435,7 +415,7 @@
             tbody.innerHTML = ''; 
             tfoot.innerHTML = ''; 
 
-            if (filteredData.length === 0) {
+            if (currentFilteredData.length === 0) {
                 tableWrapper.style.display = 'none';
                 emptyState.style.display = 'block';
                 return;
@@ -447,15 +427,19 @@
             let totalVatAmt = 0;
             let totalNetAmt = 0;
 
-            filteredData.forEach(row => {
+            // NOTE: Rendering 10,000+ rows in DOM might be slow. 
+            // But since you asked to "Show All", we will render them.
+            
+            // Using DocumentFragment for better performance with many rows
+            const fragment = document.createDocumentFragment();
+
+            currentFilteredData.forEach(row => {
                 const tr = document.createElement('tr');
                 
                 const fmt = (val) => val !== null && val !== undefined ? Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
 
                 totalVatAmt += parseFloat(row["VAT AMT"]) || 0;
                 totalNetAmt += parseFloat(row["NET AMT"]) || 0;
-
-                // Get the matching date using robust logic
                 const invoiceDate = getInvoiceDate(row["Invoice No"]);
 
                 tr.innerHTML = `
@@ -470,14 +454,14 @@
                     <td class="num-col">${fmt(row["VAT AMT"])}</td>
                     <td class="num-col"><strong>${fmt(row["NET AMT"])}</strong></td>
                 `;
-                tbody.appendChild(tr);
+                fragment.appendChild(tr);
             });
 
-            // --- RENDER FOOTER ROW ---
+            tbody.appendChild(fragment);
+
+            // Render Totals
             const trTotal = document.createElement('tr');
             const fmtTotal = (num) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-            // Colspan 8 (Date + Inv + Name + MRP + Qty + Disc + Disc Amt + VAT %)
             trTotal.innerHTML = `
                 <td colspan="8" style="text-align: right; padding-right: 20px; font-size: 1.1em;">TOTAL:</td>
                 <td class="num-col" style="font-size: 1.1em;">${fmtTotal(totalVatAmt)}</td>
@@ -486,60 +470,52 @@
             tfoot.appendChild(trTotal);
         }
 
-        // --- 5. UTILITIES (COPY & EXPORT) ---
-
-        function getFilteredRows() {
-            const table = document.getElementById("dataTable");
-            let rows = [];
-            
-            for (let i = 0; i < table.rows.length; i++) {
-                const cells = table.rows[i].cells;
-                const rowData = [];
-                for (let j = 0; j < cells.length; j++) {
-                    rowData.push(cells[j].innerText);
-                }
-                rows.push(rowData.join("\t"));
-            }
-            return rows.join("\n");
-        }
-
-        function getFilteredCSV() {
-            const table = document.getElementById("dataTable");
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent = "\uFEFF" + csvContent; // UTF-8 BOM
-
-            for (let i = 0; i < table.rows.length; i++) {
-                let rowData = [];
-                for (let j = 0; j < table.rows[i].cells.length; j++) {
-                    let text = table.rows[i].cells[j].innerText.replace(/"/g, '""');
-                    rowData.push(`"${text}"`);
-                }
-                csvContent += rowData.join(",") + "\r\n";
-            }
-            return csvContent;
-        }
-
-        function copyData() {
-            const dataToCopy = getFilteredRows();
-            
-            if (!dataToCopy || dataToCopy.trim() === "") {
-                showToast("No data to copy", "error");
+        // --- 6. EXPORT (Directly from Data to ensure ALL rows are included) ---
+        function exportToExcel() {
+            if (currentFilteredData.length === 0) {
+                showToast("No data to export", "error");
                 return;
             }
 
-            navigator.clipboard.writeText(dataToCopy).then(() => {
-                showToast("Table copied to clipboard!", "success");
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                showToast("Failed to copy data", "error");
-            });
-        }
+            // Build CSV from the data array, not the DOM table
+            // This is faster and guarantees all data is included
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent = "\uFEFF" + csvContent; // UTF-8 BOM
 
-        function exportToExcel() {
-            const csvData = getFilteredCSV();
-            const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+            // Headers
+            const headers = ["Date", "Invoice No", "DISPLAY NAME", "MRP", "SQTY", "DISC", "DISC AMT", "VAT %", "VAT AMT", "NET AMT"];
+            csvContent += headers.map(h => `"${h}"`).join(",") + "\r\n";
+
+            // Rows
+            const fmt = (val) => val !== null && val !== undefined ? Number(val).toFixed(2) : '0.00';
+
+            currentFilteredData.forEach(row => {
+                const invoiceDate = getInvoiceDate(row["Invoice No"]);
+                const rowData = [
+                    invoiceDate,
+                    row["Invoice No"] || '',
+                    row["DISPLAY NAME"] || '',
+                    fmt(row["MRP"]),
+                    fmt(row["SQTY"]),
+                    fmt(row["DISC"]),
+                    fmt(row["DISC AMT"]),
+                    row["VAT"] || 0,
+                    fmt(row["VAT AMT"]),
+                    fmt(row["NET AMT"])
+                ];
+                
+                // Escape quotes and wrap in quotes
+                const rowString = rowData.map(cell => {
+                    const cellStr = String(cell).replace(/"/g, '""');
+                    return `"${cellStr}"`;
+                }).join(",");
+                
+                csvContent += rowString + "\r\n";
+            });
+
+            // Trigger Download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            
             const date = new Date().toISOString().slice(0,10);
             const fileName = `vat_export_${date}.csv`;
             
@@ -554,15 +530,32 @@
                 link.click();
                 document.body.removeChild(link);
             }
-            showToast("Excel file downloaded!", "success");
+            showToast("All data exported successfully!", "success");
         }
 
-        // --- 6. UI FEEDBACK (Toast) ---
+        function copyData() {
+            // Copy visible table content
+            const table = document.getElementById("dataTable");
+            let rows = [];
+            for (let i = 0; i < table.rows.length; i++) {
+                const cells = table.rows[i].cells;
+                const rowData = [];
+                for (let j = 0; j < cells.length; j++) {
+                    rowData.push(cells[j].innerText);
+                }
+                rows.push(rowData.join("\t"));
+            }
+            navigator.clipboard.writeText(rows.join("\n")).then(() => {
+                showToast("Visible table copied!", "success");
+            }).catch(err => {
+                showToast("Failed to copy", "error");
+            });
+        }
+
         function showToast(message, type = "success") {
             const toast = document.getElementById("toast");
             toast.className = "show " + type;
             toast.innerText = message;
-            
             setTimeout(function(){ 
                 toast.className = toast.className.replace("show", ""); 
             }, 3000);
