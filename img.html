@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Style Code Image Search</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+    font-family: Arial;
+    background:#f4f4f4;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.container{
+    background:white;
+    padding:25px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+    width:350px;
+    text-align:center;
+}
+
+input{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    font-size:16px;
+}
+
+button{
+    margin-top:10px;
+    padding:10px;
+    width:100%;
+    background:black;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+img{
+    margin-top:15px;
+    max-width:100%;
+    border-radius:8px;
+}
+
+#status{
+    margin-top:10px;
+    color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Style Code Search 🔎</h2>
+
+<input type="text" id="styleInput" placeholder="Enter style code (BBMP-038)" />
+
+<button onclick="searchImage()">Search</button>
+
+<div id="status"></div>
+
+<div id="imageResult"></div>
+
+</div>
+
+<script>
+
+// --- SUPABASE CONFIG ---
+const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+
+// --- SEARCH FUNCTION ---
+async function searchImage(){
+
+    let styleCode = document.getElementById("styleInput").value.trim().toUpperCase();
+
+    if(!styleCode){
+        document.getElementById("status").innerText = "Please enter style code";
+        return;
+    }
+
+    document.getElementById("status").innerText = "Searching...";
+    document.getElementById("imageResult").innerHTML = "";
+
+    const { data, error } = await client
+        .from("product_images")
+        .select("image_url")
+        .eq("style_code", styleCode);
+
+    if(error){
+        document.getElementById("status").innerText = "Error loading image";
+        console.error(error);
+        return;
+    }
+
+    if(data.length === 0){
+        document.getElementById("status").innerText = "No image found";
+        return;
+    }
+
+    document.getElementById("status").innerText = "Found ✅";
+
+    let html = "";
+
+    data.forEach(item=>{
+        html += `<img src="${item.image_url}">`;
+    });
+
+    document.getElementById("imageResult").innerHTML = html;
+
+}
+
+
+// --- ENTER KEY SUPPORT ---
+document.getElementById("styleInput")
+.addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+        searchImage();
+    }
+});
+
+</script>
+
+</body>
+</html>
