@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Booking System | BDT Format</title>
+    <title>Booking System | Notes Fixed</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,7 +42,7 @@
             width: 100%;
             overflow-x: hidden;
             min-height: 100vh;
-            padding-bottom: 90px; /* Space for sticky footer */
+            padding-bottom: 90px;
         }
 
         .container {
@@ -59,12 +59,10 @@
             body { padding: 24px; padding-bottom: 24px; }
         }
 
-        /* HEADER */
         header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
         .header-title h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
         .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
 
-        /* CARDS */
         .card {
             background: var(--bg-card);
             border-radius: var(--radius-md);
@@ -78,13 +76,19 @@
         .card-header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .card-title { font-size: 1.125rem; font-weight: 600; }
 
-        /* FORMS */
         .form-group { margin-bottom: 16px; position: relative; }
         label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-main); margin-bottom: 6px; }
         
-        input, select {
+        input, select, textarea {
             width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
             font-size: 16px; color: var(--text-main); background: #fff; appearance: none; font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s;
+        }
+
+        textarea { 
+            resize: vertical; 
+            min-height: 80px; /* Made taller to ensure visibility */
+            background-color: #fff;
         }
 
         .select-wrapper { position: relative; }
@@ -93,10 +97,9 @@
             position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none;
         }
 
-        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); z-index: 10; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); z-index: 10; }
         input[readonly] { background-color: #f8fafc; color: var(--text-muted); border-color: transparent; cursor: default; font-weight: 600; }
 
-        /* BUTTONS */
         .btn {
             width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm);
             font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
@@ -104,152 +107,68 @@
         }
         .btn-secondary { background: #e2e8f0; color: var(--text-main); margin-top: 8px; }
         .btn-secondary:hover { background: #cbd5e1; }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
-        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2); }
         .btn-primary:hover { box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
 
-        /* STICKY FOOTER (MOBILE) */
+        /* Sticky Footer */
         .mobile-sticky-footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 12px 15px;
-            border-top: 1px solid var(--border);
-            z-index: 100;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
-            display: block;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            padding: 12px 15px; border-top: 1px solid var(--border);
+            z-index: 100; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); display: block;
         }
-        @media (min-width: 769px) {
-            .mobile-sticky-footer { display: none; }
-            .desktop-submit-btn { display: flex; }
-        }
-        @media (max-width: 768px) {
-            .desktop-submit-btn { display: none; }
-        }
+        @media (min-width: 769px) { .mobile-sticky-footer { display: none; } .desktop-submit-btn { display: flex; } }
+        @media (max-width: 768px) { .desktop-submit-btn { display: none; } }
 
-        /* CART PREVIEW */
-        .cart-preview {
-            background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm);
-            padding: 10px; margin-top: 15px; display: none;
-        }
+        /* Cart Preview */
+        .cart-preview { background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-top: 15px; display: none; }
         .cart-preview.active { display: block; }
         .cart-item { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
         .cart-item:last-child { border-bottom: none; }
         .cart-count-badge { background: var(--primary); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; margin-left: 5px; }
 
-        /* AUTOCOMPLETE */
-        .autocomplete-items {
-            position: absolute; z-index: 10000; top: 100%; left: 0; right: 0;
-            background: #fff; max-height: 200px; overflow-y: auto;
-            border: 1px solid var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-            box-shadow: var(--shadow-md); margin-top: 4px;
-        }
+        /* Autocomplete */
+        .autocomplete-items { position: absolute; z-index: 10000; top: 100%; left: 0; right: 0; background: #fff; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm); box-shadow: var(--shadow-md); margin-top: 4px; }
         .autocomplete-items div { padding: 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; }
         .autocomplete-items div:hover { background-color: #f8fafc; }
         .autocomplete-items div strong { color: var(--primary); }
 
-        /* --- CUSTOM STATUS DROPDOWN UI --- */
+        /* Status Dropdown */
         .status-dropdown { position: relative; width: 100%; min-width: 140px; }
-        
-        .status-btn {
-            width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
-            background: white; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
-            font-size: 0.85rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;
-        }
+        .status-btn { width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; white-space: nowrap; }
         .status-btn:hover { border-color: var(--primary); }
-        
         .status-left { display: flex; align-items: center; gap: 8px; overflow: hidden; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        
-        .status-menu {
-            position: absolute; top: 100%; left: 0; width: 100%; background: white;
-            border: 1px solid var(--border); border-radius: 6px; box-shadow: var(--shadow-md);
-            z-index: 2000; margin-top: 4px; display: none; overflow: hidden;
-        }
+        .status-menu { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid var(--border); border-radius: 6px; box-shadow: var(--shadow-md); z-index: 2000; margin-top: 4px; display: none; overflow: hidden; }
         .status-menu.show { display: block; animation: slideDown 0.15s ease; }
-        
-        .status-option {
-            padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer;
-            font-size: 0.85rem; color: var(--text-main); border-bottom: 1px solid #f1f5f9;
-            transition: background 0.1s; white-space: nowrap;
-        }
+        .status-option { padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-main); border-bottom: 1px solid #f1f5f9; transition: background 0.1s; white-space: nowrap; }
         .status-option:last-child { border-bottom: none; }
         .status-option:hover { background: #f8fafc; }
-        
         @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- TABLE STYLES (SCROLLABLE ON MOBILE) --- */
-        .table-wrapper {
-            overflow-x: auto; /* Enable horizontal scroll */
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
-        }
-        
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            font-size: 0.9rem; 
-            min-width: 700px; 
-        }
-        
+        /* Table Styles */
+        .table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 700px; }
         thead { background-color: #f8fafc; position: sticky; top: 0; z-index: 10; }
-        
-        th {
-            text-align: left; 
-            padding: 12px 16px; 
-            font-weight: 600; 
-            color: var(--text-muted); 
-            font-size: 0.75rem; 
-            text-transform: uppercase; 
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid var(--border); 
-            white-space: nowrap; 
-        }
-        
-        td {
-            padding: 12px 16px; 
-            border-bottom: 1px solid var(--border); 
-            vertical-align: middle; 
-        }
-        
+        th { text-align: left; padding: 12px 16px; font-weight: 600; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         tr:last-child td { border-bottom: none; }
         tr:hover td { background-color: #fdfdfd; }
 
-        /* Items inside Table */
         .item-list { display: flex; flex-direction: column; gap: 4px; min-width: 200px; }
-        .mini-item {
-            background: #f1f5f9; padding: 6px 8px; border-radius: 4px;
-            font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center;
-            white-space: normal; 
-        }
+        .mini-item { background: #f1f5f9; padding: 6px 8px; border-radius: 4px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; white-space: normal; }
         .mini-item-code { font-weight: 600; color: var(--primary); }
         .mini-item-meta { color: var(--text-muted); font-size: 0.75rem; }
 
-        /* --- MOBILE SPECIFIC TWEAKS FOR TABLE --- */
         @media screen and (max-width: 768px) {
             th, td { padding: 10px 12px; }
-            
-            .status-menu {
-                position: fixed; 
-                bottom: 0; left: 0; right: 0; 
-                width: 100%; 
-                border-radius: 12px 12px 0 0; 
-                box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-                animation: slideUp 0.2s ease; 
-                max-height: 50vh; 
-                overflow-y: auto;
-            }
+            .status-menu { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; border-radius: 12px 12px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); animation: slideUp 0.2s ease; max-height: 50vh; overflow-y: auto; }
             @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
             .action-cell { display: flex; gap: 6px; }
             .icon-btn { padding: 6px 10px; font-size: 0.75rem; white-space: nowrap; }
         }
 
-        /* TOAST */
+        /* Toast */
         #toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 20000; pointer-events: none; }
         @media (min-width: 769px) { #toast-container { bottom: 20px; } }
         .toast { background: rgba(15, 23, 42, 0.95); color: white; padding: 14px 20px; border-radius: 8px; margin-top: 10px; box-shadow: var(--shadow-md); opacity: 0; transform: translateY(20px); transition: all 0.3s; display: flex; align-items: center; gap: 10px; pointer-events: auto; }
@@ -257,11 +176,11 @@
         .toast.success { border-left: 4px solid var(--success); }
         .toast.error { border-left: 4px solid var(--danger); }
 
-        /* SPINNER */
+        /* Spinner */
         .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* PRINT */
+        /* Print */
         #print-container { display: none; }
         @media print {
             body > * { display: none !important; }
@@ -305,6 +224,11 @@
                         <label>Phone</label>
                         <input type="tel" id="phone" placeholder="017..." required inputmode="tel">
                     </div>
+                    <!-- NOTE FIELD -->
+                    <div class="form-group">
+                        <label>Booking Note (Optional)</label>
+                        <textarea id="bookingNote" placeholder="Type any specific instructions here..."></textarea>
+                    </div>
                 </div>
 
                 <!-- Product Details -->
@@ -341,8 +265,6 @@
                                     <option value="TANGAIL">TANGAIL</option>
                                     <option value="PMC">PMC</option>
                                     <option value="WARI">WARI</option>
-                                    <option value="Booking">Booking</option>
-                                    <option value="Alteration Booking">Alteration Booking</option>
                                 </select>
                             </div>
                         </div>
@@ -370,11 +292,7 @@
                         <select id="status" required>
                             <option value="Requirement Done">Requirement Done</option>
                             <option value="On Hand">On Hand</option>
-                            <option value="Hold for customer for customer">Hold for customer</option>
-                            <option value="Calling Done">Calling Done</option>
-                            <option value="Bill Done">Bill Done</option>
-                            <option value="Alteration Booked">Alteration Booked</option>
-                            
+                            <option value="Hold for customer">Hold</option>
                         </select>
                     </div>
                 </div>
@@ -441,9 +359,9 @@
         const STATUS_CONFIG = {
             "Requirement Done": { color: "#3b82f6", label: "Requirement Done", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>` },
             "On Hand": { color: "#10b981", label: "On Hand", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>` },
-            "Hold for customer": { color: "#f59e0b", label: "Hold for customer", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>` },
-            "Calling Customer Done": { color: "#8b5cf6", label: "Calling Customer Done", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>` },
-            "Bill Done": { color: "#334155", label: "Bill Done", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>` }
+            "Hold for customer": { color: "#f59e0b", label: "Hold", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>` },
+            "Calling Customer Done": { color: "#8b5cf6", label: "Calling Done", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>` },
+            "Customer Bill Done": { color: "#334155", label: "Bill Done", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>` }
         };
 
         // --- STATE ---
@@ -565,6 +483,7 @@
             const cPhone = document.getElementById('phone').value;
             const cDate = dateInput.value;
             const cStatus = document.getElementById('status').value;
+            const cNote = document.getElementById('bookingNote').value; // GET NOTE
 
             if (!cName || !cPhone) {
                 showToast("Please enter Customer Name and Phone", "error");
@@ -576,7 +495,8 @@
             if (cart.length > 0) {
                 itemsToBook = cart.map(i => ({
                     booking_date: cDate, customer_name: cName, phone: cPhone, 
-                    style_code: i.style, size: i.size, color: i.color, price: i.price, requirement_from: i.branch, status: cStatus
+                    style_code: i.style, size: i.size, color: i.color, price: i.price, requirement_from: i.branch, status: cStatus,
+                    note: cNote // INCLUDE NOTE
                 }));
             } else {
                 const style = document.getElementById('styleCode').value;
@@ -590,7 +510,8 @@
                 }
                 itemsToBook.push({
                     booking_date: cDate, customer_name: cName, phone: cPhone, 
-                    style_code: style, size: size, color: color, price: price, requirement_from: branch, status: cStatus
+                    style_code: style, size: size, color: color, price: price, requirement_from: branch, status: cStatus,
+                    note: cNote // INCLUDE NOTE
                 });
             }
 
@@ -619,7 +540,8 @@
             const filtered = bookingDataCache.filter(b => 
                 b.customer_name.toLowerCase().includes(val) || 
                 b.phone.includes(val) || 
-                b.style_code.toLowerCase().includes(val)
+                b.style_code.toLowerCase().includes(val) ||
+                (b.note && b.note.toLowerCase().includes(val))
             );
             renderGroupedBookings(filtered);
         });
@@ -684,6 +606,9 @@
                     branchDisplay = uniqueBranches.join(', ');
                 }
 
+                // Note Logic
+                const noteHtml = main.note ? `<div style="font-style:italic; color:#64748b; font-size:0.8rem; margin-top:6px; background:#f8fafc; padding:6px; border-radius:4px; border-left: 3px solid var(--primary);">Note: ${main.note}</div>` : '';
+
                 // Status Dropdown
                 const currentStatus = main.status;
                 const config = STATUS_CONFIG[currentStatus] || STATUS_CONFIG["Requirement Done"];
@@ -720,6 +645,7 @@
                     <td>
                         <div style="font-weight:600;">${main.customer_name}</div>
                         <div style="font-size:0.8em; color:#64748b;">${main.phone}</div>
+                        ${noteHtml}
                     </td>
                     <td>${itemsHtml}</td>
                     <td style="font-size:0.85rem;">${branchDisplay}</td>
@@ -754,7 +680,13 @@
 
         function copyBookingGroup(date, name, phone) {
             const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
-            let text = `DATE: ${date}\nNAME: ${name}\nPHONE: ${phone}\n\nITEMS:\n`;
+            let text = `DATE: ${date}\nNAME: ${name}\nPHONE: ${phone}\n`;
+            if(group[0] && group[0].note) {
+                text += `NOTE: ${group[0].note}\n\n`;
+            } else {
+                text += `\n`;
+            }
+            text += `ITEMS:\n`;
             group.forEach(i => {
                 text += `- ${i.style_code} | ${i.size} | ${i.color} | BDT ${i.price} | Branch: ${i.requirement_from}\n`;
             });
@@ -765,9 +697,15 @@
         function printGroup(date, name, phone) {
             const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
             let itemsHtml = '';
+            let noteHtml = '';
+
             group.forEach(i => {
                 itemsHtml += `<div style="border-bottom:1px dashed #ccc; padding:5px 0;">${i.style_code} - ${i.size} - ${i.color} (BDT ${i.price}) <br> <small>Branch: ${i.requirement_from}</small></div>`;
             });
+            
+            if(group[0] && group[0].note) {
+                noteHtml = `<div style="margin-bottom:10px; padding:8px; background:#f4f4f4; border:1px solid #ccc; font-size:0.9em;"><strong>Note:</strong> ${group[0].note}</div>`;
+            }
 
             const html = `
                 <div class="print-header">BOOKING SLIP</div>
@@ -775,6 +713,7 @@
                 <div class="print-row"><span class="print-label">NAME:</span> <span>${name}</span></div>
                 <div class="print-row"><span class="print-label">PHONE:</span> <span>${phone}</span></div>
                 <hr style="margin:10px 0;">
+                ${noteHtml}
                 <div style="margin-bottom:10px;"><strong>ITEMS:</strong></div>
                 ${itemsHtml}
             `;
