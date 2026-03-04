@@ -87,19 +87,19 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            border: 1px solid #000; /* Solid black outer border */
+            border: 1px solid #000; 
             overflow: hidden;
-            padding-top: 4px; /* Small top padding for border breathing room */
+            padding-top: 4px;
         }
 
         /* --- HEADER --- */
         .brand-box {
             margin: 0 4px;
-            margin-bottom: 15px; /* GAP: Brand to Name (15px) */
+            margin-bottom: 15px; 
             padding: 2px 0;
             border: 1px solid #000;
             text-align: center;
-            width: calc(100% - 8px); /* Full width minus margins */
+            width: calc(100% - 8px); 
         }
 
         .brand-name {
@@ -114,20 +114,19 @@
             font-size: 8px;
             font-weight: 900;
             text-transform: uppercase;
-            margin-bottom: 15px; /* GAP: Name to Style (15px) */
+            margin-bottom: 15px; 
             padding: 0 2px;
             line-height: 1.2;
         }
 
-        /* --- CONTENT WRAPPER (Style, Color, Size, Barcode) --- */
-        /* GAP: Barcode to Price handled by margin-bottom on this wrapper */
+        /* --- CONTENT WRAPPER --- */
         .content-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px; /* STRICT 10PX GAP (Style, Color, Size, Barcode) */
+            gap: 10px; 
             padding: 0 4px;
-            margin-bottom: 15px; /* GAP: Barcode to Price (15px) */
+            margin-bottom: 15px; 
             width: 100%;
         }
 
@@ -174,7 +173,7 @@
 
         .barcode-number {
             font-family: 'Courier New', monospace;
-            font-size: 8px; /* INCREASED FONT SIZE (Previously 7px) */
+            font-size: 8px; 
             font-weight: 900;
             margin-top: 2px;
             letter-spacing: 0.5px;
@@ -183,22 +182,18 @@
         /* --- FOOTER --- */
         .tag-footer {
             border-top: 1px solid #000;
-            padding: 4px 6px;
+            padding: 4px 2px; /* Reduced side padding for text fit */
             display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            width: 100%; /* Ensure footer touches borders */
+            justify-content: center; /* Centered */
+            align-items: center;
+            width: 100%; 
         }
 
-        .price-left {
-            font-size: 7px;
+        .price-full-text {
+            font-size: 7px; /* Small font to fit "BDT. 5,490.00 (+VAT)" */
             font-weight: 900; 
-            text-transform: uppercase;
-        }
-
-        .price-right {
-            font-size: 9px;
-            font-weight: 900; 
+            text-align: center;
+            line-height: 1.2;
         }
 
         /* --- PRINT STYLES --- */
@@ -216,7 +211,6 @@
 
             .tag-wrapper {
                 margin: 0;
-                /* PRINT TOP AND LEFT OF PAPER */
                 top: 0;
                 left: 0;
                 transform: none;
@@ -232,7 +226,7 @@
             
             @page {
                 size: auto;
-                margin: 0mm; /* Ensure no printer margins interfere */
+                margin: 0mm;
             }
         }
     </style>
@@ -260,14 +254,14 @@
             <!-- Product Name: Jacket -->
             <div class="product-name" id="tagName">JACKET</div>
 
-            <!-- Balanced Layout Wrapper (10px gaps) -->
+            <!-- Balanced Layout Wrapper -->
             <div class="content-wrapper">
                 
                 <!-- 1. Style Code -->
                 <div class="info-text" id="tagStyle">AB-WIN54-BMJ-039</div>
 
-                <!-- 2. Color -->
-                <div class="info-text" id="tagColor">BLACK</div>
+                <!-- 2. Color: Updated to "COLOR: BLACK" -->
+                <div class="info-text" id="tagColor">COLOR: BLACK</div>
 
                 <!-- 3. Size -->
                 <div class="size-block">
@@ -278,16 +272,14 @@
                 <!-- 4. Barcode -->
                 <div class="barcode-block">
                     <svg id="barcode-canvas"></svg>
-                    <!-- Larger Text: A021103 -->
                     <div class="barcode-number" id="tagBarcodeText">A021103</div>
                 </div>
                 
             </div>
 
-            <!-- Footer -->
+            <!-- Footer: Updated to "BDT. 5,490.00 (+VAT)" -->
             <div class="tag-footer">
-                <span class="price-left">BDT+VAT</span>
-                <span class="price-right" id="tagPrice">5,490</span>
+                <span class="price-full-text" id="tagPrice">BDT. 5,490.00 (+VAT)</span>
             </div>
         </div>
     </div>
@@ -330,8 +322,9 @@
         }
 
         function formatPrice(mrp) {
-            if (!mrp) return "0";
-            return parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+            if (!mrp) return "BDT. 0.00 (+VAT)";
+            // Format: BDT. 5,490.00 (+VAT)
+            return "BDT. " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + " (+VAT)";
         }
 
         async function fetchData() {
@@ -370,7 +363,10 @@
         function populateTag(item) {
             elName.textContent = item.name || "ITEM";
             elStyle.textContent = item.style_code || "--";
-            elColor.textContent = item.color || "--";
+            
+            // Update Color to format "COLOR: BLACK"
+            elColor.textContent = "COLOR: " + (item.color ? item.color.toUpperCase() : "--");
+            
             elSize.textContent = item.size || "--";
             elPrice.textContent = formatPrice(item.mrp);
             elBarcodeText.textContent = item.barcode;
@@ -392,9 +388,9 @@
         function resetTag() {
             elName.textContent = "ITEM";
             elStyle.textContent = "--";
-            elColor.textContent = "--";
+            elColor.textContent = "COLOR: --";
             elSize.textContent = "--";
-            elPrice.textContent = "0.00";
+            elPrice.textContent = "BDT. 0.00 (+VAT)";
             elBarcodeText.textContent = "--";
             document.getElementById('barcode-canvas').innerHTML = "";
         }
