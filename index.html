@@ -212,7 +212,7 @@
         .btn-search { background: var(--accent); color: white; }
         .btn-search:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
 
-        /* --- 5. SCANNER UI (OPTIMIZED FOR SPEED) --- */
+        /* --- 5. SCANNER UI (FIXED & OPTIMIZED) --- */
         #reader-wrapper {
             margin-top: 1.5rem;
             border-radius: var(--radius);
@@ -222,7 +222,6 @@
             position: relative;
             border: 4px solid var(--surface);
             box-shadow: var(--shadow-md);
-            /* Force hardware acceleration for smooth video on mobile */
             transform: translateZ(0); 
             -webkit-transform: translateZ(0);
         }
@@ -230,21 +229,26 @@
         #reader { 
             width: 100%; 
             min-height: 350px; 
-            object-fit: cover;
-            /* Ensure video doesn't overflow layout */
+            object-fit: cover; 
             display: block; 
         }
         
-        /* Hide library links */
         #reader a { display: none !important; }
 
-        /* Minimalist Corners */
-        .scanner-corners { position: absolute; inset: 20px; pointer-events: none; border: 2px solid rgba(255,255,255,0.3); }
-        .corner { position: absolute; width: 24px; height: 24px; border-color: var(--accent); border-style: solid; border-width: 4px; }
-        .tl { top: -4px; left: -4px; border-right: 0; border-bottom: 0; border-radius: 4px 0 0 0; }
-        .tr { top: -4px; right: -4px; border-left: 0; border-bottom: 0; border-radius: 0 4px 0 0; }
-        .bl { bottom: -4px; left: -4px; border-right: 0; border-top: 0; border-radius: 0 0 0 4px; }
-        .br { bottom: -4px; right: -4px; border-left: 0; border-top: 0; border-radius: 0 0 4px 0; }
+        /* Scanner Box - Landscape for Barcodes */
+        .scanner-corners { 
+            position: absolute; 
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px; height: 180px;
+            pointer-events: none; 
+            border: 2px solid rgba(255,255,255,0.2); 
+        }
+        .corner { position: absolute; width: 20px; height: 20px; border-color: var(--accent); border-style: solid; border-width: 3px; }
+        .tl { top: -3px; left: -3px; border-right: 0; border-bottom: 0; }
+        .tr { top: -3px; right: -3px; border-left: 0; border-bottom: 0; }
+        .bl { bottom: -3px; left: -3px; border-right: 0; border-top: 0; }
+        .br { bottom: -3px; right: -3px; border-left: 0; border-top: 0; }
 
         .btn-flashlight {
             position: absolute; bottom: 20px; right: 20px;
@@ -253,9 +257,7 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             cursor: pointer; z-index: 10; border: none;
-            transition: transform 0.1s;
         }
-        .btn-flashlight:active { transform: scale(0.95); }
         .btn-flashlight.on { background: #fbbf24; color: white; }
 
         /* --- 6. FILTERS --- */
@@ -349,6 +351,7 @@
             border-radius: 6px; box-shadow: var(--shadow-lg);
             font-size: 0.9rem; display: flex; align-items: center; gap: 10px;
             opacity: 0; pointer-events: none; transition: 0.3s; z-index: 2000;
+            max-width: 90%; text-align: center;
         }
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -362,8 +365,8 @@
             header { padding: 0 1rem; }
             main { padding: 1rem; }
             .price-grid { grid-template-columns: 1fr; }
-            /* Adjust scanner box for mobile */
             #reader { min-height: 300px; }
+            .scanner-corners { width: 240px; height: 150px; }
         }
     </style>
 </head>
@@ -471,8 +474,7 @@
             <div id="reader-wrapper">
                 <div id="reader"></div>
                 <div class="scanner-corners">
-                    <div class="corner tl"></div><div class="corner tr"></div>
-                    <div class="corner bl"></div><div class="corner br"></div>
+                    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
                 </div>
                 <button class="btn-flashlight" id="flashBtn" onclick="toggleFlashlight()">
                     <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-2.26C4.19 13.47 3 11.38 3 9a7 7 0 0 1 9-7Z"></path></svg>
@@ -497,7 +499,7 @@
 </div>
 
 <script>
-    // --- 1. CONFIGURATION (UNCHANGED) ---
+    // --- 1. CONFIGURATION ---
     const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
     
@@ -507,7 +509,7 @@
 
     var html5QrCode = null; var isScanning = false; var isFlashOn = false; var currentMode = 'barcode'; var originalStyleData = []; 
 
-    // --- 2. LOGIC (UNCHANGED) ---
+    // --- 2. LOGIC ---
     function calculateVAT(item) {
         var name = (item.name || "").toLowerCase(); var mrp = parseFloat(item.mrp) || 0;
         var accessories = ["tie", "belt", "cufflink", "poket square", "pocket square", "wallet", "bag", "cap", "shocks", "accessories", "bracelet", "eyewear", "finger ring", "locket", "earring", "key ring"];
@@ -528,7 +530,12 @@
         else { input.placeholder = "Enter Style Code..."; scanBtn.style.display = 'none'; filterSection.style.display = 'none'; }
         document.getElementById('resultsArea').innerHTML = ''; input.value = ''; input.focus();
     }
-    function showToast(msg) { var t = document.getElementById('toast'); document.getElementById('toast-msg').innerText = msg; t.classList.add('show'); setTimeout(function() { t.classList.remove('show'); }, 3000); }
+    function showToast(msg) { 
+        var t = document.getElementById('toast'); 
+        document.getElementById('toast-msg').innerText = msg; 
+        t.classList.add('show'); 
+        setTimeout(function() { t.classList.remove('show'); }, 4000); 
+    }
     function toggleFlashlight() {
         if (!html5QrCode || !isScanning) return; isFlashOn = !isFlashOn; var btn = document.getElementById('flashBtn');
         html5QrCode.applyVideoConstraints({ advanced: [{ torch: isFlashOn }] }).then(() => {
@@ -537,19 +544,45 @@
     }
     async function toggleScanner() { if (isScanning) stopScanner(); else startScanner(); }
     
-    // --- 3. OPTIMIZED SCANNER LOGIC ---
+    // --- 3. ROBUST & FAST SCANNER LOGIC ---
     async function startScanner() {
-        var wrapper = document.getElementById('reader-wrapper'); var btn = document.getElementById('scanBtn');
-        var iconOff = document.getElementById('scan-icon-off'); var iconOn = document.getElementById('scan-icon-on'); var text = document.getElementById('scan-text');
-        if (isScanning) return; wrapper.style.display = 'block'; btn.classList.add('active'); iconOff.style.display = 'none'; iconOn.style.display = 'block'; text.textContent = "Stop";
+        var wrapper = document.getElementById('reader-wrapper'); 
+        var btn = document.getElementById('scanBtn');
+        var iconOff = document.getElementById('scan-icon-off'); 
+        var iconOn = document.getElementById('scan-icon-on'); 
+        var text = document.getElementById('scan-text');
+        
+        if (isScanning) return; 
+        
+        // UI Feedback
+        wrapper.style.display = 'block'; 
+        btn.classList.add('active'); 
+        iconOff.style.display = 'none'; 
+        iconOn.style.display = 'block'; 
+        text.textContent = "Stop";
+
         try {
-            if (html5QrCode) { try { await html5QrCode.clear(); html5QrCode = null; } catch (err) {} }
+            // 1. ROBUST CLEANUP
+            // Ensure previous instance is completely dead to avoid "Camera in use" errors
+            if (html5QrCode) {
+                try {
+                    await html5QrCode.stop();
+                } catch (e) { console.log("Stop ignored (already stopped)"); }
+                try {
+                    await html5QrCode.clear();
+                } catch (e) { console.log("Clear ignored"); }
+                html5QrCode = null;
+            }
+
+            // 2. INITIALIZE NEW SCANNER
             html5QrCode = new Html5Qrcode("reader");
             
-            // OPTIMIZED CONFIGURATION
+            // 3. OPTIMIZED CONFIG FOR SPEED & RELIABILITY
+            // FPS: 30 is stable on all devices and fast enough for instant detection
+            // Box Size: 280x180 fits retail barcodes perfectly
             var config = {
-                fps: 40, // INCREASED FPS for faster detection (was 20)
-                qrbox: { width: 250, height: 250 }, // Scanning region size
+                fps: 30,
+                qrbox: { width: 280, height: 180 },
                 aspectRatio: 1.0,
                 formatsToSupport: [
                     Html5QrcodeSupportedFormats.EAN_13,
@@ -561,24 +594,60 @@
                 ]
             };
 
-            // OPTIMIZED CAMERA SETTINGS
-            // Limiting resolution to 720p prevents lag on mobile while keeping barcodes readable
-            var cameraConfig = {
-                facingMode: "environment",
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            };
+            // 4. UNIVERSAL CAMERA CONFIG
+            // Using just { facingMode: "environment" } ensures it works on 
+            // iOS, Android, and Desktop without resolution conflicts.
+            var cameraConfig = { facingMode: "environment" };
 
-            await html5QrCode.start(cameraConfig, config, onScanSuccess, (e) => {}); isScanning = true;
-        } catch (err) { console.error(err); showToast("Camera error"); stopScanner(); }
+            await html5QrCode.start(cameraConfig, config, onScanSuccess, (errorMessage) => {
+                // Silently ignore scan processing errors to keep console clean
+            });
+            
+            isScanning = true;
+
+        } catch (err) {
+            console.error("Camera Start Error:", err);
+            // Provide user feedback
+            if(err.name === 'NotAllowedError') {
+                showToast("Permission Denied. Allow Camera access.");
+            } else {
+                showToast("Camera Error: " + err.message);
+            }
+            stopScanner(); 
+        }
     }
 
     async function stopScanner() {
-        if (html5QrCode && isScanning) { try { await html5QrCode.stop(); await html5QrCode.clear(); } catch (err) {} }
-        isScanning = false; isFlashOn = false; document.getElementById('flashBtn').classList.remove('on'); document.getElementById('reader-wrapper').style.display = 'none';
-        var btn = document.getElementById('scanBtn'); btn.classList.remove('active'); document.getElementById('scan-icon-off').style.display = 'block'; document.getElementById('scan-icon-on').style.display = 'none'; document.getElementById('scan-text').textContent = "Scan";
+        // Stop Logic with Error Handling
+        if (html5QrCode) {
+            try {
+                if (isScanning) await html5QrCode.stop();
+                await html5QrCode.clear();
+            } catch (err) {
+                // Ignore cleanup errors
+            }
+        }
+        isScanning = false; 
+        isFlashOn = false; 
+        
+        // UI Reset
+        document.getElementById('flashBtn').classList.remove('on'); 
+        document.getElementById('reader-wrapper').style.display = 'none';
+        
+        var btn = document.getElementById('scanBtn'); 
+        btn.classList.remove('active'); 
+        document.getElementById('scan-icon-off').style.display = 'block'; 
+        document.getElementById('scan-icon-on').style.display = 'none'; 
+        document.getElementById('scan-text').textContent = "Scan";
     }
-    function onScanSuccess(decodedText) { playBeep(); if (navigator.vibrate) navigator.vibrate(200); stopScanner(); document.getElementById('searchInput').value = decodedText; performSearch(); }
+
+    function onScanSuccess(decodedText) { 
+        playBeep(); 
+        if (navigator.vibrate) navigator.vibrate(200); 
+        stopScanner(); 
+        document.getElementById('searchInput').value = decodedText; 
+        performSearch(); 
+    }
 
     // --- 4. SEARCH & RENDER ---
     async function performSearch() {
