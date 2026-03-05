@@ -212,7 +212,7 @@
         .btn-search { background: var(--accent); color: white; }
         .btn-search:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
 
-        /* --- 5. SCANNER UI (FIXED & OPTIMIZED) --- */
+        /* --- 5. SCANNER UI (LARGEST POSSIBLE AREA) --- */
         #reader-wrapper {
             margin-top: 1.5rem;
             border-radius: var(--radius);
@@ -235,20 +235,24 @@
         
         #reader a { display: none !important; }
 
-        /* Scanner Box - Landscape for Barcodes */
-        .scanner-corners { 
-            position: absolute; 
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 280px; height: 180px;
-            pointer-events: none; 
-            border: 2px solid rgba(255,255,255,0.2); 
+        /* Full Screen Area Indication */
+        .scanner-area-hint {
+            position: absolute;
+            inset: 20px;
+            pointer-events: none;
+            border: 2px dashed rgba(37, 99, 235, 0.5);
+            border-radius: var(--radius);
+            display: flex; align-items: center; justify-content: center;
         }
-        .corner { position: absolute; width: 20px; height: 20px; border-color: var(--accent); border-style: solid; border-width: 3px; }
-        .tl { top: -3px; left: -3px; border-right: 0; border-bottom: 0; }
-        .tr { top: -3px; right: -3px; border-left: 0; border-bottom: 0; }
-        .bl { bottom: -3px; left: -3px; border-right: 0; border-top: 0; }
-        .br { bottom: -3px; right: -3px; border-left: 0; border-top: 0; }
+        .scan-text-hint {
+            color: rgba(255,255,255,0.8);
+            background: rgba(0,0,0,0.6);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+        }
 
         .btn-flashlight {
             position: absolute; bottom: 20px; right: 20px;
@@ -366,7 +370,6 @@
             main { padding: 1rem; }
             .price-grid { grid-template-columns: 1fr; }
             #reader { min-height: 300px; }
-            .scanner-corners { width: 240px; height: 150px; }
         }
     </style>
 </head>
@@ -473,8 +476,9 @@
 
             <div id="reader-wrapper">
                 <div id="reader"></div>
-                <div class="scanner-corners">
-                    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+                <!-- Wide Scan Area Indication -->
+                <div class="scanner-area-hint">
+                    <div class="scan-text-hint">Point camera anywhere</div>
                 </div>
                 <button class="btn-flashlight" id="flashBtn" onclick="toggleFlashlight()">
                     <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-2.26C4.19 13.47 3 11.38 3 9a7 7 0 0 1 9-7Z"></path></svg>
@@ -544,7 +548,7 @@
     }
     async function toggleScanner() { if (isScanning) stopScanner(); else startScanner(); }
     
-    // --- 3. ROBUST & FAST SCANNER LOGIC ---
+    // --- 3. ULTRA FAST SCANNER CONFIGURATION ---
     async function startScanner() {
         var wrapper = document.getElementById('reader-wrapper'); 
         var btn = document.getElementById('scanBtn');
@@ -554,7 +558,6 @@
         
         if (isScanning) return; 
         
-        // UI Feedback
         wrapper.style.display = 'block'; 
         btn.classList.add('active'); 
         iconOff.style.display = 'none'; 
@@ -562,27 +565,19 @@
         text.textContent = "Stop";
 
         try {
-            // 1. ROBUST CLEANUP
-            // Ensure previous instance is completely dead to avoid "Camera in use" errors
+            // Robust Cleanup
             if (html5QrCode) {
-                try {
-                    await html5QrCode.stop();
-                } catch (e) { console.log("Stop ignored (already stopped)"); }
-                try {
-                    await html5QrCode.clear();
-                } catch (e) { console.log("Clear ignored"); }
+                try { await html5QrCode.stop(); } catch (e) {}
+                try { await html5QrCode.clear(); } catch (e) {}
                 html5QrCode = null;
             }
 
-            // 2. INITIALIZE NEW SCANNER
             html5QrCode = new Html5Qrcode("reader");
             
-            // 3. OPTIMIZED CONFIG FOR SPEED & RELIABILITY
-            // FPS: 30 is stable on all devices and fast enough for instant detection
-            // Box Size: 280x180 fits retail barcodes perfectly
+            // CONFIG FOR SPEED & CATCH RATE
             var config = {
-                fps: 30,
-                qrbox: { width: 280, height: 180 },
+                fps: 10, // Slightly lower FPS to allow full image processing without lag
+                qrbox: { width: 350, height: 350 }, // LARGE BOX: 350x350 covers most of the screen area
                 aspectRatio: 1.0,
                 formatsToSupport: [
                     Html5QrcodeSupportedFormats.EAN_13,
@@ -594,46 +589,39 @@
                 ]
             };
 
-            // 4. UNIVERSAL CAMERA CONFIG
-            // Using just { facingMode: "environment" } ensures it works on 
-            // iOS, Android, and Desktop without resolution conflicts.
-            var cameraConfig = { facingMode: "environment" };
+            // CAMERA CONFIG WITH AUTO FOCUS
+            var cameraConfig = { 
+                facingMode: "environment",
+                // Attempt to force continuous focus for sharp barcodes
+                advanced: [{ focusMode: "continuous" }] 
+            };
 
-            await html5QrCode.start(cameraConfig, config, onScanSuccess, (errorMessage) => {
-                // Silently ignore scan processing errors to keep console clean
-            });
+            // Fallback: If advanced constraints fail (common on some Androids), try basic config
+            try {
+                await html5QrCode.start(cameraConfig, config, onScanSuccess, (errorMessage) => {});
+            } catch (focusErr) {
+                console.warn("Focus mode not supported, trying basic config...", focusErr);
+                var basicConfig = { facingMode: "environment" };
+                await html5QrCode.start(basicConfig, config, onScanSuccess, (errorMessage) => {});
+            }
             
             isScanning = true;
 
         } catch (err) {
             console.error("Camera Start Error:", err);
-            // Provide user feedback
-            if(err.name === 'NotAllowedError') {
-                showToast("Permission Denied. Allow Camera access.");
-            } else {
-                showToast("Camera Error: " + err.message);
-            }
+            if(err.name === 'NotAllowedError') showToast("Permission Denied.");
+            else showToast("Camera Error: " + err.message);
             stopScanner(); 
         }
     }
 
     async function stopScanner() {
-        // Stop Logic with Error Handling
         if (html5QrCode) {
-            try {
-                if (isScanning) await html5QrCode.stop();
-                await html5QrCode.clear();
-            } catch (err) {
-                // Ignore cleanup errors
-            }
+            try { if (isScanning) await html5QrCode.stop(); await html5QrCode.clear(); } catch (err) {}
         }
-        isScanning = false; 
-        isFlashOn = false; 
-        
-        // UI Reset
+        isScanning = false; isFlashOn = false; 
         document.getElementById('flashBtn').classList.remove('on'); 
         document.getElementById('reader-wrapper').style.display = 'none';
-        
         var btn = document.getElementById('scanBtn'); 
         btn.classList.remove('active'); 
         document.getElementById('scan-icon-off').style.display = 'block'; 
