@@ -3,650 +3,733 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authority - Admin Control</title>
+    <title>Authority - Inventory Manager</title>
     
-    <!-- Supabase JS Client -->
+    <!-- Supabase JS Library from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-            --primary: #4F46E5;
-            --primary-dark: #4338ca;
-            --danger: #dc2626;
-            --danger-hover: #b91c1c;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --danger: #ef4444;
+            --success: #10b981;
             --bg-body: #f3f4f6;
             --bg-card: #ffffff;
             --text-main: #1f2937;
             --text-muted: #6b7280;
             --border: #e5e7eb;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 8px;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
         body {
-            font-family: 'Inter', sans-serif;
             background-color: var(--bg-body);
             color: var(--text-main);
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
+        /* --- Utilities --- */
         .hidden { display: none !important; }
-        .flex { display: flex; }
-        .flex-col { flex-direction: column; }
-        .items-center { align-items: center; }
-        .justify-between { justify-content: space-between; }
-        .justify-center { justify-content: center; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-outline { background-color: transparent; border: 1px solid var(--border); color: var(--text-main); }
         .w-full { width: 100%; }
-        .mt-4 { margin-top: 1rem; }
-        .mb-4 { margin-bottom: 1rem; }
-
-        /* --- Lock Screen --- */
-        #lock-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-            z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
-            transition: transform 0.5s ease-in-out;
+        
+        /* --- Login Screen --- */
+        #login-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-body);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .login-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-card h2 { margin-bottom: 1.5rem; color: var(--primary); }
+        .form-group { margin-bottom: 1rem; text-align: left; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted); }
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+        }
+        .login-error {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            min-height: 1.2em;
         }
 
-        .lock-card {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 2.5rem; border-radius: 1rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-            width: 100%; max-width: 400px; text-align: center;
+        /* --- Admin Panel Layout --- */
+        #admin-panel { max-width: 1200px; margin: 0 auto; padding: 20px; width: 100%; }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: var(--bg-card);
+            padding: 15px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
         }
-        .lock-card h2 { margin-bottom: 0.5rem; color: var(--text-main); }
-        .lock-card p { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+        header h1 { font-size: 1.5rem; color: var(--text-main); }
 
-        /* --- Main Layout --- */
-        #app-container { display: flex; height: 100vh; }
-
-        /* Sidebar */
-        aside {
-            width: 260px; background-color: #111827; color: white;
-            display: flex; flex-direction: column; padding: 1.5rem; flex-shrink: 0;
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
         }
-        .brand { font-size: 1.25rem; font-weight: 700; margin-bottom: 2.5rem; display: flex; align-items: center; gap: 10px; }
-        .nav-item {
-            padding: 0.75rem 1rem; color: #9ca3af; text-decoration: none;
-            border-radius: 0.5rem; margin-bottom: 0.5rem;
-            display: flex; align-items: center; gap: 10px;
-            transition: all 0.2s; cursor: pointer;
-        }
-        .nav-item:hover, .nav-item.active { background-color: #374151; color: white; }
-        .nav-item.danger { color: #fca5a5; margin-top: auto; }
-        .nav-item.danger:hover { background-color: var(--danger); color: white; }
 
-        /* Main Content */
-        main { flex: 1; overflow-y: auto; padding: 2rem; position: relative; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        @media(min-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 2fr;
+            }
+            .full-width { grid-column: span 2; }
+        }
 
         .card {
-            background: var(--bg-card); border-radius: 0.75rem;
-            box-shadow: var(--shadow); padding: 1.5rem;
-            margin-bottom: 2rem; border: 1px solid var(--border);
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
         }
+        .card h3 { margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
 
-        /* Forms */
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem; }
-        .form-group { display: flex; flex-direction: column; }
-        label { font-size: 0.875rem; font-weight: 500; margin-bottom: 0.375rem; color: var(--text-main); }
-        input[type="text"], input[type="number"], input[type="password"] {
-            padding: 0.625rem; border: 1px solid var(--border);
-            border-radius: 0.375rem; font-size: 0.9rem;
-            transition: border-color 0.2s;
-        }
-        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1); }
-        .full-width { grid-column: 1 / -1; }
-
-        /* Buttons */
-        .btn {
-            padding: 0.625rem 1.25rem; border-radius: 0.375rem;
-            font-weight: 500; border: none; cursor: pointer;
-            transition: background-color 0.2s; display: inline-flex;
-            align-items: center; gap: 0.5rem; font-size: 0.9rem;
-        }
-        .btn-primary { background-color: var(--primary); color: white; }
-        .btn-primary:hover { background-color: var(--primary-dark); }
-        .btn-danger { background-color: var(--danger); color: white; }
-        .btn-danger:hover { background-color: var(--danger-hover); }
-        .btn-secondary { background-color: white; border: 1px solid var(--border); color: var(--text-main); }
-        .btn-secondary:hover { background-color: #f9fafb; }
-
-        /* Table */
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; text-align: left; }
-        th { background-color: #f9fafb; padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
-        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text-main); }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background-color: #f9fafb; }
-
-        /* CSV Upload Styles */
+        /* --- Upload Area --- */
         .drop-zone {
             border: 2px dashed var(--border);
-            border-radius: 0.75rem;
-            padding: 3rem;
+            border-radius: var(--radius);
+            padding: 40px 20px;
             text-align: center;
-            transition: all 0.2s;
-            background-color: #f9fafb;
             cursor: pointer;
+            transition: border-color 0.3s, background 0.3s;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         .drop-zone:hover, .drop-zone.dragover {
             border-color: var(--primary);
-            background-color: #eef2ff;
+            background-color: #eff6ff;
         }
-        .drop-zone i { font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem; }
-        .drop-zone p { color: var(--text-muted); margin-bottom: 1rem; }
-        .csv-info {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #e0e7ff;
-            color: #3730a3;
-            border-radius: 0.5rem;
+        .drop-zone-icon { font-size: 2rem; color: var(--text-muted); margin-bottom: 10px; }
+        .drop-zone-text { color: var(--text-muted); font-size: 0.9rem; }
+        .allowed-cols-text {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+            text-align: left;
+            background: #f9fafb;
+            padding: 8px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        /* --- Preview Table --- */
+        .table-container {
+            overflow-x: auto;
+            max-height: 500px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-top: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 0.85rem;
         }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        th { background-color: #f9fafb; position: sticky; top: 0; z-index: 10; }
+        tr:nth-child(even) { background-color: #f9fafb; }
+        .preview-count { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
 
-        /* Modal */
+        /* --- Controls --- */
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .control-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .stats-box {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 10px;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+        }
+
+        /* --- Validation Error --- */
+        .validation-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        .validation-error ul { margin-left: 20px; margin-top: 5px; }
+        .validation-error li { margin-bottom: 2px; }
+
+        /* --- Modal --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5); display: flex;
-            align-items: center; justify-content: center;
-            z-index: 100; backdrop-filter: blur(2px);
+            background: rgba(0,0,0,0.5);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000;
         }
-        .modal-content {
-            background: white; padding: 2rem; border-radius: 0.75rem;
-            width: 100%; max-width: 400px; text-align: center;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        .modal {
+            background: white;
+            padding: 25px;
+            border-radius: var(--radius);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
-        .modal-actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
+        .modal h3 { margin-bottom: 10px; }
+        .modal p { color: var(--text-muted); margin-bottom: 20px; }
+        .modal-actions { display: flex; justify-content: center; gap: 10px; }
 
-        /* Toast */
-        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; }
+        /* --- Toast Notification --- */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 3000; display: flex; flex-direction: column; gap: 10px; }
         .toast {
-            padding: 1rem 1.5rem; border-radius: 0.5rem; margin-top: 0.5rem;
-            background: white; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            border-left: 4px solid var(--primary); display: flex; align-items: center; gap: 10px;
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            color: white;
+            font-size: 0.9rem;
+            box-shadow: var(--shadow);
             animation: slideIn 0.3s ease-out;
+            min-width: 250px;
         }
-        .toast.error { border-left-color: var(--danger); }
-        .toast.success { border-left-color: #10b981; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.success { background-color: var(--success); }
+        .toast.error { background-color: var(--danger); }
+        .toast.info { background-color: var(--primary); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* --- Loading Spinner --- */
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 16px; height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
     </style>
 </head>
 <body>
 
-    <!-- --- TOAST CONTAINER --- -->
-    <div id="toast-container"></div>
-
-    <!-- --- LOCK SCREEN --- -->
-    <div id="lock-screen">
-        <div class="lock-card">
-            <div style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">
-                <i class="fa-solid fa-lock"></i>
-            </div>
-            <h2>Admin Login</h2>
-            <p>Enter credentials to access inventory control</p>
-            <form id="login-form" onsubmit="handleLogin(event)">
-                <div class="form-group mb-4">
-                    <input type="text" id="username" placeholder="Username" class="w-full" required>
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-screen">
+        <div class="login-card">
+            <h2>Authority Panel</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" class="form-input" placeholder="Enter username" required autocomplete="off">
                 </div>
-                <div class="form-group mb-4">
-                    <input type="password" id="password" placeholder="Password" class="w-full" required>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="Enter password" required>
                 </div>
-                <button type="submit" class="btn btn-primary w-full justify-center">
-                    Unlock Dashboard
-                </button>
+                <div id="login-error" class="login-error"></div>
+                <button type="submit" class="btn btn-primary w-full">Login</button>
             </form>
-            <p id="login-error" class="hidden" style="color: var(--danger); margin-top: 1rem; font-size: 0.85rem;">
-                <i class="fa-solid fa-circle-exclamation"></i> Invalid credentials
-            </p>
         </div>
     </div>
 
-    <!-- --- MAIN APP --- -->
-    <div id="app-container" class="hidden">
-        
-        <!-- Sidebar -->
-        <aside>
-            <div class="brand"><i class="fa-solid fa-cubes"></i> Authority</div>
-            <nav>
-                <a onclick="switchTab('add')" class="nav-item active" id="nav-add">
-                    <i class="fa-solid fa-plus-circle"></i> Add New Item
-                </a>
-                <a onclick="switchTab('upload')" class="nav-item" id="nav-upload">
-                    <i class="fa-solid fa-file-csv"></i> Import CSV
-                </a>
-                <a onclick="switchTab('view')" class="nav-item" id="nav-view">
-                    <i class="fa-solid fa-table-list"></i> View Inventory
-                </a>
-                <a onclick="showDeleteModal()" class="nav-item danger">
-                    <i class="fa-solid fa-trash-can"></i> Delete All Data
-                </a>
-            </nav>
-            <div style="margin-top: auto; font-size: 0.8rem; color: #6b7280; padding-top: 1rem; border-top: 1px solid #374151;">
-                <i class="fa-solid fa-user-circle"></i> Administrator
-            </div>
-        </aside>
+    <!-- 2. ADMIN PANEL (Hidden by default) -->
+    <div id="admin-panel" class="hidden">
+        <header>
+            <h1>Stock Authority</h1>
+            <button id="logout-btn" class="btn btn-outline">Logout</button>
+        </header>
 
-        <!-- Main Content -->
-        <main>
-            <header>
-                <div>
-                    <h1 id="page-title">Add Inventory</h1>
-                    <p style="color: var(--text-muted); font-size: 0.9rem;">Manage your stock levels and details.</p>
+        <main class="dashboard-grid">
+            
+            <!-- SECTION 1: CSV UPLOAD -->
+            <section class="card">
+                <h3>1. CSV Upload</h3>
+                <div class="drop-zone" id="drop-zone">
+                    <div class="drop-zone-icon">📂</div>
+                    <div class="drop-zone-text">Drag & Drop CSV here<br>or click to browse</div>
+                    <input type="file" id="file-input" accept=".csv" hidden>
                 </div>
-                <button onclick="logout()" class="btn btn-secondary">
-                    <i class="fa-solid fa-sign-out-alt"></i> Logout
-                </button>
-            </header>
+                
+                <div class="allowed-cols-text">
+                    <strong>Required CSV Headers (exact):</strong><br>
+                    <span style="font-family:monospace; color: #ef4444;">barcode, name, style_code, color, size, rcv_qty, trans_qty, sale_qty, conv_in, conv_out, adj_qty, balance, mrp</span>
+                </div>
 
-            <!-- SECTION: ADD NEW ITEM -->
-            <section id="section-add">
-                <div class="card">
-                    <form id="add-item-form" onsubmit="handleAddItem(event)">
-                        <h3 style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">Item Details</h3>
-                        <div class="form-grid">
-                            <div class="form-group full-width">
-                                <label>Barcode <span style="color:red">*</span></label>
-                                <input type="text" name="barcode" required placeholder="Scan or enter barcode">
-                            </div>
-                            <div class="form-group full-width">
-                                <label>Item Name <span style="color:red">*</span></label>
-                                <input type="text" name="name" required placeholder="e.g. Silk Dress">
-                            </div>
-                            <div class="form-group">
-                                <label>Style Code <span style="color:red">*</span></label>
-                                <input type="text" name="style_code" required placeholder="e.g. LDV-001">
-                            </div>
-                            <div class="form-group">
-                                <label>Color</label>
-                                <input type="text" name="color" placeholder="e.g. Navy Blue">
-                            </div>
-                            <div class="form-group">
-                                <label>Size</label>
-                                <input type="text" name="size" placeholder="e.g. M, L, 42">
-                            </div>
-                            <div class="form-group">
-                                <label>MRP</label>
-                                <input type="number" step="0.01" name="mrp" placeholder="0.00">
-                            </div>
-                            <div class="form-group full-width">
-                                <label>Image URL</label>
-                                <input type="text" name="image_url" placeholder="https://...">
-                            </div>
-                        </div>
-
-                        <h3 style="margin: 1.5rem 0 1rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">Quantities</h3>
-                        <div class="form-grid">
-                            <div class="form-group"><label>Rcv Qty</label><input type="number" name="rcv_qty" value="0"></div>
-                            <div class="form-group"><label>Trans Qty</label><input type="number" name="trans_qty" value="0"></div>
-                            <div class="form-group"><label>Sale Qty</label><input type="number" name="sale_qty" value="0"></div>
-                            <div class="form-group"><label>Conv In</label><input type="number" name="conv_in" value="0"></div>
-                            <div class="form-group"><label>Conv Out</label><input type="number" name="conv_out" value="0"></div>
-                            <div class="form-group"><label>Adj Qty</label><input type="number" name="adj_qty" value="0"></div>
-                            <div class="form-group"><label>Balance</label><input type="number" name="balance" value="0"></div>
-                        </div>
-
-                        <div style="margin-top: 2rem; text-align: right;">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fa-solid fa-save"></i> Save Item to Database
-                            </button>
-                        </div>
-                    </form>
+                <div id="validation-results" style="margin-top: 15px;">
+                    <!-- Validation errors appear here -->
                 </div>
             </section>
 
-            <!-- SECTION: CSV UPLOAD -->
-            <section id="section-upload" class="hidden">
-                <div class="card">
-                    <h3 style="margin-bottom: 1.5rem;">Bulk Import via CSV</h3>
+            <!-- SECTION 2: PREVIEW & CONTROLS -->
+            <section class="card">
+                <h3>2. CSV Preview</h3>
+                <div id="preview-container" class="table-container">
+                    <div style="padding: 20px; text-align: center; color: var(--text-muted);">
+                        No file selected.
+                    </div>
+                </div>
+                <div id="preview-meta" class="preview-count hidden"></div>
+
+                <!-- SECTION 3: CONTROLS -->
+                <div class="controls-area">
+                    <h3>3. Database Controls</h3>
                     
-                    <div class="drop-zone" id="drop-zone">
-                        <input type="file" id="csv-input" accept=".csv" class="hidden">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <h4>Click to upload or drag and drop</h4>
-                        <p>CSV files only (Max 5MB)</p>
-                        <button class="btn btn-secondary" onclick="document.getElementById('csv-input').click()">Select File</button>
-                    </div>
-
-                    <div class="csv-info">
-                        <strong><i class="fa-solid fa-circle-info"></i> Required CSV Headers:</strong><br>
-                        barcode, name, style_code, color, size, rcv_qty, trans_qty, sale_qty, conv_in, conv_out, adj_qty, balance, mrp, image_url
-                    </div>
-
-                    <div id="upload-preview" class="hidden mt-4" style="border-top: 1px solid var(--border); padding-top: 1rem;">
-                        <div class="flex justify-between items-center mb-4">
-                            <h4 id="file-name">filename.csv</h4>
-                            <span id="row-count" style="color: var(--text-muted); font-size: 0.9rem;">0 rows found</span>
-                        </div>
-                        <button id="btn-start-upload" class="btn btn-primary w-full justify-center" onclick="processCSVUpload()">
-                            <i class="fa-solid fa-upload"></i> Import to Database
+                    <div class="control-row">
+                        <button id="upload-btn" class="btn btn-primary" disabled>
+                            <span>Upload to Supabase</span>
                         </button>
+                        <button id="delete-btn" class="btn btn-danger">
+                            Delete Old Inventory Data
+                        </button>
+                    </div>
+
+                    <div id="upload-stats" class="stats-box hidden">
+                        Last Upload: <span id="last-upload-time">-</span>
                     </div>
                 </div>
             </section>
-
-            <!-- SECTION: VIEW INVENTORY -->
-            <section id="section-view" class="hidden">
-                <div class="card">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3>Current Inventory</h3>
-                        <button onclick="fetchData()" class="btn btn-secondary btn-sm">
-                            <i class="fa-solid fa-rotate"></i> Refresh
-                        </button>
-                    </div>
-                    <div class="table-container">
-                        <table id="inventory-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Barcode</th>
-                                    <th>Name</th>
-                                    <th>Style</th>
-                                    <th>Color</th>
-                                    <th>Size</th>
-                                    <th>MRP</th>
-                                    <th>Balance</th>
-                                    <th>Image</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr><td colspan="9" style="text-align:center; color: var(--text-muted);">Loading data...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
         </main>
     </div>
 
-    <!-- --- DELETE CONFIRMATION MODAL --- -->
-    <div id="delete-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div style="font-size: 3rem; color: var(--danger); margin-bottom: 1rem;">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <h2 style="color: var(--text-main);">Delete All Data?</h2>
-            <p style="color: var(--text-muted); margin: 1rem 0;">
-                This will remove all <strong>rows</strong> from the inventory table. The table structure will remain so you can add new data immediately after.
-            </p>
+    <!-- MODAL CONFIRMATION -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3>Confirm Deletion</h3>
+            <p>Are you sure you want to delete all inventory records?</p>
             <div class="modal-actions">
-                <button onclick="closeDeleteModal()" class="btn btn-secondary">No, Cancel</button>
-                <button onclick="confirmDeleteAll()" class="btn btn-danger">Yes, Delete All</button>
+                <button id="confirm-yes" class="btn btn-danger">YES</button>
+                <button id="confirm-no" class="btn btn-outline">NO</button>
             </div>
         </div>
     </div>
 
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
     <script>
-        // --- 1. CONFIGURATION ---
+        // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-
-        let sbClient;
+        
+        let sbClient = null;
         try {
-            sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            if (window.supabase) {
+                sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } else {
+                console.error("Supabase library failed to load.");
+                showToast("Error: Supabase library not loaded", "error");
+            }
         } catch (e) {
-            console.error("Supabase initialization failed", e);
-            showToast("System Error: Could not connect to database", "error");
+            console.error("Supabase Init Error:", e);
         }
 
-        let parsedCSVData = []; // Store parsed CSV data for upload
+        // --- STRICT COLUMN CONFIGURATION ---
+        // These are the EXACT headers required in the CSV and allowed in the DB
+        const ALLOWED_COLUMNS = [
+            "barcode", "name", "style_code", "color", "size",
+            "rcv_qty", "trans_qty", "sale_qty",
+            "conv_in", "conv_out", "adj_qty", "balance", "mrp"
+        ];
 
-        // --- 2. AUTHENTICATION ---
-        function handleLogin(e) {
+        // --- APP STATE ---
+        let parsedCSVData = [];
+        let isValidCSV = false;
+
+        // --- DOM ELEMENTS ---
+        const loginScreen = document.getElementById('login-screen');
+        const adminPanel = document.getElementById('admin-panel');
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewContainer = document.getElementById('preview-container');
+        const previewMeta = document.getElementById('preview-meta');
+        const validationResults = document.getElementById('validation-results');
+        const uploadBtn = document.getElementById('upload-btn');
+        const deleteBtn = document.getElementById('delete-btn');
+        const uploadStats = document.getElementById('upload-stats');
+        const lastUploadTime = document.getElementById('last-upload-time');
+        const logoutBtn = document.getElementById('logout-btn');
+        const confirmModal = document.getElementById('confirm-modal');
+        const confirmYes = document.getElementById('confirm-yes');
+        const confirmNo = document.getElementById('confirm-no');
+
+        // --- AUTHENTICATION LOGIC ---
+        function checkAuth() {
+            const isLogged = localStorage.getItem('auth_token') === 'valid';
+            if (isLogged) {
+                loginScreen.classList.add('hidden');
+                adminPanel.classList.remove('hidden');
+                loadLastUploadTime();
+            } else {
+                loginScreen.classList.remove('hidden');
+                adminPanel.classList.add('hidden');
+            }
+        }
+
+        loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
-            const err = document.getElementById('login-error');
 
-            if (u === "la dalce vita" && p === "oppeen22") {
-                document.getElementById('lock-screen').style.transform = "translateY(-100%)";
-                document.getElementById('app-container').classList.remove('hidden');
-                fetchData();
+            if (u === 'blucheeztm' && p === 'oppeen22') {
+                localStorage.setItem('auth_token', 'valid');
+                loginError.textContent = '';
+                checkAuth();
+                showToast('Login Successful', 'success');
             } else {
-                err.classList.remove('hidden');
-                document.getElementById('password').value = '';
+                loginError.textContent = 'Invalid credentials';
             }
-        }
+        });
 
-        function logout() { window.location.reload(); }
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('auth_token');
+            location.reload();
+        });
 
-        // --- 3. NAVIGATION ---
-        function switchTab(tabName) {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            document.getElementById('nav-' + tabName).classList.add('active');
-            
-            document.getElementById('section-add').classList.add('hidden');
-            document.getElementById('section-upload').classList.add('hidden');
-            document.getElementById('section-view').classList.add('hidden');
-            
-            document.getElementById('section-' + tabName).classList.remove('hidden');
-            
-            const titleMap = { 'add': 'Add Inventory', 'upload': 'Import CSV', 'view': 'View Inventory' };
-            document.getElementById('page-title').innerText = titleMap[tabName];
-            
-            if (tabName === 'view') fetchData();
-        }
-
-        // --- 4. DATA OPERATIONS ---
-        async function fetchData() {
-            if (!sbClient) return;
-            const tbody = document.querySelector('#inventory-table tbody');
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Loading...</td></tr>`;
-
-            const { data, error } = await sbClient
-                .from('inventory')
-                .select('*')
-                .order('id', { ascending: false })
-                .limit(50);
-
-            if (error) {
-                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">Error loading data</td></tr>`;
-                return;
-            }
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">No data found.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = data.map(item => `
-                <tr>
-                    <td>${item.id}</td>
-                    <td style="font-family:monospace; font-weight:600;">${item.barcode}</td>
-                    <td>${item.name}</td>
-                    <td>${item.style_code}</td>
-                    <td>${item.color || '-'}</td>
-                    <td>${item.size || '-'}</td>
-                    <td>${item.mrp || '0.00'}</td>
-                    <td style="font-weight:bold;">${item.balance || 0}</td>
-                    <td>${item.image_url ? `<a href="${item.image_url}" target="_blank" style="color:var(--primary);"><i class="fa-solid fa-image"></i></a>` : '-'}</td>
-                </tr>
-            `).join('');
-        }
-
-        async function handleAddItem(e) {
+        // --- FILE HANDLING ---
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
-            if (!sbClient) return;
+            dropZone.classList.add('dragover');
+        });
 
-            const formData = new FormData(e.target);
-            const newItem = {};
-            
-            formData.forEach((value, key) => {
-                if (value.trim() === '') { newItem[key] = null; } 
-                else if (['rcv_qty', 'trans_qty', 'sale_qty', 'conv_in', 'conv_out', 'adj_qty', 'balance'].includes(key)) { newItem[key] = parseInt(value, 10); }
-                else if (key === 'mrp') { newItem[key] = parseFloat(value); }
-                else { newItem[key] = value; }
-            });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
 
-            const btn = e.target.querySelector('button[type="submit"]');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
-            btn.disabled = true;
-
-            const { data, error } = await sbClient.from('inventory').insert([newItem]).select();
-
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-
-            if (error) { showToast("Error adding item: " + error.message, "error"); }
-            else {
-                showToast("Item added successfully!", "success");
-                e.target.reset();
-            }
-        }
-
-        // --- 5. DELETE ALL (ROWS ONLY) ---
-        function showDeleteModal() { document.getElementById('delete-modal').classList.remove('hidden'); }
-        function closeDeleteModal() { document.getElementById('delete-modal').classList.add('hidden'); }
-
-        async function confirmDeleteAll() {
-            if (!sbClient) return;
-
-            const btn = document.querySelector('#delete-modal .btn-danger');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Deleting...`;
-            
-            const { error } = await sbClient
-                .from('inventory')
-                .delete()
-                .not('id', 'is', null); 
-
-            btn.innerHTML = originalText;
-            closeDeleteModal();
-
-            if (error) {
-                console.error('Delete error:', error);
-                showToast("Failed to delete data. Check permissions.", "error");
-            } else {
-                showToast("All rows deleted. Ready for new data.", "success");
-                switchTab('view');
-            }
-        }
-
-        // --- 6. CSV UPLOAD LOGIC ---
-        const dropZone = document.getElementById('drop-zone');
-        const csvInput = document.getElementById('csv-input');
-
-        // Drag and Drop Events
-        dropZone.addEventListener('click', () => csvInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
         });
-        csvInput.addEventListener('change', (e) => {
-            if (e.target.files.length) handleFile(e.target.files[0]);
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
         });
 
         function handleFile(file) {
             if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-                showToast('Please upload a CSV file', 'error');
+                showToast('Only CSV files allowed', 'error');
                 return;
             }
 
-            document.getElementById('file-name').innerText = file.name;
             const reader = new FileReader();
-            
-            reader.onload = function(e) {
+            reader.onload = (e) => {
                 const text = e.target.result;
                 parseCSV(text);
             };
-            
             reader.readAsText(file);
         }
 
+        // --- CSV PARSING & VALIDATION ---
         function parseCSV(text) {
-            // Simple CSV parser
-            const lines = text.split('\n').filter(line => line.trim() !== '');
+            const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
             if (lines.length < 2) {
-                showToast("CSV file appears empty or invalid.", "error");
+                showToast("CSV is empty or invalid", "error");
                 return;
             }
 
+            // Extract headers and trim whitespace
             const headers = lines[0].split(',').map(h => h.trim());
-            const data = [];
+            
+            // Validate Headers Strictly
+            validateHeaders(headers);
 
-            for (let i = 1; i < lines.length; i++) {
-                const row = lines[i].split(','); // Simple split (assumes no commas inside quoted fields)
-                if (row.length === headers.length) {
-                    let obj = {};
-                    headers.forEach((header, index) => {
-                        let val = row[index] ? row[index].trim() : null;
-                        // Numeric conversion logic
-                        if (['rcv_qty', 'trans_qty', 'sale_qty', 'conv_in', 'conv_out', 'adj_qty', 'balance'].includes(header)) {
-                            val = val ? parseInt(val) : 0;
-                        } else if (header === 'mrp') {
-                            val = val ? parseFloat(val) : null;
-                        }
-                        obj[header] = val;
-                    });
-                    data.push(obj);
-                }
-            }
-
-            parsedCSVData = data;
-            document.getElementById('row-count').innerText = `${data.length} rows ready to import`;
-            document.getElementById('upload-preview').classList.remove('hidden');
-        }
-
-        async function processCSVUpload() {
-            if (!sbClient || parsedCSVData.length === 0) return;
-
-            const btn = document.getElementById('btn-start-upload');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading...`;
-            btn.disabled = true;
-
-            // Chunk insert if large (Supabase limits usually around 1000 rows per request)
-            const chunkSize = 500;
-            let successCount = 0;
-            let errorCount = 0;
-
-            for (let i = 0; i < parsedCSVData.length; i += chunkSize) {
-                const chunk = parsedCSVData.slice(i, i + chunkSize);
-                const { error } = await sbClient.from('inventory').insert(chunk);
-                if (error) {
-                    console.error('Upload chunk error:', error);
-                    errorCount += chunk.length;
-                } else {
-                    successCount += chunk.length;
-                }
-            }
-
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-
-            if (errorCount > 0) {
-                showToast(`Import completed with errors. Success: ${successCount}, Failed: ${errorCount}`, "error");
-            } else {
-                showToast(`Successfully imported ${successCount} items!`, "success");
-                // Reset UI
-                document.getElementById('upload-preview').classList.add('hidden');
-                document.getElementById('csv-input').value = '';
+            if (isValidCSV) {
                 parsedCSVData = [];
+                
+                // Process data rows
+                for (let i = 1; i < lines.length; i++) {
+                    // Simple split (assuming no commas inside quoted fields for this scope)
+                    const rowValues = lines[i].split(','); 
+                    
+                    // Only process if row matches header count (basic integrity)
+                    if (rowValues.length === headers.length) {
+                        let rowObj = {};
+                        let hasData = false;
+
+                        // Loop through ALLOWED columns to build the object in the correct order
+                        ALLOWED_COLUMNS.forEach(colName => {
+                            const index = headers.indexOf(colName);
+                            if (index !== -1 && rowValues[index] !== undefined) {
+                                let val = rowValues[index].trim().replace(/^"|"$/g, '');
+                                
+                                // Convert Types
+                                if (['rcv_qty','trans_qty','sale_qty','conv_in','conv_out','adj_qty','balance'].includes(colName)) {
+                                    val = parseInt(val) || 0;
+                                } else if (colName === 'mrp') {
+                                    val = parseFloat(val) || 0;
+                                }
+                                
+                                // Only mark hasData if we have meaningful content (or if it's the barcode)
+                                if (val || colName === 'barcode') hasData = true;
+                                
+                                rowObj[colName] = val;
+                            }
+                        });
+
+                        // Only add row if it contains data
+                        if (hasData && rowObj.barcode) {
+                            parsedCSVData.push(rowObj);
+                        }
+                    }
+                }
+                renderPreview(ALLOWED_COLUMNS, parsedCSVData);
             }
         }
 
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
+        function validateHeaders(headers) {
+            validationResults.innerHTML = '';
+            const missing = [];
+            const extra = [];
+
+            // 1. Check for missing required columns
+            ALLOWED_COLUMNS.forEach(req => {
+                if (!headers.includes(req)) {
+                    missing.push(req);
+                }
+            });
+
+            // 2. Check for extra (unwanted) columns
+            headers.forEach(h => {
+                if (!ALLOWED_COLUMNS.includes(h)) {
+                    extra.push(h);
+                }
+            });
+
+            if (missing.length > 0 || extra.length > 0) {
+                isValidCSV = false;
+                uploadBtn.disabled = true;
+                
+                let errorHTML = `<div class="validation-error"><strong>Column mismatch detected</strong>`;
+                
+                if (missing.length > 0) {
+                    errorHTML += `<p>Missing Columns:</p><ul>`;
+                    missing.forEach(m => errorHTML += `<li>${m}</li>`);
+                    errorHTML += `</ul>`;
+                }
+                
+                if (extra.length > 0) {
+                    errorHTML += `<p>Extra Columns (Remove these):</p><ul>`;
+                    extra.forEach(e => errorHTML += `<li>${e}</li>`);
+                    errorHTML += `</ul>`;
+                }
+                
+                errorHTML += `</div>`;
+                validationResults.innerHTML = errorHTML;
+            } else {
+                isValidCSV = true;
+                uploadBtn.disabled = false;
+                validationResults.innerHTML = `<div style="color:var(--success); font-size:0.9rem; margin-top:10px;">✓ CSV Structure Valid</div>`;
+            }
+        }
+
+        // --- PREVIEW RENDER ---
+        function renderPreview(columns, data) {
+            previewContainer.innerHTML = '';
+            previewMeta.classList.remove('hidden');
+            
+            if (data.length === 0) {
+                previewContainer.innerHTML = 'No valid data found.';
+                return;
+            }
+
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            // Header Row
+            const trHead = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col; // Display exact column name
+                trHead.appendChild(th);
+            });
+            thead.appendChild(trHead);
+
+            // Body Rows (Max 20)
+            const limit = Math.min(data.length, 20);
+            for (let i = 0; i < limit; i++) {
+                const tr = document.createElement('tr');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    td.textContent = data[i][col];
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            previewContainer.appendChild(table);
+
+            previewMeta.textContent = `Showing first 20 of ${data.length} rows`;
+        }
+
+        // --- SUPABASE UPLOAD LOGIC ---
+        uploadBtn.addEventListener('click', async () => {
+            if (!sbClient || !isValidCSV || parsedCSVData.length === 0) return;
+
+            // Show loading state
+            const originalBtnText = uploadBtn.innerHTML;
+            uploadBtn.innerHTML = `<div class="spinner"></div> Uploading...`;
+            uploadBtn.disabled = true;
+
+            try {
+                // Data is already strictly formatted in parsedCSVData
+                const dbData = parsedCSVData;
+
+                // Upsert into Supabase
+                const { data, error } = await sbClient
+                    .from('inventory')
+                    .upsert(dbData, { onConflict: 'barcode' })
+                    .select();
+
+                if (error) throw error;
+
+                // Success handling
+                const count = data ? data.length : 0;
+                showToast(`Upload Successful. Updated Rows: ${count}`, 'success');
+                
+                // Save timestamp
+                const now = new Date().toLocaleString();
+                localStorage.setItem('last_upload', now);
+                loadLastUploadTime();
+
+            } catch (err) {
+                console.error(err);
+                showToast(`Upload Failed: ${err.message}`, 'error');
+            } finally {
+                // Reset button
+                uploadBtn.innerHTML = originalBtnText;
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // --- DELETE LOGIC ---
+        deleteBtn.addEventListener('click', () => {
+            confirmModal.classList.remove('hidden');
+        });
+
+        confirmNo.addEventListener('click', () => {
+            confirmModal.classList.add('hidden');
+        });
+
+        confirmYes.addEventListener('click', async () => {
+            confirmModal.classList.add('hidden');
+            
+            const originalText = deleteBtn.textContent;
+            deleteBtn.innerHTML = `<div class="spinner"></div> Deleting...`;
+            deleteBtn.disabled = true;
+
+            try {
+                const { error } = await sbClient
+                    .from('inventory')
+                    .delete()
+                    .neq('id', 0); 
+
+                if (error) throw error;
+                showToast('All inventory records deleted.', 'success');
+            } catch (err) {
+                console.error(err);
+                showToast(`Deletion Failed: ${err.message}`, 'error');
+            } finally {
+                deleteBtn.textContent = originalText;
+                deleteBtn.disabled = false;
+            }
+        });
+
+        // --- UTILS ---
+        function showToast(message, type = 'info') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            const icon = type === 'success' ? '<i class="fa-solid fa-check-circle" style="color:#10b981"></i>' : '<i class="fa-solid fa-circle-xmark" style="color:#dc2626"></i>';
-            toast.innerHTML = `${icon} <span>${message}</span>`;
+            toast.textContent = message;
+            
+            const container = document.getElementById('toast-container');
             container.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
+
+        function loadLastUploadTime() {
+            const time = localStorage.getItem('last_upload');
+            if (time) {
+                lastUploadTime.textContent = time;
+                uploadStats.classList.remove('hidden');
+            } else {
+                uploadStats.classList.add('hidden');
+            }
+        }
+
+        // --- INIT ---
+        checkAuth();
+
     </script>
 </body>
 </html>
