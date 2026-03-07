@@ -15,6 +15,8 @@
             --danger: #ef4444;
             --success: #10b981;
             --bg-body: #f3f4f6;
+            --bg-sidebar: #1f2937;
+            --text-sidebar: #e5e7eb;
             --bg-card: #ffffff;
             --text-main: #1f2937;
             --text-muted: #6b7280;
@@ -30,7 +32,6 @@
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
         }
 
         /* --- Utilities --- */
@@ -46,13 +47,78 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            font-size: 0.9rem;
         }
         .btn:hover { opacity: 0.9; }
         .btn-primary { background-color: var(--primary); color: white; }
         .btn-danger { background-color: var(--danger); color: white; }
         .btn-outline { background-color: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-success { background-color: var(--success); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
         .w-full { width: 100%; }
-        
+
+        /* --- Layout: Sidebar + Main --- */
+        #app-layout {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background-color: var(--bg-sidebar);
+            color: var(--text-sidebar);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+        .sidebar h2 {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: white;
+            border-bottom: 1px solid #374151;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-link {
+            display: block;
+            padding: 12px;
+            color: var(--text-sidebar);
+            text-decoration: none;
+            border-radius: var(--radius);
+            margin-bottom: 5px;
+            transition: background 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        .sidebar-footer {
+            margin-top: auto;
+            border-top: 1px solid #374151;
+            padding-top: 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            #app-layout { flex-direction: column; }
+            .sidebar { width: 100%; padding: 15px; }
+            .sidebar h2 { font-size: 1rem; margin-bottom: 10px; }
+            .nav-link { display: inline-block; margin-right: 10px; margin-bottom: 5px; font-size: 0.9rem; }
+            .sidebar-footer { display: none; } /* Hide logout in footer on mobile */
+        }
+
         /* --- Login Screen --- */
         #login-screen {
             position: fixed;
@@ -61,7 +127,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 2000;
         }
         .login-card {
             background: var(--bg-card);
@@ -89,32 +155,14 @@
             min-height: 1.2em;
         }
 
-        /* --- Admin Panel Layout --- */
-        #admin-panel { max-width: 1200px; margin: 0 auto; padding: 20px; width: 100%; }
-        
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            background: var(--bg-card);
-            padding: 15px 20px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-        }
-        header h1 { font-size: 1.5rem; color: var(--text-main); }
-
+        /* --- Dashboard Grid --- */
         .dashboard-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 20px;
         }
-
-        @media(min-width: 768px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr 2fr;
-            }
-            .full-width { grid-column: span 2; }
+        @media(min-width: 992px) {
+            .dashboard-grid { grid-template-columns: 350px 1fr; }
         }
 
         .card {
@@ -125,7 +173,7 @@
             display: flex;
             flex-direction: column;
         }
-        .card h3 { margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .card h3 { margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
 
         /* --- Upload Area --- */
         .drop-zone {
@@ -148,7 +196,7 @@
         .drop-zone-icon { font-size: 2rem; color: var(--text-muted); margin-bottom: 10px; }
         .drop-zone-text { color: var(--text-muted); font-size: 0.9rem; }
         .allowed-cols-text {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
             margin-top: 10px;
             text-align: left;
@@ -156,6 +204,17 @@
             padding: 8px;
             border-radius: 4px;
             width: 100%;
+            line-height: 1.4;
+        }
+
+        /* --- Search Bar --- */
+        .search-bar {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
         }
 
         /* --- Preview Table --- */
@@ -179,7 +238,7 @@
         }
         th { background-color: #f9fafb; position: sticky; top: 0; z-index: 10; }
         tr:nth-child(even) { background-color: #f9fafb; }
-        .preview-count { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
+        .preview-count { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; display: flex; justify-content: space-between; }
 
         /* --- Controls --- */
         .controls-area {
@@ -202,8 +261,26 @@
             border-radius: var(--radius);
             font-size: 0.9rem;
         }
+        .badge {
+            background: #e5e7eb;
+            color: #374151;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        .badge.detected { background: #dbeafe; color: #1e40af; }
 
-        /* --- Validation Error --- */
+        /* --- Validation Info --- */
+        .validation-success {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+            padding: 10px;
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
         .validation-error {
             background: #fef2f2;
             border: 1px solid #fecaca;
@@ -213,15 +290,13 @@
             font-size: 0.9rem;
             margin-top: 10px;
         }
-        .validation-error ul { margin-left: 20px; margin-top: 5px; }
-        .validation-error li { margin-bottom: 2px; }
 
         /* --- Modal --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5);
             display: flex; justify-content: center; align-items: center;
-            z-index: 2000;
+            z-index: 3000;
         }
         .modal {
             background: white;
@@ -237,7 +312,7 @@
         .modal-actions { display: flex; justify-content: center; gap: 10px; }
 
         /* --- Toast Notification --- */
-        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 3000; display: flex; flex-direction: column; gap: 10px; }
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 4000; display: flex; flex-direction: column; gap: 10px; }
         .toast {
             padding: 12px 20px;
             border-radius: var(--radius);
@@ -289,62 +364,89 @@
         </div>
     </div>
 
-    <!-- 2. ADMIN PANEL (Hidden by default) -->
-    <div id="admin-panel" class="hidden">
-        <header>
-            <h1>Stock Authority</h1>
-            <button id="logout-btn" class="btn btn-outline">Logout</button>
-        </header>
+    <!-- 2. MAIN APP LAYOUT -->
+    <div id="app-layout" class="hidden">
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <h2>⚡ Authority</h2>
+            <nav>
+                <a href="#" class="nav-link active">Upload Stock</a>
+                <a href="admin.html" class="nav-link" target="_blank">Admin Panel</a>
+                <a href="data.html" class="nav-link" target="_blank">Data View</a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="btn btn-outline w-full" style="border-color: #4b5563; color: #e5e7eb;">Logout</button>
+            </div>
+        </aside>
 
-        <main class="dashboard-grid">
-            
-            <!-- SECTION 1: CSV UPLOAD -->
-            <section class="card">
-                <h3>1. CSV Upload</h3>
-                <div class="drop-zone" id="drop-zone">
-                    <div class="drop-zone-icon">📂</div>
-                    <div class="drop-zone-text">Drag & Drop CSV here<br>or click to browse</div>
-                    <input type="file" id="file-input" accept=".csv" hidden>
-                </div>
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h1 style="font-size: 1.5rem;">Stock Manager</h1>
+            </header>
+
+            <div class="dashboard-grid">
                 
-                <div class="allowed-cols-text">
-                    <strong>Required CSV Headers (exact):</strong><br>
-                    <span style="font-family:monospace; color: #ef4444;">barcode, name, style_code, color, size, rcv_qty, trans_qty, sale_qty, conv_in, conv_out, adj_qty, balance, mrp</span>
-                </div>
-
-                <div id="validation-results" style="margin-top: 15px;">
-                    <!-- Validation errors appear here -->
-                </div>
-            </section>
-
-            <!-- SECTION 2: PREVIEW & CONTROLS -->
-            <section class="card">
-                <h3>2. CSV Preview</h3>
-                <div id="preview-container" class="table-container">
-                    <div style="padding: 20px; text-align: center; color: var(--text-muted);">
-                        No file selected.
+                <!-- SECTION 1: CSV UPLOAD -->
+                <section class="card">
+                    <h3>
+                        1. Upload 
+                        <button id="download-template-btn" class="btn btn-sm btn-outline">Download Template</button>
+                    </h3>
+                    <div class="drop-zone" id="drop-zone">
+                        <div class="drop-zone-icon">📂</div>
+                        <div class="drop-zone-text">Drag & Drop CSV here<br>or click to browse</div>
+                        <input type="file" id="file-input" accept=".csv" hidden>
                     </div>
-                </div>
-                <div id="preview-meta" class="preview-count hidden"></div>
-
-                <!-- SECTION 3: CONTROLS -->
-                <div class="controls-area">
-                    <h3>3. Database Controls</h3>
                     
-                    <div class="control-row">
-                        <button id="upload-btn" class="btn btn-primary" disabled>
-                            <span>Upload to Supabase</span>
-                        </button>
-                        <button id="delete-btn" class="btn btn-danger">
-                            Delete Old Inventory Data
-                        </button>
+                    <div class="allowed-cols-text">
+                        <strong>Smart Features:</strong><br>
+                        ✅ Supports <strong>CloudPOS</strong> format (BARCODE, NAME...)<br>
+                        ✅ Supports <strong>Direct</strong> format (barcode, name...)<br>
+                        ❌ Ignores extra columns (CPU, TOT COST...)
                     </div>
 
-                    <div id="upload-stats" class="stats-box hidden">
-                        Last Upload: <span id="last-upload-time">-</span>
+                    <div id="validation-results" style="margin-top: 15px;"></div>
+                </section>
+
+                <!-- SECTION 2: PREVIEW & CONTROLS -->
+                <section class="card">
+                    <h3>2. Preview</h3>
+                    
+                    <!-- Search Bar -->
+                    <input type="text" id="search-input" class="search-bar" placeholder="Search by barcode, name, or style...">
+
+                    <div id="preview-container" class="table-container">
+                        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                            No file selected.
+                        </div>
                     </div>
-                </div>
-            </section>
+                    
+                    <div id="preview-meta" class="preview-count hidden"></div>
+
+                    <!-- SECTION 3: CONTROLS -->
+                    <div class="controls-area">
+                        <h3>3. Actions</h3>
+                        
+                        <div class="control-row">
+                            <button id="upload-btn" class="btn btn-primary" disabled>
+                                <span>Upload to Supabase</span>
+                            </button>
+                            <button id="export-btn" class="btn btn-success">
+                                Export Database (CSV)
+                            </button>
+                            <button id="delete-btn" class="btn btn-danger">
+                                Delete All Data
+                            </button>
+                        </div>
+
+                        <div id="upload-stats" class="stats-box hidden">
+                            Last Upload: <span id="last-upload-time">-</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </main>
     </div>
 
@@ -380,30 +482,53 @@
             console.error("Supabase Init Error:", e);
         }
 
-        // --- STRICT COLUMN CONFIGURATION ---
-        // These are the EXACT headers required in the CSV and allowed in the DB
-        const ALLOWED_COLUMNS = [
+        // --- COLUMN CONFIGURATION ---
+        
+        // The final target columns we want in the DB
+        const TARGET_COLUMNS = [
             "barcode", "name", "style_code", "color", "size",
             "rcv_qty", "trans_qty", "sale_qty",
             "conv_in", "conv_out", "adj_qty", "balance", "mrp"
         ];
 
+        // Mapping for CloudPOS format (Source -> Target)
+        const CLOUDPOS_MAP = {
+            "BARCODE": "barcode",
+            "NAME": "name",
+            "STYLE CODE": "style_code",
+            "COLOR": "color",
+            "SIZE": "size",
+            "RCV QTY": "rcv_qty",
+            "TRANS. QTY": "trans_qty",
+            "SALE QTY": "sale_qty",
+            "CONV_IN": "conv_in",
+            "CONV_OUT": "conv_out",
+            "ADJ QTY": "adj_qty",
+            "BALANCE": "balance",
+            "MRP": "mrp"
+        };
+
         // --- APP STATE ---
         let parsedCSVData = [];
+        let filteredData = []; // For search functionality
         let isValidCSV = false;
+        let detectedFormat = "None"; // 'Direct' or 'CloudPOS'
 
         // --- DOM ELEMENTS ---
         const loginScreen = document.getElementById('login-screen');
-        const adminPanel = document.getElementById('admin-panel');
+        const appLayout = document.getElementById('app-layout');
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
+        const searchInput = document.getElementById('search-input');
         const previewContainer = document.getElementById('preview-container');
         const previewMeta = document.getElementById('preview-meta');
         const validationResults = document.getElementById('validation-results');
         const uploadBtn = document.getElementById('upload-btn');
+        const exportBtn = document.getElementById('export-btn');
         const deleteBtn = document.getElementById('delete-btn');
+        const downloadTemplateBtn = document.getElementById('download-template-btn');
         const uploadStats = document.getElementById('upload-stats');
         const lastUploadTime = document.getElementById('last-upload-time');
         const logoutBtn = document.getElementById('logout-btn');
@@ -416,11 +541,11 @@
             const isLogged = localStorage.getItem('auth_token') === 'valid';
             if (isLogged) {
                 loginScreen.classList.add('hidden');
-                adminPanel.classList.remove('hidden');
+                appLayout.classList.remove('hidden');
                 loadLastUploadTime();
             } else {
                 loginScreen.classList.remove('hidden');
-                adminPanel.classList.add('hidden');
+                appLayout.classList.add('hidden');
             }
         }
 
@@ -470,6 +595,21 @@
             }
         });
 
+        // Search Feature
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            if (!term) {
+                filteredData = parsedCSVData;
+            } else {
+                filteredData = parsedCSVData.filter(row => 
+                    (row.barcode && row.barcode.toLowerCase().includes(term)) ||
+                    (row.name && row.name.toLowerCase().includes(term)) ||
+                    (row.style_code && row.style_code.toLowerCase().includes(term))
+                );
+            }
+            renderPreview(TARGET_COLUMNS, filteredData);
+        });
+
         function handleFile(file) {
             if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
                 showToast('Only CSV files allowed', 'error');
@@ -484,7 +624,7 @@
             reader.readAsText(file);
         }
 
-        // --- CSV PARSING & VALIDATION ---
+        // --- SMART CSV PARSING ---
         function parseCSV(text) {
             const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
             if (lines.length < 2) {
@@ -492,98 +632,86 @@
                 return;
             }
 
-            // Extract headers and trim whitespace
             const headers = lines[0].split(',').map(h => h.trim());
             
-            // Validate Headers Strictly
-            validateHeaders(headers);
-
-            if (isValidCSV) {
-                parsedCSVData = [];
-                
-                // Process data rows
-                for (let i = 1; i < lines.length; i++) {
-                    // Simple split (assuming no commas inside quoted fields for this scope)
-                    const rowValues = lines[i].split(','); 
-                    
-                    // Only process if row matches header count (basic integrity)
-                    if (rowValues.length === headers.length) {
-                        let rowObj = {};
-                        let hasData = false;
-
-                        // Loop through ALLOWED columns to build the object in the correct order
-                        ALLOWED_COLUMNS.forEach(colName => {
-                            const index = headers.indexOf(colName);
-                            if (index !== -1 && rowValues[index] !== undefined) {
-                                let val = rowValues[index].trim().replace(/^"|"$/g, '');
-                                
-                                // Convert Types
-                                if (['rcv_qty','trans_qty','sale_qty','conv_in','conv_out','adj_qty','balance'].includes(colName)) {
-                                    val = parseInt(val) || 0;
-                                } else if (colName === 'mrp') {
-                                    val = parseFloat(val) || 0;
-                                }
-                                
-                                // Only mark hasData if we have meaningful content (or if it's the barcode)
-                                if (val || colName === 'barcode') hasData = true;
-                                
-                                rowObj[colName] = val;
-                            }
-                        });
-
-                        // Only add row if it contains data
-                        if (hasData && rowObj.barcode) {
-                            parsedCSVData.push(rowObj);
-                        }
-                    }
-                }
-                renderPreview(ALLOWED_COLUMNS, parsedCSVData);
-            }
-        }
-
-        function validateHeaders(headers) {
-            validationResults.innerHTML = '';
-            const missing = [];
-            const extra = [];
-
-            // 1. Check for missing required columns
-            ALLOWED_COLUMNS.forEach(req => {
-                if (!headers.includes(req)) {
-                    missing.push(req);
-                }
-            });
-
-            // 2. Check for extra (unwanted) columns
-            headers.forEach(h => {
-                if (!ALLOWED_COLUMNS.includes(h)) {
-                    extra.push(h);
-                }
-            });
-
-            if (missing.length > 0 || extra.length > 0) {
-                isValidCSV = false;
-                uploadBtn.disabled = true;
-                
-                let errorHTML = `<div class="validation-error"><strong>Column mismatch detected</strong>`;
-                
-                if (missing.length > 0) {
-                    errorHTML += `<p>Missing Columns:</p><ul>`;
-                    missing.forEach(m => errorHTML += `<li>${m}</li>`);
-                    errorHTML += `</ul>`;
-                }
-                
-                if (extra.length > 0) {
-                    errorHTML += `<p>Extra Columns (Remove these):</p><ul>`;
-                    extra.forEach(e => errorHTML += `<li>${e}</li>`);
-                    errorHTML += `</ul>`;
-                }
-                
-                errorHTML += `</div>`;
-                validationResults.innerHTML = errorHTML;
+            // Detect Format
+            // Simple heuristic: If "BARCODE" (uppercase) exists, assume CloudPOS. 
+            // If "barcode" (lowercase) exists, assume Direct.
+            if (headers.includes('BARCODE')) {
+                detectedFormat = 'CloudPOS';
+            } else if (headers.includes('barcode')) {
+                detectedFormat = 'Direct';
             } else {
+                detectedFormat = 'Unknown';
+            }
+
+            // Process Data
+            parsedCSVData = [];
+            let missingEssential = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const rowValues = lines[i].split(',');
+                if (rowValues.length !== headers.length) continue; // Skip malformed rows
+
+                let targetRow = {};
+                let hasData = false;
+
+                TARGET_COLUMNS.forEach(targetCol => {
+                    // Determine source key based on detected format
+                    let sourceKey = targetCol; // Default for Direct
+                    if (detectedFormat === 'CloudPOS') {
+                        // Find the key in CLOUDPOS_MAP that maps to this targetCol
+                        sourceKey = Object.keys(CLOUDPOS_MAP).find(k => CLOUDPOS_MAP[k] === targetCol);
+                    }
+
+                    const index = headers.indexOf(sourceKey);
+
+                    if (index !== -1) {
+                        let val = rowValues[index].trim().replace(/^"|"$/g, '');
+                        
+                        // Type Conversion
+                        if (['rcv_qty','trans_qty','sale_qty','conv_in','conv_out','adj_qty','balance'].includes(targetCol)) {
+                            val = parseInt(val) || 0;
+                        } else if (targetCol === 'mrp') {
+                            val = parseFloat(val) || 0;
+                        }
+
+                        if (val || targetCol === 'barcode') hasData = true;
+                        targetRow[targetCol] = val;
+                    } else {
+                        // Column missing from CSV
+                        if (targetCol === 'barcode') missingEssential.push('barcode');
+                        targetRow[targetCol] = 0; // Default for missing non-essential
+                    }
+                });
+
+                if (hasData && targetRow.barcode) {
+                    parsedCSVData.push(targetRow);
+                }
+            }
+
+            filteredData = parsedCSVData; // Init filter
+
+            // Validation Logic (Flexible)
+            if (detectedFormat === 'Unknown') {
+                validationResults.innerHTML = `<div class="validation-error">Format unknown. Ensure headers match <strong>CloudPOS</strong> (BARCODE) or <strong>Direct</strong> (barcode).</div>`;
+                isValidCSV = false;
+            } else if (missingEssential.length > 0) {
+                validationResults.innerHTML = `<div class="validation-error">Missing Essential Columns: ${missingEssential.join(', ')}</div>`;
+                isValidCSV = false;
+            } else {
+                // Count extra columns ignored
+                const mappedKeys = detectedFormat === 'CloudPOS' ? Object.keys(CLOUDPOS_MAP) : TARGET_COLUMNS;
+                const ignoredCount = headers.filter(h => !mappedKeys.includes(h)).length;
+                
+                let extraMsg = ignoredCount > 0 ? ` (${ignoredCount} extra columns ignored)` : '';
+                validationResults.innerHTML = `<div class="validation-success">✅ <strong>${detectedFormat}</strong> format detected${extraMsg}. Ready to upload.</div>`;
                 isValidCSV = true;
-                uploadBtn.disabled = false;
-                validationResults.innerHTML = `<div style="color:var(--success); font-size:0.9rem; margin-top:10px;">✓ CSV Structure Valid</div>`;
+            }
+
+            uploadBtn.disabled = !isValidCSV;
+            if (isValidCSV) {
+                renderPreview(TARGET_COLUMNS, filteredData);
             }
         }
 
@@ -593,7 +721,7 @@
             previewMeta.classList.remove('hidden');
             
             if (data.length === 0) {
-                previewContainer.innerHTML = 'No valid data found.';
+                previewContainer.innerHTML = '<div style="padding:20px; text-align:center;">No matching data found.</div>';
                 return;
             }
 
@@ -601,16 +729,16 @@
             const thead = document.createElement('thead');
             const tbody = document.createElement('tbody');
 
-            // Header Row
+            // Header
             const trHead = document.createElement('tr');
             columns.forEach(col => {
                 const th = document.createElement('th');
-                th.textContent = col; // Display exact column name
+                th.textContent = col; 
                 trHead.appendChild(th);
             });
             thead.appendChild(trHead);
 
-            // Body Rows (Max 20)
+            // Body (Max 20 rows for performance)
             const limit = Math.min(data.length, 20);
             for (let i = 0; i < limit; i++) {
                 const tr = document.createElement('tr');
@@ -626,23 +754,19 @@
             table.appendChild(tbody);
             previewContainer.appendChild(table);
 
-            previewMeta.textContent = `Showing first 20 of ${data.length} rows`;
+            previewMeta.innerHTML = `<span>Showing first 20 of ${data.length} rows</span> <span class="badge detected">${detectedFormat}</span>`;
         }
 
-        // --- SUPABASE UPLOAD LOGIC ---
+        // --- SUPABASE UPLOAD ---
         uploadBtn.addEventListener('click', async () => {
             if (!sbClient || !isValidCSV || parsedCSVData.length === 0) return;
 
-            // Show loading state
             const originalBtnText = uploadBtn.innerHTML;
             uploadBtn.innerHTML = `<div class="spinner"></div> Uploading...`;
             uploadBtn.disabled = true;
 
             try {
-                // Data is already strictly formatted in parsedCSVData
                 const dbData = parsedCSVData;
-
-                // Upsert into Supabase
                 const { data, error } = await sbClient
                     .from('inventory')
                     .upsert(dbData, { onConflict: 'barcode' })
@@ -650,11 +774,9 @@
 
                 if (error) throw error;
 
-                // Success handling
                 const count = data ? data.length : 0;
                 showToast(`Upload Successful. Updated Rows: ${count}`, 'success');
                 
-                // Save timestamp
                 const now = new Date().toLocaleString();
                 localStorage.setItem('last_upload', now);
                 loadLastUploadTime();
@@ -663,10 +785,77 @@
                 console.error(err);
                 showToast(`Upload Failed: ${err.message}`, 'error');
             } finally {
-                // Reset button
                 uploadBtn.innerHTML = originalBtnText;
                 uploadBtn.disabled = false;
             }
+        });
+
+        // --- EXPORT DATABASE ---
+        exportBtn.addEventListener('click', async () => {
+            if (!sbClient) return;
+            
+            const originalText = exportBtn.textContent;
+            exportBtn.innerHTML = `<div class="spinner"></div> Exporting...`;
+            exportBtn.disabled = true;
+
+            try {
+                // Fetch data (Limit to 10,000 for safety in this demo)
+                const { data, error } = await sbClient
+                    .from('inventory')
+                    .select('*')
+                    .limit(10000);
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    showToast('No data to export', 'info');
+                    return;
+                }
+
+                // Convert to CSV
+                const headers = TARGET_COLUMNS;
+                const csvContent = [
+                    headers.join(','),
+                    ...data.map(row => headers.map(fieldName => 
+                        JSON.stringify(row[fieldName] ?? '')
+                    ).join(','))
+                ].join('\n');
+
+                // Download Trigger
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `inventory_export_${new Date().toISOString().slice(0,10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showToast('Export downloaded successfully', 'success');
+
+            } catch (err) {
+                console.error(err);
+                showToast(`Export Failed: ${err.message}`, 'error');
+            } finally {
+                exportBtn.textContent = originalText;
+                exportBtn.disabled = false;
+            }
+        });
+
+        // --- DOWNLOAD TEMPLATE ---
+        downloadTemplateBtn.addEventListener('click', () => {
+            const headers = TARGET_COLUMNS.join(',');
+            const dummyRow = TARGET_COLUMNS.map(() => '').join(',');
+            const csvContent = `${headers}\n${dummyRow}`;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'inventory_template.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         });
 
         // --- DELETE LOGIC ---
