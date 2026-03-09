@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Analyzer (All Reports)</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #475569;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --print-bg: #ffffff;
+            --print-text: #000000;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; padding: 20px; }
+        
+        .container { max-width: 1600px; margin: 0 auto; }
+        
+        header { margin-bottom: 1.5rem; text-align: center; }
+        header h1 { font-size: 1.8rem; color: var(--text-main); margin-bottom: 0.5rem; }
+        header p { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* Tabs */
+        .tabs { display: flex; justify-content: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .tab-btn {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Sections */
+        .section-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .section-content.active { display: block; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .card { background: var(--card-bg); border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid var(--border); }
+        .card-header { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+
+        /* Inputs */
+        .input-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-main); }
+        textarea { width: 100%; height: 120px; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: monospace; font-size: 0.9rem; resize: vertical; }
+        textarea:focus { outline: 2px solid var(--primary); border-color: transparent; }
+        
+        .file-drop-area { border: 2px dashed var(--border); border-radius: 6px; padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; background: #fdfdfd; }
+        .file-drop-area:hover { border-color: var(--primary); background: #f0f7ff; }
+        .file-drop-area input[type="file"] { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        
+        /* Buttons */
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem; }
+        button, select { padding: 0.6rem 1.2rem; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.95rem; background-color: white; transition: background 0.2s; }
+        .btn-primary { background-color: var(--primary); color: white; border: none; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-outline { background-color: transparent; color: var(--text-main); }
+        .btn-outline:hover { background-color: #f1f5f9; }
+        .btn-success { background-color: var(--success); color: white; border: none; }
+        .btn-success:hover { background-color: #059669; }
+
+        /* Tables (Dashboard) */
+        .table-container { overflow-x: auto; max-height: 600px; border: 1px solid var(--border); border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 1300px; }
+        thead { background-color: #f1f5f9; position: sticky; top: 0; z-index: 10; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        th { font-weight: 600; color: var(--text-main); }
+        tfoot { background-color: #f8fafc; font-weight: bold; border-top: 2px solid var(--border); }
+        tr:hover { background-color: #f8fafc; }
+        .text-right { text-align: right; }
+
+        /* Dashboard Specifics */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .kpi-card { background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; }
+        .kpi-label { display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+        .kpi-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
+
+        .analysis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 1.5rem; }
+        .analysis-full { grid-column: 1 / -1; }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+        .info-text { font-size: 0.85rem; color: var(--text-muted); background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 10px; border-left: 3px solid var(--primary); }
+        .highlight-col { background-color: #eef2ff; } 
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-muted); font-style: italic; background: #f9fafb; border-radius: 8px; border: 1px dashed var(--border); }
+
+        /* Toast */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: #333; color: white; padding: 12px 20px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-size: 0.9rem; animation: slideIn 0.3s forwards; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* =========================================
+           PRINT & SUMMARY REPORT STYLES
+           ========================================= */
+        #tab-report, #tab-summary {
+            background-color: #525659; 
+            padding: 20px;
+            min-height: 80vh;
+        }
+
+        .report-page {
+            background: white;
+            width: 210mm; /* A4 Width */
+            min-height: 297mm; /* A4 Height */
+            margin: 0 auto;
+            padding: 15mm;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            color: #000;
+            font-family: 'Inter', 'Roboto', sans-serif;
+            position: relative;
+        }
+
+        .report-header {
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .report-title h1 { font-size: 24pt; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+        .report-title p { font-size: 10pt; color: #444; margin: 5px 0 0 0; }
+        .report-meta { text-align: right; font-size: 9pt; color: #333; line-height: 1.4; }
+
+        .report-section { margin-bottom: 25px; page-break-inside: avoid; }
+        .report-section-title { 
+            font-size: 12pt; font-weight: 700; 
+            background: #f0f0f0; 
+            padding: 5px 10px; 
+            margin-bottom: 10px; 
+            border-left: 4px solid #000;
+            text-transform: uppercase;
+        }
+
+        /* Report Tables */
+        .report-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 10px; }
+        .report-table th { 
+            background: #e0e0e0; 
+            border: 1px solid #999; 
+            padding: 6px 8px; 
+            text-align: left; 
+            font-weight: 700; 
+            color: #000;
+        }
+        .report-table td { 
+            border: 1px solid #e0e0e0; 
+            padding: 5px 8px; 
+            vertical-align: middle;
+        }
+        .report-table .num { text-align: right; }
+        .report-table thead { position: static; background: #e0e0e0; }
+
+        /* Form Inputs for Previous Month Data */
+        .report-input {
+            width: 100px;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: right;
+            font-family: inherit;
+            font-size: 9pt;
+            color: #000;
+        }
+        .report-input:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
+        
+        .growth-cell { font-weight: bold; color: var(--primary); }
+
+        /* Scrollable area for digital view */
+        .report-scroll-area { max-height: 500px; overflow-y: auto; overflow-x: auto; border: 1px solid #ccc; margin-bottom: 20px; }
+        
+        .report-controls {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .report-controls h3 { margin: 0; font-size: 1.1rem; }
+
+        .report-analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        /* PRINT MEDIA QUERY */
+        @media print {
+            body { background: white; padding: 0; margin: 0; -webkit-print-color-adjust: exact; }
+            .tabs, .btn-row, .report-controls, #toast-container { display: none !important; }
+            #tab-process, #tab-analysis, #tab-dashboard { display: none !important; }
+            #tab-report, #tab-summary { display: block !important; background: white; padding: 0; }
+            .report-page { 
+                width: 100%; 
+                min-height: auto; 
+                box-shadow: none; 
+                margin: 0; 
+                padding: 0; 
+                page-break-after: always;
+            }
+            .report-scroll-area { overflow: visible; border: none; max-height: none; }
+            .report-section { page-break-inside: avoid; }
+            th, td { border: 1px solid #999 !important; color: #000 !important; }
+            
+            /* Input styles for print - Look like blanks */
+            .report-input {
+                border: none;
+                border-bottom: 1px solid #000;
+                background: transparent;
+                padding: 0;
+                margin: 0;
+                width: auto;
+                min-width: 80px;
+            }
+            .report-input::placeholder { color: transparent; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Sales Analyzer</h1>
+        <p>Process Data, Analyze Trends, and Generate Professional Reports</p>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-process')">1. Data Processing</button>
+        <button class="tab-btn" onclick="switchTab('tab-analysis')">2. Sales Analysis Dashboard</button>
+        <button class="tab-btn" onclick="switchTab('tab-report')">3. Detailed Ledger</button>
+        <button class="tab-btn" onclick="switchTab('tab-summary')">4. Summary Report</button>
+    </nav>
+
+    <!-- TAB 1: Data Processing -->
+    <div id="tab-process" class="section-content active">
+        <section class="card">
+            <div class="card-header">
+                <span>Raw Data Input</span>
+                <button class="btn-outline" onclick="loadSampleData()" style="font-size: 0.8rem;">Load Sample Data</button>
+            </div>
+            
+            <div class="input-group">
+                <label>Option A: Upload File</label>
+                <div class="file-drop-area">
+                    <span class="file-msg">Drag & drop CSV/TXT here</span>
+                    <input type="file" id="fileInput" accept=".csv, .txt">
+                </div>
+            </div>
+
+            <div style="text-align: center; margin: 10px 0; color: var(--text-muted); font-size: 0.9rem;">— OR —</div>
+
+            <div class="input-group">
+                <label for="dataInput">Option B: Paste Data</label>
+                <textarea id="dataInput" placeholder="Paste raw spreadsheet data here..."></textarea>
+            </div>
+
+            <div class="info-text">
+                <strong>Processing Logic:</strong><br>
+                1. The tool takes the <strong>VERY LAST COLUMN</strong> as <strong>"Net Sales"</strong>.<br>
+                2. No calculated Net Amount is shown.<br>
+                3. This Net Sales value is used for all Totals and Reports.
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-primary" onclick="processData()">Process Data</button>
+                <button class="btn-outline" onclick="clearAll()">Clear</button>
+            </div>
+        </section>
+
+        <!-- Output Table (Processed Data) -->
+        <section class="card" id="outputSection" style="display:none;">
+            <div class="card-header">
+                <span>Cleaned Data Preview</span>
+                <div class="btn-row">
+                    <select id="vatFilter" onchange="renderTable()">
+                        <option value="all">Show All</option>
+                        <option value="10">10% VAT</option>
+                        <option value="7.5">7.5% VAT</option>
+                    </select>
+                    <button class="btn-success" onclick="downloadProcessedCSV()">Download Cleaned CSV</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table id="resultTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Inv#</th>
+                            <th>Barcode</th>
+                            <th>Name</th>
+                            <th>Style</th>
+                            <th>Colour</th>
+                            <th>Size</th>
+                            <th class="text-right">Qty</th>
+                            <th class="text-right">MRP</th>
+                            <th class="text-right">VAT Amt</th>
+                            <th class="text-right highlight-col">Net Sales</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                    <tfoot id="tableFooter"></tfoot>
+                </table>
+            </div>
+            <div id="statsBar" style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted); text-align: right;"></div>
+        </section>
+    </div>
+
+    <!-- TAB 2: Sales Analysis -->
+    <div id="tab-analysis" class="section-content">
+        <div id="analysisPlaceholder" class="empty-state">
+            <h3>No Data Available</h3>
+            <p>Please go to "Data Processing", upload/parse data, and click "Process Data".</p>
+        </div>
+
+        <div id="analysisContent" class="hidden">
+            <!-- 1. Summary Cards -->
+            <div class="kpi-grid" id="kpiContainer">
+                <!-- KPIs injected here -->
+            </div>
+
+            <!-- 2. Grid Layout for Tables -->
+            <div class="analysis-grid">
+                
+                <!-- Daily Trend -->
+                <div class="card analysis-full">
+                    <div class="card-header">Daily Sales Trend (Net Sales)</div>
+                    <div class="table-container" style="max-height: 300px;">
+                        <table id="dailyTrendTable"><thead><tr><th>Date</th><th class="text-right">Qty Sold</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+
+                <!-- Top Products -->
+                <div class="card">
+                    <div class="card-header">Top 10 Selling Products (By Qty)</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="topProductsTable"><thead><tr><th>Style Code</th><th>Name</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+
+                <!-- Slow Moving -->
+                <div class="card">
+                    <div class="card-header">Slow Moving Products (Bottom 10)</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="slowProductsTable"><thead><tr><th>Style Code</th><th>Name</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+
+                <!-- Colour Wise -->
+                <div class="card">
+                    <div class="card-header">Colour Wise Sales</div>
+                    <div class="table-container" style="max-height: 300px;">
+                        <table id="colourTable"><thead><tr><th>Colour</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+
+                <!-- Size Wise -->
+                <div class="card">
+                    <div class="card-header">Size Wise Sales</div>
+                    <div class="table-container" style="max-height: 300px;">
+                        <table id="sizeTable"><thead><tr><th>Size</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+
+                <!-- Product Revenue Detail -->
+                <div class="card analysis-full">
+                    <div class="card-header">Product Revenue Analysis (Contribution %)</div>
+                    <div class="table-container" style="max-height: 400px;">
+                        <table id="revenueTable"><thead><tr><th>Style Code</th><th>Name</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th><th class="text-right">Disc</th><th class="text-right">VAT</th><th class="text-right">Contrib %</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: Detailed Ledger (Print Report) -->
+    <div id="tab-report" class="section-content">
+        <div id="reportPlaceholder" class="empty-state">
+            <h3>No Data Available</h3>
+            <p>Please process data first to generate the report.</p>
+        </div>
+
+        <div id="reportContent" class="hidden">
+            <!-- Controls -->
+            <div class="report-controls">
+                <h3>Ledger Actions</h3>
+                <button class="btn-primary" onclick="window.print()">🖨️ Print Report</button>
+                <button class="btn-success" onclick="downloadProcessedCSV()">📥 Download CSV</button>
+            </div>
+
+            <!-- The A4 Paper -->
+            <div class="report-page">
+                <!-- Header -->
+                <div class="report-header">
+                    <div class="report-title">
+                        <h1>Sales Analysis Report</h1>
+                        <p>Company Name: Blucheez Outfiters Chottogram.</p>
+                    </div>
+                    <div class="report-meta">
+                        Date Range: <span id="rptDateRange">All</span><br>
+                        Generated: <span id="rptGenDate"></span><br>
+                        Generated By: Admin
+                    </div>
+                </div>
+
+                <!-- 1. Executive Summary -->
+                <div class="report-section">
+                    <div class="report-section-title">1. Executive Summary</div>
+                    <table class="report-table">
+                        <tbody>
+                            <tr>
+                                <th>Total Sales</th>
+                                <th>Total Qty</th>
+                                <th>Total Invoices</th>
+                                <th>Total Discount</th>
+                                <th>Total VAT</th>
+                                <th>Avg. Bill Value</th>
+                            </tr>
+                            <tr>
+                                <td class="num" id="rptTotalSales">$0.00</td>
+                                <td class="num" id="rptTotalQty">0</td>
+                                <td class="num" id="rptTotalInv">0</td>
+                                <td class="num" id="rptTotalDisc">$0.00</td>
+                                <td class="num" id="rptTotalVat">$0.00</td>
+                                <td class="num" id="rptAvgBill">$0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2. Detailed Sales Transaction Ledger -->
+                <div class="report-section">
+                    <div class="report-section-title">2. Detailed Sales Transaction Ledger</div>
+                    <div class="report-scroll-area">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Invoice No</th>
+                                    <th>Barcode</th>
+                                    <th>Product Name</th>
+                                    <th>Style</th>
+                                    <th>Color</th>
+                                    <th>Size</th>
+                                    <th class="num">Qty</th>
+                                    <th class="num">MRP</th>
+                                    <th class="num">Disc.</th>
+                                    <th class="num">VAT</th>
+                                    <th class="num">Net</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rptLedgerBody">
+                                <!-- Rows injected here -->
+                            </tbody>
+                            <tfoot>
+                                <tr style="font-weight:bold; background:#f0f0f0;">
+                                    <td colspan="7" style="text-align:right;">TOTAL:</td>
+                                    <td class="num" id="rptLedgerQty"></td>
+                                    <td></td>
+                                    <td class="num" id="rptLedgerDisc"></td>
+                                    <td class="num" id="rptLedgerVat"></td>
+                                    <td class="num" id="rptLedgerNet"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. Performance Analytics -->
+                <div class="report-section">
+                    <div class="report-section-title">3. Performance Analytics</div>
+                    <div class="report-analytics-grid">
+                        <!-- Top Selling -->
+                        <div>
+                            <h4 style="margin-bottom:5px; font-size:10pt; font-weight:bold;">Top Selling Styles</h4>
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Style Code</th>
+                                        <th>Product Name</th>
+                                        <th class="num">Qty Sold</th>
+                                        <th class="num">Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rptTopBody"></tbody>
+                            </table>
+                        </div>
+                        <!-- Slow Moving -->
+                        <div>
+                            <h4 style="margin-bottom:5px; font-size:10pt; font-weight:bold;">Slow Moving Styles</h4>
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Style Code</th>
+                                        <th>Product Name</th>
+                                        <th class="num">Qty Sold</th>
+                                        <th class="num">Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rptSlowBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Footer -->
+                <div class="report-section" style="border-top: 1px solid #ccc; padding-top: 10px; margin-top: 30px;">
+                    <p style="font-size: 8pt; color: #666; margin:0;">
+                        Total Records: <span id="rptRecordCount">0</span> entries processed. <br>
+                        Generated by Sales Analyzer.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: Summary Report (Executive) -->
+    <div id="tab-summary" class="section-content">
+        <div id="summaryPlaceholder" class="empty-state">
+            <h3>No Data Available</h3>
+            <p>Please process data first.</p>
+        </div>
+
+        <div id="summaryContent" class="hidden">
+            <!-- Controls -->
+            <div class="report-controls">
+                <h3>Summary Actions</h3>
+                <button class="btn-primary" onclick="window.print()">🖨️ Print Summary</button>
+            </div>
+
+            <!-- The A4 Paper -->
+            <div class="report-page">
+                <!-- Header -->
+                <div class="report-header">
+                    <div class="report-title">
+                        <h1>Sales Summary Report</h1>
+                        <p>Company: Global Retail Solutions Ltd.</p>
+                    </div>
+                    <div class="report-meta">
+                        Period: <span id="sumPeriod">All</span> | Generated: <span id="sumGenDate"></span><br>
+                        Generated By: Admin
+                    </div>
+                </div>
+
+                <!-- 1. Core Financial Metrics -->
+                <div class="report-section">
+                    <div class="report-section-title">1. Core Financial Metrics (with Prev. Month Comparison)</div>
+                    <div style="font-size:8pt; color:#666; margin-bottom:5px;">* Fill in the "Previous Month" fields to calculate Growth % automatically.</div>
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Metric Description</th>
+                                <th>Current Month</th>
+                                <th>Previous Month (Input)</th>
+                                <th>Growth (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Total Net Sales</td>
+                                <td class="num" id="sumCurrentSales">$0.00</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="$" oninput="calcGrowth('Sales', this.value)"></td>
+                                <td class="num growth-cell" id="growthSales">-</td>
+                            </tr>
+                            <tr>
+                                <td>Total Quantity Sold</td>
+                                <td class="num" id="sumCurrentQty">0 Units</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Qty" oninput="calcGrowth('Qty', this.value)"></td>
+                                <td class="num growth-cell" id="growthQty">-</td>
+                            </tr>
+                            <tr>
+                                <td>Total Invoice Count</td>
+                                <td class="num" id="sumCurrentInv">0</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="#" oninput="calcGrowth('Inv', this.value)"></td>
+                                <td class="num growth-cell" id="growthInv">-</td>
+                            </tr>
+                            <tr>
+                                <td>Average Bill Value</td>
+                                <td class="num" id="sumCurrentAvg">$0.00</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="$" oninput="calcGrowth('Avg', this.value)"></td>
+                                <td class="num growth-cell" id="growthAvg">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2. Top High-Value Invoices -->
+                <div class="report-section">
+                    <div class="report-section-title">2. Top High-Value Invoices</div>
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Invoice No</th>
+                                <th>Date</th>
+                                <th>Qty</th>
+                                <th>Total Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sumTopInvoicesBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 3. Inventory Performance Summary -->
+                <div class="report-section">
+                    <div class="report-section-title">3. Inventory Performance Summary</div>
+                    <table class="report-table">
+                        <tbody>
+                            <tr>
+                                <th>Performance Type</th>
+                                <th>Style Code</th>
+                                <th>Product Name</th>
+                                <th>Data</th>
+                            </tr>
+                            <tr id="rowTopStyle">
+                                <td>Top Selling Style</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr id="rowSlowStyle">
+                                <td>Slow Moving Style</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Returns & Refunds</td>
+                                <td colspan="3">Data Not Available in Source</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 4. Operational Insights -->
+                <div class="report-section">
+                    <div class="report-section-title">4. Operational Insights (Time-Based)</div>
+                    <table class="report-table">
+                        <tbody>
+                            <tr>
+                                <th>Insight Category</th>
+                                <th>Peak Period / Data</th>
+                                <th>Note</th>
+                            </tr>
+                            <tr id="rowBusiestDay">
+                                <td>Busiest Day</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Peak Sales Hour</td>
+                                <td>N/A</td>
+                                <td>Time data not included in source</td>
+                            </tr>
+                            <tr id="rowLowestDay">
+                                <td>Lowest Activity Day</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 5. Category Contribution -->
+                <div class="report-section">
+                    <div class="report-section-title">5. Category Contribution</div>
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Category (Inferred)</th>
+                                <th>Qty Sold</th>
+                                <th>Net Sales</th>
+                                <th>% of Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sumCategoryBody"></tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+    // State
+    let processedData = []; 
+    let summaryStats = { sales: 0, qty: 0, inv: 0, avg: 0 };
+
+    // --- Tab Handling ---
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
+        
+        const buttons = document.querySelectorAll('.tab-btn');
+        if(tabId === 'tab-process') buttons[0].classList.add('active');
+        else if(tabId === 'tab-analysis') buttons[1].classList.add('active');
+        else if(tabId === 'tab-report') buttons[2].classList.add('active');
+        else buttons[3].classList.add('active');
+
+        document.getElementById(tabId).classList.add('active');
+
+        // Tab Specific Loaders
+        if(tabId === 'tab-report' && processedData.length > 0) generatePrintReport();
+        if(tabId === 'tab-summary' && processedData.length > 0) generateSummaryReport();
+    }
+
+    // --- Data Loading ---
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('dataInput').value = e.target.result;
+            showToast('File loaded!', 'success');
+        };
+        reader.readAsText(file);
+    });
+
+    function loadSampleData() {
+        const sample = 
+`01-February-2026
+100040000768
+8901234567890	10	20	ETHNIC, WKL-101, PINK, M	100.5	5.00	0.5	0	0	10	1,500.00	5	5	15,000.00
+8901234567891	10	20	ETHNIC, WKL-101, BLUE, L	100.5	2.00	1.0	0	0	10	500.00	5	2.5	5,000.00
+
+02-February-2026
+100040000769
+8909999999999	5	10	CASUAL, CS-202, RED, S	200	1.00	2	0	0	7.5	150.00	10	20	2,000.00
+8908888888888	5	10	CASUAL, CS-202, RED, M	50	5.00	5	0	0	7.5	75.00	10	10	750.00
+
+Invoice Total
+Day Total`;
+        document.getElementById('dataInput').value = sample;
+        showToast('Sample data loaded', 'success');
+    }
+
+    // --- Core Processing Logic ---
+    function processData() {
+        const rawText = document.getElementById('dataInput').value.trim();
+        if (!rawText) { showToast('Please enter data', 'error'); return; }
+
+        const rows = parseCSV(rawText);
+        if (rows.length === 0) { showToast('No data found', 'error'); return; }
+
+        processedData = []; 
+        
+        let currentDate = "";
+        let currentInvoice = "";
+        const datePattern = /\d{1,2}-[A-Za-z]+-\d{4}/;
+        const invoicePattern = /^\d{9,}$/;
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const colA = (row[0] !== undefined && row[0] !== null) ? row[0].toString().trim() : "";
+
+            if (colA === "" || colA.toLowerCase().includes("invoice total") || colA.toLowerCase().includes("day total")) continue;
+
+            if (datePattern.test(colA)) { currentDate = colA; continue; }
+            if (invoicePattern.test(colA)) { currentInvoice = colA; continue; }
+
+            if (row.length < 4) continue; 
+
+            const barcode = colA;
+            const displayNameRaw = (row[3] || "").trim();
+            const parts = displayNameRaw.split(/,|;/).map(s => s.trim()); 
+            const name = parts[0] || "";
+            const style_code = parts[1] || "";
+            const colour = parts[2] || "";
+            const size = parts[3] || "";
+
+            const mrp = parseFloat(String(row[4] || "0").replace(/,/g, ''));
+            const sqty = parseFloat(String(row[5] || "0").replace(/,/g, ''));
+            const discPerc = parseFloat(String(row[9] || "0").replace(/,/g, ''));
+            const discAmt = parseFloat(String(row[10] || "0").replace(/,/g, ''));
+            const vatPerc = parseFloat(String(row[11] || "0").replace(/,/g, ''));
+            const vatAmt = parseFloat(String(row[12] || "0").replace(/,/g, ''));
+
+            // Last Column Logic
+            const lastColIndex = row.length - 1;
+            const netSales = parseFloat(String(row[lastColIndex] || "0").replace(/,/g, ''));
+
+            processedData.push({
+                date: currentDate,
+                invoice: currentInvoice,
+                barcode: barcode,
+                name: name,
+                style_code: style_code,
+                colour: colour,
+                size: size,
+                qty: sqty,
+                mrp: mrp,
+                disc_perc: discPerc,
+                disc_amt: discAmt,
+                vat_perc: vatPerc,
+                vat_amt: vatAmt,
+                net_sales: netSales
+            });
+        }
+
+        if (processedData.length === 0) { showToast('No valid items found', 'error'); return; }
+
+        renderTable();
+        generateAnalysis();
+        
+        document.getElementById('outputSection').style.display = 'block';
+        showToast('Processing complete!', 'success');
+        
+        // Enable Tabs
+        document.getElementById('analysisPlaceholder').classList.add('hidden');
+        document.getElementById('analysisContent').classList.remove('hidden');
+        document.getElementById('reportPlaceholder').classList.add('hidden');
+        document.getElementById('reportContent').classList.remove('hidden');
+        document.getElementById('summaryPlaceholder').classList.add('hidden');
+        document.getElementById('summaryContent').classList.remove('hidden');
+    }
+
+    function parseCSV(text) {
+        const lines = text.split(/\r\n|\n/);
+        const data = [];
+        let delimiter = '\t'; 
+        for (let line of lines) {
+            if (!line.trim()) continue;
+            if (line.includes(',') && !line.includes('\t')) { delimiter = ','; break; }
+        }
+        lines.forEach(line => {
+            if (!line.trim()) return;
+            const row = line.split(delimiter).map(cell => {
+                let c = cell.trim();
+                if (c.startsWith('"') && c.endsWith('"')) c = c.slice(1, -1);
+                return c;
+            });
+            data.push(row);
+        });
+        return data;
+    }
+
+    // --- Render Table (Tab 1) ---
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const tfoot = document.getElementById('tableFooter');
+        const filterVal = document.getElementById('vatFilter').value;
+        tbody.innerHTML = '';
+        tfoot.innerHTML = '';
+
+        let totalSQty = 0;
+        let totalVatAmt = 0;
+        let totalNetSales = 0;
+
+        processedData.forEach(item => {
+            if (filterVal !== 'all') {
+                if (item.vat_perc !== parseFloat(filterVal)) return;
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.invoice}</td>
+                <td>${item.barcode}</td>
+                <td>${item.name}</td>
+                <td>${item.style_code}</td>
+                <td>${item.colour}</td>
+                <td>${item.size}</td>
+                <td class="text-right">${item.qty.toFixed(2)}</td>
+                <td class="text-right">${item.mrp.toFixed(2)}</td>
+                <td class="text-right">${item.vat_amt.toFixed(2)}</td>
+                <td class="text-right highlight-col" style="font-weight:600;">${item.net_sales.toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+
+            totalSQty += item.qty;
+            totalVatAmt += item.vat_amt;
+            totalNetSales += item.net_sales;
+        });
+
+        tfoot.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:right; padding-right:15px; border-top: 2px solid #333;">TOTAL:</td>
+                <td class="text-right" style="border-top: 2px solid #333;">${totalSQty.toFixed(2)}</td>
+                <td></td>
+                <td class="text-right" style="border-top: 2px solid #333;">${totalVatAmt.toFixed(2)}</td>
+                <td class="text-right highlight-col" style="border-top: 2px solid #333; font-weight:bold; color:var(--primary);">${totalNetSales.toFixed(2)}</td>
+            </tr>
+        `;
+        document.getElementById('statsBar').innerText = `Rows: ${tbody.children.length}`;
+    }
+
+    function downloadProcessedCSV() {
+        if (processedData.length === 0) return;
+        const filterVal = document.getElementById('vatFilter').value;
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Date,Invoice,Barcode,Name,Style,Colour,Size,Qty,MRP,VatAmt,NetSales\r\n";
+        processedData.forEach(item => {
+            if (filterVal !== 'all' && item.vat_perc !== parseFloat(filterVal)) return;
+            const row = [
+                item.date, item.invoice, item.barcode, 
+                `"${item.name}"`, item.style_code, item.colour, item.size,
+                item.qty, item.mrp, item.vat_amt, item.net_sales
+            ];
+            csvContent += row.join(",") + "\r\n";
+        });
+        const link = document.createElement("a");
+        link.setAttribute("href", encodeURI(csvContent));
+        link.setAttribute("download", "Cleaned_Sales_Data.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // --- Analysis Logic (Tab 2) ---
+    function generateAnalysis() {
+        if (processedData.length === 0) return;
+
+        const totalSales = processedData.reduce((sum, item) => sum + item.net_sales, 0);
+        const totalQty = processedData.reduce((sum, item) => sum + item.qty, 0);
+        const totalDisc = processedData.reduce((sum, item) => sum + item.disc_amt, 0);
+        const totalVat = processedData.reduce((sum, item) => sum + item.vat_amt, 0);
+        
+        const uniqueInvoices = new Set(processedData.map(item => item.invoice));
+        const totalInvoices = uniqueInvoices.size;
+        const avgBill = totalInvoices > 0 ? (totalSales / totalInvoices) : 0;
+
+        // Save for Summary Report
+        summaryStats = { sales: totalSales, qty: totalQty, inv: totalInvoices, avg: avgBill };
+
+        const kpiHTML = `
+            <div class="kpi-card">
+                <span class="kpi-label">Total Net Sales</span>
+                <div class="kpi-value">${totalSales.toFixed(2)}</div>
+                <div class="kpi-sub">${totalQty.toFixed(0)} Units Sold</div>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-label">Total Invoices</span>
+                <div class="kpi-value">${totalInvoices}</div>
+                <div class="kpi-sub">Avg Bill: ${avgBill.toFixed(2)}</div>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-label">Total Discount</span>
+                <div class="kpi-value" style="color:var(--danger)">${totalDisc.toFixed(2)}</div>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-label">Total VAT Collected</span>
+                <div class="kpi-value" style="color:var(--success)">${totalVat.toFixed(2)}</div>
+            </div>
+        `;
+        document.getElementById('kpiContainer').innerHTML = kpiHTML;
+
+        const groupBy = (array, key) => {
+            return array.reduce((result, currentValue) => {
+                (result[currentValue[key]] = result[currentValue[key]] || []).push(currentValue);
+                return result;
+            }, {});
+        };
+
+        // Daily Trend
+        const dailyGroups = groupBy(processedData, 'date');
+        let dailyHTML = "";
+        Object.keys(dailyGroups).sort().forEach(date => {
+            const items = dailyGroups[date];
+            const dSales = items.reduce((s,i)=>s+i.net_sales,0);
+            const dQty = items.reduce((s,i)=>s+i.qty,0);
+            dailyHTML += `<tr><td>${date}</td><td class="text-right">${dQty.toFixed(0)}</td><td class="text-right">${dSales.toFixed(2)}</td></tr>`;
+        });
+        document.querySelector('#dailyTrendTable tbody').innerHTML = dailyHTML;
+
+        // Top / Slow
+        const styleGroups = groupBy(processedData, 'style_code');
+        const styleStats = [];
+        for (const [style, items] of Object.entries(styleGroups)) {
+            const sQty = items.reduce((s,i)=>s+i.qty,0);
+            const sSales = items.reduce((s,i)=>s+i.net_sales,0); 
+            const sDisc = items.reduce((s,i)=>s+i.disc_amt,0);
+            const sVat = items.reduce((s,i)=>s+i.vat_amt,0);
+            const sName = items[0].name || ""; 
+            const contrib = (sSales / totalSales) * 100;
+            styleStats.push({ style, name: sName, qty: sQty, sales: sSales, disc: sDisc, vat: sVat, contrib });
+        }
+        styleStats.sort((a,b) => b.qty - a.qty);
+
+        let topHTML = "";
+        styleStats.slice(0, 10).forEach(s => {
+            topHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="text-right">${s.qty.toFixed(0)}</td><td class="text-right">${s.sales.toFixed(2)}</td></tr>`;
+        });
+        document.querySelector('#topProductsTable tbody').innerHTML = topHTML;
+
+        let slowHTML = "";
+        const sortedAsc = [...styleStats].sort((a,b) => a.qty - b.qty);
+        sortedAsc.slice(0, 10).forEach(s => {
+            slowHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="text-right">${s.qty.toFixed(0)}</td><td class="text-right">${s.sales.toFixed(2)}</td></tr>`;
+        });
+        document.querySelector('#slowProductsTable tbody').innerHTML = slowHTML;
+
+        // Revenue Table
+        const revenueSorted = [...styleStats].sort((a,b) => b.sales - a.sales);
+        let revHTML = "";
+        revenueSorted.forEach(s => {
+            revHTML += `<tr>
+                <td>${s.style}</td>
+                <td>${s.name}</td>
+                <td class="text-right">${s.qty.toFixed(0)}</td>
+                <td class="text-right">${s.sales.toFixed(2)}</td>
+                <td class="text-right">${s.disc.toFixed(2)}</td>
+                <td class="text-right">${s.vat.toFixed(2)}</td>
+                <td class="text-right">${s.contrib.toFixed(2)}%</td>
+            </tr>`;
+        });
+        document.querySelector('#revenueTable tbody').innerHTML = revHTML;
+
+        // Colour / Size
+        const colourGroups = groupBy(processedData, 'colour');
+        let colourHTML = "";
+        Object.entries(colourGroups).forEach(([col, items]) => {
+            const cQty = items.reduce((s,i)=>s+i.qty,0);
+            const cSales = items.reduce((s,i)=>s+i.net_sales,0);
+            colourHTML += `<tr><td>${col}</td><td class="text-right">${cQty.toFixed(0)}</td><td class="text-right">${cSales.toFixed(2)}</td></tr>`;
+        });
+        document.querySelector('#colourTable tbody').innerHTML = colourHTML;
+
+        const sizeGroups = groupBy(processedData, 'size');
+        let sizeHTML = "";
+        Object.entries(sizeGroups).forEach(([sz, items]) => {
+            const sQty = items.reduce((s,i)=>s+i.qty,0);
+            const sSales = items.reduce((s,i)=>s+i.net_sales,0);
+            sizeHTML += `<tr><td>${sz}</td><td class="text-right">${sQty.toFixed(0)}</td><td class="text-right">${sSales.toFixed(2)}</td></tr>`;
+        });
+        document.querySelector('#sizeTable tbody').innerHTML = sizeHTML;
+    }
+
+    // --- DETAILED PRINT REPORT GENERATION (Tab 3) ---
+    function generatePrintReport() {
+        if (processedData.length === 0) return;
+        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        document.getElementById('rptDateRange').innerText = dates.length > 0 ? `${dates[0]} to ${dates[dates.length-1]}` : "N/A";
+        document.getElementById('rptGenDate').innerText = new Date().toLocaleString();
+        document.getElementById('rptRecordCount').innerText = processedData.length;
+
+        const totalSales = processedData.reduce((sum, item) => sum + item.net_sales, 0);
+        const totalQty = processedData.reduce((sum, item) => sum + item.qty, 0);
+        const totalDisc = processedData.reduce((sum, item) => sum + item.disc_amt, 0);
+        const totalVat = processedData.reduce((sum, item) => sum + item.vat_amt, 0);
+        const totalInv = new Set(processedData.map(i => i.invoice)).size;
+        const avgBill = totalInv > 0 ? (totalSales / totalInv) : 0;
+
+        document.getElementById('rptTotalSales').innerText = "$" + totalSales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('rptTotalQty').innerText = totalQty.toFixed(0);
+        document.getElementById('rptTotalInv').innerText = totalInv;
+        document.getElementById('rptTotalDisc').innerText = "$" + totalDisc.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('rptTotalVat').innerText = "$" + totalVat.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('rptAvgBill').innerText = "$" + avgBill.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        // Ledger Table
+        const ledgerBody = document.getElementById('rptLedgerBody');
+        ledgerBody.innerHTML = '';
+        
+        let lQty = 0, lDisc = 0, lVat = 0, lNet = 0;
+
+        processedData.forEach(item => {
+            lQty += item.qty; lDisc += item.disc_amt; lVat += item.vat_amt; lNet += item.net_sales;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.invoice}</td>
+                <td>${item.barcode}</td>
+                <td>${item.name}</td>
+                <td>${item.style_code}</td>
+                <td>${item.colour}</td>
+                <td>${item.size}</td>
+                <td class="num">${item.qty.toFixed(2)}</td>
+                <td class="num">${item.mrp.toFixed(2)}</td>
+                <td class="num">${item.disc_amt.toFixed(2)}</td>
+                <td class="num">${item.vat_amt.toFixed(2)}</td>
+                <td class="num" style="font-weight:bold;">${item.net_sales.toFixed(2)}</td>
+            `;
+            ledgerBody.appendChild(tr);
+        });
+
+        document.getElementById('rptLedgerQty').innerText = lQty.toFixed(2);
+        document.getElementById('rptLedgerDisc').innerText = lDisc.toFixed(2);
+        document.getElementById('rptLedgerVat').innerText = lVat.toFixed(2);
+        document.getElementById('rptLedgerNet').innerText = lNet.toFixed(2);
+
+        // Analytics Tables (Re-calculate grouping for Report)
+        const styleGroups = {};
+        processedData.forEach(item => {
+            if(!styleGroups[item.style_code]) styleGroups[item.style_code] = { qty:0, sales:0, name: item.name };
+            styleGroups[item.style_code].qty += item.qty;
+            styleGroups[item.style_code].sales += item.net_sales;
+        });
+
+        const sortedStyles = Object.entries(styleGroups).map(([k,v]) => ({style:k, ...v})).sort((a,b) => b.qty - a.qty);
+        
+        // Top 10
+        let topHTML = "";
+        sortedStyles.slice(0, 10).forEach(s => {
+            topHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="num">${s.qty.toFixed(0)}</td><td class="num">$${s.sales.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+        });
+        document.getElementById('rptTopBody').innerHTML = topHTML;
+
+        // Slow 10
+        let slowHTML = "";
+        [...sortedStyles].sort((a,b) => a.qty - b.qty).slice(0, 10).forEach(s => {
+            slowHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="num">${s.qty.toFixed(0)}</td><td class="num">$${s.sales.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+        });
+        document.getElementById('rptSlowBody').innerHTML = slowHTML;
+    }
+
+    // --- SUMMARY REPORT GENERATION (Tab 4) ---
+    function generateSummaryReport() {
+        if (processedData.length === 0) return;
+
+        // Meta
+        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        document.getElementById('sumPeriod').innerText = dates.length > 0 ? `${dates[0]} to ${dates[dates.length-1]}` : "N/A";
+        document.getElementById('sumGenDate').innerText = new Date().toLocaleString();
+
+        // 1. Core Metrics
+        document.getElementById('sumCurrentSales').innerText = "$" + summaryStats.sales.toFixed(2);
+        document.getElementById('sumCurrentQty').innerText = summaryStats.qty.toFixed(0) + " Units";
+        document.getElementById('sumCurrentInv').innerText = summaryStats.inv;
+        document.getElementById('sumCurrentAvg').innerText = "$" + summaryStats.avg.toFixed(2);
+
+        // 2. Top Invoices
+        const invoiceGroups = {};
+        processedData.forEach(item => {
+            if(!invoiceGroups[item.invoice]) invoiceGroups[item.invoice] = { total: 0, date: item.date, qty: 0 };
+            invoiceGroups[item.invoice].total += item.net_sales;
+            invoiceGroups[item.invoice].qty += item.qty;
+        });
+        const topInvoices = Object.entries(invoiceGroups).map(([k,v]) => ({inv:k, ...v})).sort((a,b) => b.total - a.total).slice(0, 5);
+        
+        let invHTML = "";
+        topInvoices.forEach((inv, index) => {
+            invHTML += `<tr>
+                <td>${String(index + 1).padStart(2, '0')}</td>
+                <td>${inv.inv}</td>
+                <td>${inv.date}</td>
+                <td class="num">${inv.qty.toFixed(0)}</td>
+                <td class="num">$${inv.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            </tr>`;
+        });
+        document.getElementById('sumTopInvoicesBody').innerHTML = invHTML;
+
+        // 3. Inventory Performance
+        // Top Style
+        const styleGroups = {};
+        processedData.forEach(item => {
+            if(!styleGroups[item.style_code]) styleGroups[item.style_code] = { qty: 0, name: item.name, sales: 0 };
+            styleGroups[item.style_code].qty += item.qty;
+            styleGroups[item.style_code].sales += item.net_sales;
+        });
+        const sortedStyles = Object.entries(styleGroups).map(([k,v]) => ({style:k, ...v}));
+        
+        const topStyle = sortedStyles.sort((a,b) => b.qty - a.qty)[0] || {style:"-", name:"-", qty:0, sales:0};
+        document.getElementById('rowTopStyle').innerHTML = `
+            <td>Top Selling Style</td>
+            <td>${topStyle.style}</td>
+            <td>${topStyle.name}</td>
+            <td class="num">${topStyle.qty.toFixed(0)} Units</td>
+        `;
+
+        const slowStyle = sortedStyles.sort((a,b) => a.qty - b.qty)[0] || {style:"-", name:"-", qty:0, sales:0};
+        document.getElementById('rowSlowStyle').innerHTML = `
+            <td>Slow Moving Style</td>
+            <td>${slowStyle.style}</td>
+            <td>${slowStyle.name}</td>
+            <td class="num">${slowStyle.qty.toFixed(0)} Units</td>
+        `;
+
+        // 4. Operational Insights (Days)
+        const dayGroups = {};
+        processedData.forEach(item => {
+            if(!dayGroups[item.date]) dayGroups[item.date] = 0;
+            dayGroups[item.date] += item.net_sales;
+        });
+        const sortedDays = Object.entries(dayGroups).sort((a,b) => b[1] - a[1]);
+        
+        if (sortedDays.length > 0) {
+            const busiest = sortedDays[0];
+            document.getElementById('rowBusiestDay').innerHTML = `
+                <td>Busiest Day</td>
+                <td>${busiest[0]}</td>
+                <td class="num">$${busiest[1].toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            `;
+            
+            const lowest = sortedDays[sortedDays.length - 1];
+            document.getElementById('rowLowestDay').innerHTML = `
+                <td>Lowest Activity Day</td>
+                <td>${lowest[0]}</td>
+                <td class="num">$${lowest[1].toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            `;
+        }
+
+        // 5. Category Contribution (Group by Colour/Style as proxy)
+        const categoryGroups = {};
+        processedData.forEach(item => {
+            // Using Name as category proxy since no specific category column exists
+            if(!categoryGroups[item.name]) categoryGroups[item.name] = { qty:0, sales:0 };
+            categoryGroups[item.name].qty += item.qty;
+            categoryGroups[item.name].sales += item.net_sales;
+        });
+        
+        const totalSales = summaryStats.sales;
+        const sortedCats = Object.entries(categoryGroups).map(([k,v]) => ({cat:k, ...v})).sort((a,b) => b.sales - a.sales).slice(0, 10);
+        
+        let catHTML = "";
+        sortedCats.forEach(c => {
+            const pct = (c.sales / totalSales) * 100;
+            catHTML += `<tr>
+                <td>${c.cat}</td>
+                <td class="num">${c.qty.toFixed(0)}</td>
+                <td class="num">$${c.sales.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td class="num">${pct.toFixed(1)}%</td>
+            </tr>`;
+        });
+        document.getElementById('sumCategoryBody').innerHTML = catHTML;
+    }
+
+    // --- Helper: Calc Growth for Inputs ---
+    function calcGrowth(type, value) {
+        const prev = parseFloat(value);
+        const current = summaryStats[type.toLowerCase()];
+        
+        let el = document.getElementById('growth' + type);
+        
+        if (isNaN(prev) || isNaN(current)) {
+            el.innerText = "-";
+            return;
+        }
+        
+        if (prev === 0) {
+            el.innerText = "N/A";
+            return;
+        }
+
+        const growth = ((current - prev) / prev) * 100;
+        el.innerText = growth.toFixed(2) + "%";
+        el.style.color = growth >= 0 ? "var(--success)" : "var(--danger)";
+    }
+
+    function clearAll() {
+        document.getElementById('dataInput').value = '';
+        document.getElementById('fileInput').value = '';
+        document.getElementById('outputSection').style.display = 'none';
+        document.getElementById('tableBody').innerHTML = '';
+        document.getElementById('tableFooter').innerHTML = '';
+        document.getElementById('analysisPlaceholder').classList.remove('hidden');
+        document.getElementById('analysisContent').classList.add('hidden');
+        document.getElementById('reportPlaceholder').classList.remove('hidden');
+        document.getElementById('reportContent').classList.add('hidden');
+        document.getElementById('summaryPlaceholder').classList.remove('hidden');
+        document.getElementById('summaryContent').classList.add('hidden');
+        processedData = [];
+        showToast('Cleared', 'success');
+    }
+
+    function showToast(msg, type) {
+        const c = document.getElementById('toast-container');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.innerText = msg;
+        c.appendChild(t);
+        setTimeout(() => { t.style.opacity = 0; setTimeout(()=>c.removeChild(t), 300); }, 3000);
+    }
+</script>
+</body>
+</html>
