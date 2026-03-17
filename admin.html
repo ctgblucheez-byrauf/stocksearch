@@ -119,42 +119,6 @@
             .sidebar-footer { display: none; } /* Hide logout in footer on mobile */
         }
 
-        /* --- Login Screen --- */
-        #login-screen {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-body);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-        }
-        .login-card {
-            background: var(--bg-card);
-            padding: 2rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-        .login-card h2 { margin-bottom: 1.5rem; color: var(--primary); }
-        .form-group { margin-bottom: 1rem; text-align: left; }
-        .form-group label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted); }
-        .form-input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            font-size: 1rem;
-        }
-        .login-error {
-            color: var(--danger);
-            font-size: 0.9rem;
-            margin-top: 1rem;
-            min-height: 1.2em;
-        }
-
         /* --- Dashboard Grid --- */
         .dashboard-grid {
             display: grid;
@@ -345,35 +309,18 @@
 </head>
 <body>
 
-    <!-- 1. LOGIN SCREEN -->
-    <div id="login-screen">
-        <div class="login-card">
-            <h2>Authority Panel</h2>
-            <form id="login-form">
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" id="username" class="form-input" placeholder="Enter username" required autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="password" class="form-input" placeholder="Enter password" required>
-                </div>
-                <div id="login-error" class="login-error"></div>
-                <button type="submit" class="btn btn-primary w-full">Login</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- 2. MAIN APP LAYOUT -->
-    <div id="app-layout" class="hidden">
+    <!-- MAIN APP LAYOUT (Login Removed) -->
+    <div id="app-layout">
         
         <!-- SIDEBAR -->
         <aside class="sidebar">
             <h2>⚡ Authority</h2>
             <nav>
                 <a href="#" class="nav-link active">Upload Stock</a>
-                <a href="admin.html" class="nav-link" target="_blank">Admin Panel</a>
-                <a href="data.html" class="nav-link" target="_blank">Data View</a>
+                <!-- Added Add Member Option -->
+                <a href="staff.html" class="nav-link">Add Member</a>
+                <a href="admin.html" class="nav-link">Admin Panel</a>
+                <a href="data.html" class="nav-link">Data View</a>
             </nav>
             <div class="sidebar-footer">
                 <button id="logout-btn" class="btn btn-outline w-full" style="border-color: #4b5563; color: #e5e7eb;">Logout</button>
@@ -404,7 +351,7 @@
                         <strong>Smart Features:</strong><br>
                         ✅ Supports <strong>CloudPOS</strong> format (BARCODE, NAME...)<br>
                         ✅ Supports <strong>Direct</strong> format (barcode, name...)<br>
-                        ❌ Ignores extra columns (CPU, TOT COST...)
+                        ✅ <strong>Fixed:</strong> Handles commas inside names/quotes correctly.
                     </div>
 
                     <div id="validation-results" style="margin-top: 15px;"></div>
@@ -466,7 +413,13 @@
     <div id="toast-container"></div>
 
     <script>
-        // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+        // --- 0. AUTH REDIRECT (Refresh/Exit protection) ---
+        // Checks if user is authenticated. If not, redirects immediately to auth.html
+        if (localStorage.getItem('auth_token') !== 'valid') {
+            window.location.href = 'auth.html';
+        }
+
+        // --- 1. CONFIGURATION & INITIALIZATION ---
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
         
@@ -483,15 +436,12 @@
         }
 
         // --- COLUMN CONFIGURATION ---
-        
-        // The final target columns we want in the DB
         const TARGET_COLUMNS = [
             "barcode", "name", "style_code", "color", "size",
             "rcv_qty", "trans_qty", "sale_qty",
             "conv_in", "conv_out", "adj_qty", "balance", "mrp"
         ];
 
-        // Mapping for CloudPOS format (Source -> Target)
         const CLOUDPOS_MAP = {
             "BARCODE": "barcode",
             "NAME": "name",
@@ -510,15 +460,11 @@
 
         // --- APP STATE ---
         let parsedCSVData = [];
-        let filteredData = []; // For search functionality
+        let filteredData = [];
         let isValidCSV = false;
-        let detectedFormat = "None"; // 'Direct' or 'CloudPOS'
+        let detectedFormat = "None";
 
         // --- DOM ELEMENTS ---
-        const loginScreen = document.getElementById('login-screen');
-        const appLayout = document.getElementById('app-layout');
-        const loginForm = document.getElementById('login-form');
-        const loginError = document.getElementById('login-error');
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const searchInput = document.getElementById('search-input');
@@ -536,37 +482,11 @@
         const confirmYes = document.getElementById('confirm-yes');
         const confirmNo = document.getElementById('confirm-no');
 
-        // --- AUTHENTICATION LOGIC ---
-        function checkAuth() {
-            const isLogged = localStorage.getItem('auth_token') === 'valid';
-            if (isLogged) {
-                loginScreen.classList.add('hidden');
-                appLayout.classList.remove('hidden');
-                loadLastUploadTime();
-            } else {
-                loginScreen.classList.remove('hidden');
-                appLayout.classList.add('hidden');
-            }
-        }
-
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-
-            if (u === 'blucheeztm' && p === 'oppeen22') {
-                localStorage.setItem('auth_token', 'valid');
-                loginError.textContent = '';
-                checkAuth();
-                showToast('Login Successful', 'success');
-            } else {
-                loginError.textContent = 'Invalid credentials';
-            }
-        });
-
+        // --- AUTH LOGIC (Logout Only) ---
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('auth_token');
-            location.reload();
+            // Redirect to auth.html
+            window.location.href = 'auth.html';
         });
 
         // --- FILE HANDLING ---
@@ -624,19 +544,35 @@
             reader.readAsText(file);
         }
 
-        // --- SMART CSV PARSING ---
+        // --- ROBUST CSV PARSING (Fixed for Commas/Quotes) ---
+        // Helper to split a CSV line respecting quotes
+        function splitCSVLine(text) {
+            // This regex matches a delimiter (comma) only if it is NOT inside quotes
+            return text.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => {
+                let cleaned = val.trim();
+                // Remove surrounding quotes if present
+                if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+                    cleaned = cleaned.slice(1, -1);
+                    // Replace double quotes escaped inside the string ("") with single quote
+                    cleaned = cleaned.replace(/""/g, '"');
+                }
+                return cleaned;
+            });
+        }
+
         function parseCSV(text) {
+            // Normalize line endings
             const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
+            
             if (lines.length < 2) {
                 showToast("CSV is empty or invalid", "error");
                 return;
             }
 
-            const headers = lines[0].split(',').map(h => h.trim());
+            // Use robust splitter for headers
+            const headers = splitCSVLine(lines[0]).map(h => h.trim());
             
             // Detect Format
-            // Simple heuristic: If "BARCODE" (uppercase) exists, assume CloudPOS. 
-            // If "barcode" (lowercase) exists, assume Direct.
             if (headers.includes('BARCODE')) {
                 detectedFormat = 'CloudPOS';
             } else if (headers.includes('barcode')) {
@@ -650,24 +586,30 @@
             let missingEssential = [];
 
             for (let i = 1; i < lines.length; i++) {
-                const rowValues = lines[i].split(',');
-                if (rowValues.length !== headers.length) continue; // Skip malformed rows
+                // Use robust splitter for data rows
+                const rowValues = splitCSVLine(lines[i]);
+                
+                // Optional: Check column alignment, but robust split usually fixes this.
+                // If lengths differ drastically, we might still skip, but usually robust split is enough.
+                if (rowValues.length !== headers.length && rowValues.length > 0) {
+                    // If length mismatch but we have data, we try to map what we can or skip.
+                    // For safety, let's skip rows that are structurally broken.
+                    continue; 
+                }
 
                 let targetRow = {};
                 let hasData = false;
 
                 TARGET_COLUMNS.forEach(targetCol => {
-                    // Determine source key based on detected format
-                    let sourceKey = targetCol; // Default for Direct
+                    let sourceKey = targetCol; 
                     if (detectedFormat === 'CloudPOS') {
-                        // Find the key in CLOUDPOS_MAP that maps to this targetCol
                         sourceKey = Object.keys(CLOUDPOS_MAP).find(k => CLOUDPOS_MAP[k] === targetCol);
                     }
 
                     const index = headers.indexOf(sourceKey);
 
-                    if (index !== -1) {
-                        let val = rowValues[index].trim().replace(/^"|"$/g, '');
+                    if (index !== -1 && index < rowValues.length) {
+                        let val = rowValues[index]; 
                         
                         // Type Conversion
                         if (['rcv_qty','trans_qty','sale_qty','conv_in','conv_out','adj_qty','balance'].includes(targetCol)) {
@@ -679,9 +621,8 @@
                         if (val || targetCol === 'barcode') hasData = true;
                         targetRow[targetCol] = val;
                     } else {
-                        // Column missing from CSV
                         if (targetCol === 'barcode') missingEssential.push('barcode');
-                        targetRow[targetCol] = 0; // Default for missing non-essential
+                        targetRow[targetCol] = 0; 
                     }
                 });
 
@@ -690,9 +631,9 @@
                 }
             }
 
-            filteredData = parsedCSVData; // Init filter
+            filteredData = parsedCSVData;
 
-            // Validation Logic (Flexible)
+            // Validation
             if (detectedFormat === 'Unknown') {
                 validationResults.innerHTML = `<div class="validation-error">Format unknown. Ensure headers match <strong>CloudPOS</strong> (BARCODE) or <strong>Direct</strong> (barcode).</div>`;
                 isValidCSV = false;
@@ -700,12 +641,10 @@
                 validationResults.innerHTML = `<div class="validation-error">Missing Essential Columns: ${missingEssential.join(', ')}</div>`;
                 isValidCSV = false;
             } else {
-                // Count extra columns ignored
                 const mappedKeys = detectedFormat === 'CloudPOS' ? Object.keys(CLOUDPOS_MAP) : TARGET_COLUMNS;
                 const ignoredCount = headers.filter(h => !mappedKeys.includes(h)).length;
-                
                 let extraMsg = ignoredCount > 0 ? ` (${ignoredCount} extra columns ignored)` : '';
-                validationResults.innerHTML = `<div class="validation-success">✅ <strong>${detectedFormat}</strong> format detected${extraMsg}. Ready to upload.</div>`;
+                validationResults.innerHTML = `<div class="validation-success">✅ <strong>${detectedFormat}</strong> format detected${extraMsg}. Color & Size parsing fixed.</div>`;
                 isValidCSV = true;
             }
 
@@ -738,7 +677,7 @@
             });
             thead.appendChild(trHead);
 
-            // Body (Max 20 rows for performance)
+            // Body (Max 20 rows)
             const limit = Math.min(data.length, 20);
             for (let i = 0; i < limit; i++) {
                 const tr = document.createElement('tr');
@@ -799,7 +738,6 @@
             exportBtn.disabled = true;
 
             try {
-                // Fetch data (Limit to 10,000 for safety in this demo)
                 const { data, error } = await sbClient
                     .from('inventory')
                     .select('*')
@@ -812,7 +750,6 @@
                     return;
                 }
 
-                // Convert to CSV
                 const headers = TARGET_COLUMNS;
                 const csvContent = [
                     headers.join(','),
@@ -821,7 +758,6 @@
                     ).join(','))
                 ].join('\n');
 
-                // Download Trigger
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
@@ -917,7 +853,7 @@
         }
 
         // --- INIT ---
-        checkAuth();
+        loadLastUploadTime();
 
     </script>
 </body>
