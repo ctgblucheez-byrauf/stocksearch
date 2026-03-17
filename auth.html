@@ -13,7 +13,7 @@
             --card-bg: #ffffff;
             --text: #1f2937;
             --danger: #dc2626;
-            --success: #16a34a;
+            --warning: #f59e0b;
         }
 
         body {
@@ -24,6 +24,7 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
+            overflow: hidden;
         }
 
         .login-container {
@@ -34,6 +35,8 @@
             text-align: center;
             width: 100%;
             max-width: 400px;
+            z-index: 10;
+            position: relative;
         }
 
         h2 { color: var(--text); margin-bottom: 0.5rem; font-size: 1.5rem; }
@@ -59,7 +62,25 @@
 
         .msg { margin-top: 1.5rem; min-height: 20px; font-size: 0.9rem; font-weight: 500; }
         .msg.error { color: var(--danger); }
-        .msg.success { color: var(--success); }
+
+        #toast-container {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; display: flex; flex-direction: column; gap: 10px;
+            width: 90%; max-width: 500px; pointer-events: none;
+        }
+
+        .toast {
+            background: #1f2937; color: white; padding: 16px 20px; border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            display: flex; align-items: center; gap: 12px; font-size: 0.95rem;
+            animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border-left: 5px solid var(--warning);
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
 
         .spinner {
             display: inline-block; width: 16px; height: 16px;
@@ -70,6 +91,8 @@
     </style>
 </head>
 <body>
+
+    <div id="toast-container"></div>
 
     <div class="login-container">
         <h2>🔒 Authority Access</h2>
@@ -85,48 +108,79 @@
     </div>
 
     <script>
+        // 1. Check if Supabase library loaded
+        if (typeof supabase === 'undefined') {
+            alert("Error: Supabase library failed to load. Check your internet connection.");
+            console.error("Supabase is undefined");
+        }
+
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let sb;
+        try {
+            sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (e) {
+            console.error("Client creation failed", e);
+            alert("Error initializing database client.");
+        }
 
         const input = document.getElementById('auth-input');
         const btn = document.getElementById('login-btn');
         const msg = document.getElementById('msg');
 
-        // Auto-focus input on load
         input.focus();
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<span style="font-size:1.2rem;">👁️</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
 
         async function verifyCode() {
             const code = input.value.trim();
             if (!code) { showMessage("Please scan or enter a code.", "error"); return; }
 
-            // Loading State
             const originalBtnText = btn.textContent;
             btn.innerHTML = '<div class="spinner"></div> Checking...';
             btn.disabled = true;
             input.disabled = true;
 
             try {
+                console.log("Checking code:", code);
                 const { data, error } = await sb
                     .from('staff')
                     .select('*')
                     .eq('pin_code', code)
                     .maybeSingle();
 
+                console.log("DB Response:", { data, error });
+
                 if (error) throw error;
 
                 if (data) {
-                    showMessage(`Welcome, ${data.name}`, "success");
+                    // SUCCESS
+                    console.log("Login successful for:", data.name);
+                    showToast(`Welcome ${data.name} to the access and you're under observation`);
                     
-                    // CRITICAL CHANGE: Use sessionStorage instead of localStorage
-                    // SessionStorage is cleared when the tab is closed.
-                    // To lock on refresh, the admin page must DELETE this key immediately on load.
+                    // Save session
                     sessionStorage.setItem('authority_user', JSON.stringify(data));
 
+                    // --- REDIRECT LOGIC ---
+                    // We use window.location.replace for a harder redirect than href
+                    console.log("Attempting redirect to admin.html...");
+                    
                     setTimeout(() => {
-                        window.location.href = 'admin.html';
-                    }, 800);
+                        console.log("Redirecting now...");
+                        window.location.replace('admin.html');
+                    }, 1500);
+
                 } else {
+                    // FAIL
+                    console.log("Access denied");
                     showMessage("Access Denied: Invalid Code", "error");
                     input.value = '';
                     input.disabled = false;
@@ -135,8 +189,8 @@
                     btn.disabled = false;
                 }
             } catch (err) {
-                console.error(err);
-                showMessage("System Error. Try again.", "error");
+                console.error("Login Error:", err);
+                showMessage("System Error. Check Console (F12).", "error");
                 input.disabled = false;
                 input.focus();
                 btn.textContent = originalBtnText;
@@ -152,7 +206,6 @@
         btn.addEventListener('click', verifyCode);
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyCode(); });
         
-        // Keep focus for scanners
         document.addEventListener('click', (e) => {
             if (e.target !== btn && !input.disabled) input.focus();
         });
