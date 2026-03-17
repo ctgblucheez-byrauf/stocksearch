@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authority - Staff Manager</title>
+    
+    <!-- Supabase JS Library from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --danger: #ef4444;
+            --success: #10b981;
+            --bg-body: #f3f4f6;
+            --bg-sidebar: #1f2937;
+            --text-sidebar: #e5e7eb;
+            --bg-card: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* --- Utilities --- */
+        .hidden { display: none !important; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-outline { background-color: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+        .w-full { width: 100%; }
+
+        /* --- Layout --- */
+        #app-layout { display: flex; width: 100%; min-height: 100vh; }
+
+        .sidebar {
+            width: 250px;
+            background-color: var(--bg-sidebar);
+            color: var(--text-sidebar);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+        .sidebar h2 {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: white;
+            border-bottom: 1px solid #374151;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-link {
+            display: block;
+            padding: 12px;
+            color: var(--text-sidebar);
+            text-decoration: none;
+            border-radius: var(--radius);
+            margin-bottom: 5px;
+            transition: background 0.2s;
+        }
+        .nav-link:hover, .nav-link.active { background-color: var(--primary); color: white; }
+        .sidebar-footer { margin-top: auto; border-top: 1px solid #374151; padding-top: 20px; }
+
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+
+        @media (max-width: 768px) {
+            #app-layout { flex-direction: column; }
+            .sidebar { width: 100%; padding: 15px; }
+            .sidebar h2 { font-size: 1rem; margin-bottom: 10px; }
+            .nav-link { display: inline-block; margin-right: 10px; margin-bottom: 5px; font-size: 0.9rem; }
+            .sidebar-footer { display: none; }
+        }
+
+        /* --- Components --- */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h3 { margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem; }
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+        }
+        .form-input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+
+        /* --- Table --- */
+        .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: #f9fafb; font-weight: 600; }
+        tr:last-child td { border-bottom: none; }
+
+        /* --- Toast & Spinner --- */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 4000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 12px 20px; border-radius: var(--radius); color: white; font-size: 0.9rem; box-shadow: var(--shadow); animation: slideIn 0.3s ease-out; min-width: 250px; }
+        .toast.success { background-color: var(--success); }
+        .toast.error { background-color: var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 3px solid white; width: 16px; height: 16px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- REDIRECT CHECK & APP LAYOUT -->
+    <div id="app-layout">
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <h2>⚡ Authority</h2>
+            <nav>
+                <a href="index.html" class="nav-link">Upload Stock</a>
+                <!-- Active State -->
+                <a href="staff.html" class="nav-link active">Add Member</a>
+                <a href="admin.html" class="nav-link">Admin Panel</a>
+                <a href="data.html" class="nav-link">Data View</a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="btn btn-outline w-full" style="border-color: #4b5563; color: #e5e7eb;">Logout</button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h1 style="font-size: 1.5rem;">Staff Management</h1>
+            </header>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 800px;">
+                
+                <!-- ADD MEMBER FORM -->
+                <section class="card">
+                    <h3>Add New Staff Member</h3>
+                    <form id="add-staff-form">
+                        <div class="form-group">
+                            <label for="staff-name">Full Name</label>
+                            <input type="text" id="staff-name" class="form-input" placeholder="e.g. John Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-pin">PIN Code (Must be unique)</label>
+                            <input type="number" id="staff-pin" class="form-input" placeholder="e.g. 1234" required maxlength="6" oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);">
+                            <small style="color: var(--text-muted); font-size: 0.8rem;">This PIN will be used to login to the POS.</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full">Add Member</button>
+                    </form>
+                </section>
+
+                <!-- STAFF LIST -->
+                <section class="card">
+                    <h3>Existing Staff</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>PIN Code</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-table-body">
+                                <!-- Rows will be injected here via JS -->
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: var(--text-muted);">Loading staff...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+    <script>
+        // --- 0. AUTH REDIRECT ---
+        if (localStorage.getItem('auth_token') !== 'valid') {
+            window.location.href = 'auth.html';
+        }
+
+        // --- 1. CONFIGURATION ---
+        const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+        
+        let sbClient = null;
+        try {
+            if (window.supabase) {
+                sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } else {
+                console.error("Supabase library failed to load.");
+            }
+        } catch (e) {
+            console.error("Supabase Init Error:", e);
+        }
+
+        // --- DOM ELEMENTS ---
+        const addStaffForm = document.getElementById('add-staff-form');
+        const staffTableBody = document.getElementById('staff-table-body');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // --- AUTH LOGIC ---
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('auth_token');
+            window.location.href = 'auth.html';
+        });
+
+        // --- LOAD STAFF LIST ---
+        async function loadStaff() {
+            staffTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Loading...</td></tr>';
+            
+            try {
+                const { data, error } = await sbClient
+                    .from('staff')
+                    .select('*')
+                    .order('id', { ascending: true });
+
+                if (error) throw error;
+
+                renderStaffTable(data);
+
+            } catch (err) {
+                console.error(err);
+                staffTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--danger);">Error loading staff: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- RENDER TABLE ---
+        function renderStaffTable(staffArray) {
+            staffTableBody.innerHTML = '';
+
+            if (!staffArray || staffArray.length === 0) {
+                staffTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No staff members found.</td></tr>`;
+                return;
+            }
+
+            staffArray.forEach(member => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>#${member.id}</td>
+                    <td style="font-weight: 500;">${escapeHtml(member.name)}</td>
+                    <td style="font-family: monospace; letter-spacing: 2px;">****</td>
+                    <td style="text-align: right;">
+                        <button class="btn btn-sm btn-danger" onclick="deleteStaff(${member.id}, '${escapeHtml(member.name)}')">Delete</button>
+                    </td>
+                `;
+                staffTableBody.appendChild(tr);
+            });
+        }
+
+        // --- ADD STAFF ---
+        addStaffForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nameInput = document.getElementById('staff-name');
+            const pinInput = document.getElementById('staff-pin');
+            const submitBtn = addStaffForm.querySelector('button[type="submit"]');
+
+            const name = nameInput.value.trim();
+            const pin = pinInput.value.trim();
+
+            if (!name || !pin) {
+                showToast("Please fill in all fields", "error");
+                return;
+            }
+
+            // UI Loading State
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Adding...";
+
+            try {
+                const { data, error } = await sbClient
+                    .from('staff')
+                    .insert([{ name: name, pin_code: pin }])
+                    .select();
+
+                if (error) {
+                    // Handle Unique Constraint Violation (Pin Code Duplicate)
+                    if (error.code === '23505') {
+                        showToast("Error: This PIN Code is already taken.", "error");
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    showToast(`Staff member "${name}" added successfully!`, "success");
+                    nameInput.value = '';
+                    pinInput.value = '';
+                    loadStaff(); // Refresh list
+                }
+
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to add member.", "error");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            }
+        });
+
+        // --- DELETE STAFF ---
+        window.deleteStaff = async (id, name) => {
+            if (!confirm(`Are you sure you want to delete ${name}? This cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const { error } = await sbClient
+                    .from('staff')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                showToast("Staff member deleted.", "success");
+                loadStaff(); // Refresh list
+
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to delete member.", "error");
+            }
+        };
+
+        // --- UTILS ---
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            const container = document.getElementById('toast-container');
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Simple HTML escape to prevent XSS in names
+        function escapeHtml(text) {
+            if (!text) return text;
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // --- INIT ---
+        loadStaff();
+
+    </script>
+</body>
+</html>
