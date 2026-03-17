@@ -116,7 +116,7 @@
             .sidebar { width: 100%; padding: 15px; }
             .sidebar h2 { font-size: 1rem; margin-bottom: 10px; }
             .nav-link { display: inline-block; margin-right: 10px; margin-bottom: 5px; font-size: 0.9rem; }
-            .sidebar-footer { display: none; } /* Hide logout in footer on mobile */
+            .sidebar-footer { display: none; }
         }
 
         /* --- Dashboard Grid --- */
@@ -309,7 +309,7 @@
 </head>
 <body>
 
-    <!-- MAIN APP LAYOUT (Login Removed) -->
+    <!-- MAIN APP LAYOUT -->
     <div id="app-layout">
         
         <!-- SIDEBAR -->
@@ -317,7 +317,6 @@
             <h2>⚡ Authority</h2>
             <nav>
                 <a href="#" class="nav-link active">Upload Stock</a>
-                <!-- Added Add Member Option -->
                 <a href="staff.html" class="nav-link">Add Member</a>
                 <a href="admin.html" class="nav-link">Admin Panel</a>
                 <a href="data.html" class="nav-link">Data View</a>
@@ -413,9 +412,10 @@
     <div id="toast-container"></div>
 
     <script>
-        // --- 0. AUTH REDIRECT (Refresh/Exit protection) ---
+        // --- 0. AUTH REDIRECT (SESSION STORAGE) ---
         // Checks if user is authenticated. If not, redirects immediately to auth.html
-        if (localStorage.getItem('auth_token') !== 'valid') {
+        // Uses sessionStorage, so closing the tab clears the session.
+        if (sessionStorage.getItem('auth_token') !== 'valid') {
             window.location.href = 'auth.html';
         }
 
@@ -482,9 +482,10 @@
         const confirmYes = document.getElementById('confirm-yes');
         const confirmNo = document.getElementById('confirm-no');
 
-        // --- AUTH LOGIC (Logout Only) ---
+        // --- AUTH LOGIC (Logout) ---
         logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('auth_token');
+            // Clear session storage
+            sessionStorage.removeItem('auth_token');
             // Redirect to auth.html
             window.location.href = 'auth.html';
         });
@@ -545,15 +546,11 @@
         }
 
         // --- ROBUST CSV PARSING (Fixed for Commas/Quotes) ---
-        // Helper to split a CSV line respecting quotes
         function splitCSVLine(text) {
-            // This regex matches a delimiter (comma) only if it is NOT inside quotes
             return text.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => {
                 let cleaned = val.trim();
-                // Remove surrounding quotes if present
                 if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
                     cleaned = cleaned.slice(1, -1);
-                    // Replace double quotes escaped inside the string ("") with single quote
                     cleaned = cleaned.replace(/""/g, '"');
                 }
                 return cleaned;
@@ -561,7 +558,6 @@
         }
 
         function parseCSV(text) {
-            // Normalize line endings
             const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
             
             if (lines.length < 2) {
@@ -569,10 +565,8 @@
                 return;
             }
 
-            // Use robust splitter for headers
             const headers = splitCSVLine(lines[0]).map(h => h.trim());
             
-            // Detect Format
             if (headers.includes('BARCODE')) {
                 detectedFormat = 'CloudPOS';
             } else if (headers.includes('barcode')) {
@@ -581,19 +575,13 @@
                 detectedFormat = 'Unknown';
             }
 
-            // Process Data
             parsedCSVData = [];
             let missingEssential = [];
 
             for (let i = 1; i < lines.length; i++) {
-                // Use robust splitter for data rows
                 const rowValues = splitCSVLine(lines[i]);
                 
-                // Optional: Check column alignment, but robust split usually fixes this.
-                // If lengths differ drastically, we might still skip, but usually robust split is enough.
                 if (rowValues.length !== headers.length && rowValues.length > 0) {
-                    // If length mismatch but we have data, we try to map what we can or skip.
-                    // For safety, let's skip rows that are structurally broken.
                     continue; 
                 }
 
@@ -611,7 +599,6 @@
                     if (index !== -1 && index < rowValues.length) {
                         let val = rowValues[index]; 
                         
-                        // Type Conversion
                         if (['rcv_qty','trans_qty','sale_qty','conv_in','conv_out','adj_qty','balance'].includes(targetCol)) {
                             val = parseInt(val) || 0;
                         } else if (targetCol === 'mrp') {
@@ -633,7 +620,6 @@
 
             filteredData = parsedCSVData;
 
-            // Validation
             if (detectedFormat === 'Unknown') {
                 validationResults.innerHTML = `<div class="validation-error">Format unknown. Ensure headers match <strong>CloudPOS</strong> (BARCODE) or <strong>Direct</strong> (barcode).</div>`;
                 isValidCSV = false;
@@ -668,7 +654,6 @@
             const thead = document.createElement('thead');
             const tbody = document.createElement('tbody');
 
-            // Header
             const trHead = document.createElement('tr');
             columns.forEach(col => {
                 const th = document.createElement('th');
@@ -677,7 +662,6 @@
             });
             thead.appendChild(trHead);
 
-            // Body (Max 20 rows)
             const limit = Math.min(data.length, 20);
             for (let i = 0; i < limit; i++) {
                 const tr = document.createElement('tr');
