@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authority Access</title>
-    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -31,98 +30,42 @@
             background: var(--card-bg);
             padding: 3rem;
             border-radius: 16px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
             text-align: center;
             width: 100%;
             max-width: 400px;
         }
 
-        h2 {
-            color: var(--text);
-            margin-bottom: 0.5rem;
-            font-size: 1.5rem;
-        }
+        h2 { color: var(--text); margin-bottom: 0.5rem; font-size: 1.5rem; }
+        p.subtitle { color: #6b7280; margin-bottom: 2rem; font-size: 0.9rem; }
 
-        p.subtitle {
-            color: #6b7280;
-            margin-bottom: 2rem;
-            font-size: 0.9rem;
-        }
-
-        .input-group {
-            margin-bottom: 1.5rem;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
-        }
-
+        .input-group { margin-bottom: 1.5rem; text-align: left; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem; }
+        
         input {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1.2rem;
-            text-align: center;
-            letter-spacing: 2px;
-            outline: none;
-            transition: border-color 0.2s;
-            box-sizing: border-box; /* Fix padding issues */
+            width: 100%; padding: 14px; border: 2px solid #e5e7eb; border-radius: 8px;
+            font-size: 1.2rem; text-align: center; letter-spacing: 2px; outline: none;
+            transition: border-color 0.2s; box-sizing: border-box;
         }
-
-        input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
 
         .btn {
-            width: 100%;
-            padding: 14px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
+            width: 100%; padding: 14px; background: var(--primary); color: white;
+            border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
         }
+        .btn:hover { background: #1d4ed8; }
+        .btn:disabled { background: #9ca3af; cursor: not-allowed; }
 
-        .btn:hover {
-            background: #1d4ed8;
-        }
-
-        .btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-
-        .msg {
-            margin-top: 1.5rem;
-            min-height: 20px;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
+        .msg { margin-top: 1.5rem; min-height: 20px; font-size: 0.9rem; font-weight: 500; }
         .msg.error { color: var(--danger); }
         .msg.success { color: var(--success); }
 
-        /* Loading Spinner */
         .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.3); border-radius: 50%;
+            border-top-color: #fff; animation: spin 1s ease-in-out infinite;
         }
-
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
@@ -134,7 +77,6 @@
 
         <div class="input-group">
             <label for="auth-input">Access Code</label>
-            <!-- Type="password" hides the code. Change to "text" if you want to see the numbers. -->
             <input type="password" id="auth-input" placeholder="••••••" autocomplete="off" autofocus>
         </div>
 
@@ -143,71 +85,48 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-        
-        // Initialize Supabase
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // DOM Elements
         const input = document.getElementById('auth-input');
         const btn = document.getElementById('login-btn');
         const msg = document.getElementById('msg');
 
-        // --- AUTHENTICATION LOGIC ---
+        // Auto-focus input on load
+        input.focus();
 
-        // 1. Check if already logged in on page load
-        function checkSession() {
-            const user = localStorage.getItem('authority_user');
-            if (user) {
-                // If session exists, redirect immediately
-                window.location.href = 'admin.html';
-            } else {
-                // If not, focus the input for scanning
-                input.focus();
-            }
-        }
-
-        // 2. Function to verify PIN/ID
         async function verifyCode() {
             const code = input.value.trim();
+            if (!code) { showMessage("Please scan or enter a code.", "error"); return; }
 
-            if (!code) {
-                showMessage("Please scan or enter a code.", "error");
-                return;
-            }
-
-            // UI Loading State
+            // Loading State
             const originalBtnText = btn.textContent;
             btn.innerHTML = '<div class="spinner"></div> Checking...';
             btn.disabled = true;
             input.disabled = true;
 
             try {
-                // Query the 'staff' table
                 const { data, error } = await sb
                     .from('staff')
                     .select('*')
                     .eq('pin_code', code)
-                    .maybeSingle(); // maybeSingle returns null instead of error if not found
+                    .maybeSingle();
 
                 if (error) throw error;
 
                 if (data) {
-                    // SUCCESS: Code Matches
                     showMessage(`Welcome, ${data.name}`, "success");
                     
-                    // Save user to LocalStorage
-                    localStorage.setItem('authority_user', JSON.stringify(data));
+                    // CRITICAL CHANGE: Use sessionStorage instead of localStorage
+                    // SessionStorage is cleared when the tab is closed.
+                    // To lock on refresh, the admin page must DELETE this key immediately on load.
+                    sessionStorage.setItem('authority_user', JSON.stringify(data));
 
-                    // Redirect after short delay
                     setTimeout(() => {
                         window.location.href = 'admin.html';
                     }, 800);
-
                 } else {
-                    // FAILURE: Code not found
                     showMessage("Access Denied: Invalid Code", "error");
                     input.value = '';
                     input.disabled = false;
@@ -215,7 +134,6 @@
                     btn.textContent = originalBtnText;
                     btn.disabled = false;
                 }
-
             } catch (err) {
                 console.error(err);
                 showMessage("System Error. Try again.", "error");
@@ -226,34 +144,18 @@
             }
         }
 
-        // Helper to show messages
         function showMessage(text, type) {
             msg.textContent = text;
             msg.className = `msg ${type}`;
         }
 
-        // --- EVENT LISTENERS ---
-
-        // Handle Button Click
         btn.addEventListener('click', verifyCode);
-
-        // Handle "Enter" Key (Crucial for Barcode Scanners)
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                verifyCode();
-            }
-        });
-
-        // Keep focus on input if user clicks away (helpful for kiosk mode)
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyCode(); });
+        
+        // Keep focus for scanners
         document.addEventListener('click', (e) => {
-            if (e.target !== btn && !input.disabled) {
-                input.focus();
-            }
+            if (e.target !== btn && !input.disabled) input.focus();
         });
-
-        // Run on Load
-        checkSession();
-
     </script>
 </body>
 </html>
