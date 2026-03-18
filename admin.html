@@ -412,10 +412,10 @@
     <div id="toast-container"></div>
 
     <script>
-        // --- 0. AUTH REDIRECT (SESSION STORAGE) ---
+        // --- 0. AUTH REDIRECT (LOCAL STORAGE) ---
         // Checks if user is authenticated. If not, redirects immediately to auth.html
-        // Uses sessionStorage, so closing the tab clears the session.
-        if (sessionStorage.getItem('auth_token') !== 'valid') {
+        // Uses localStorage, so closing the browser keeps the user logged in.
+        if (localStorage.getItem('auth_token') !== 'valid') {
             window.location.href = 'auth.html';
         }
 
@@ -484,8 +484,8 @@
 
         // --- AUTH LOGIC (Logout) ---
         logoutBtn.addEventListener('click', () => {
-            // Clear session storage
-            sessionStorage.removeItem('auth_token');
+            // Clear local storage
+            localStorage.removeItem('auth_token');
             // Redirect to auth.html
             window.location.href = 'auth.html';
         });
