@@ -3,211 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authority Access</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <title>Authority - Login</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f3f4f6;
-            --card-bg: #ffffff;
-            --text: #1f2937;
-            --danger: #dc2626;
-            --warning: #f59e0b;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
             display: flex;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden;
         }
-
-        .login-container {
-            background: var(--card-bg);
-            padding: 3rem;
-            border-radius: 16px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            text-align: center;
+        .login-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 400px;
-            z-index: 10;
-            position: relative;
+            text-align: center;
         }
-
-        h2 { color: var(--text); margin-bottom: 0.5rem; font-size: 1.5rem; }
-        p.subtitle { color: #6b7280; margin-bottom: 2rem; font-size: 0.9rem; }
-
-        .input-group { margin-bottom: 1.5rem; text-align: left; }
-        label { display: block; font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem; }
-        
-        input {
-            width: 100%; padding: 14px; border: 2px solid #e5e7eb; border-radius: 8px;
-            font-size: 1.2rem; text-align: center; letter-spacing: 2px; outline: none;
-            transition: border-color 0.2s; box-sizing: border-box;
+        .login-card h2 { margin-bottom: 1.5rem; color: #3b82f6; }
+        .form-group { margin-bottom: 1rem; text-align: left; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: #6b7280; }
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box; /* Important for padding */
         }
-        input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-
         .btn {
-            width: 100%; padding: 14px; background: var(--primary); color: white;
-            border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
-            cursor: pointer; transition: background 0.2s;
+            width: 100%;
+            padding: 10px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
         }
-        .btn:hover { background: #1d4ed8; }
-        .btn:disabled { background: #9ca3af; cursor: not-allowed; }
-
-        .msg { margin-top: 1.5rem; min-height: 20px; font-size: 0.9rem; font-weight: 500; }
-        .msg.error { color: var(--danger); }
-
-        #toast-container {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; display: flex; flex-direction: column; gap: 10px;
-            width: 90%; max-width: 500px; pointer-events: none;
+        .btn:hover { opacity: 0.9; }
+        .login-error {
+            color: #ef4444;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            min-height: 1.2em;
         }
-
-        .toast {
-            background: #1f2937; color: white; padding: 16px 20px; border-radius: 8px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-            display: flex; align-items: center; gap: 12px; font-size: 0.95rem;
-            animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            border-left: 5px solid var(--warning);
-        }
-
-        @keyframes slideDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .spinner {
-            display: inline-block; width: 16px; height: 16px;
-            border: 2px solid rgba(255,255,255,0.3); border-radius: 50%;
-            border-top-color: #fff; animation: spin 1s ease-in-out infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="toast-container"></div>
-
-    <div class="login-container">
-        <h2>🔒 Authority Access</h2>
-        <p class="subtitle">Scan ID Card or Enter PIN</p>
-
-        <div class="input-group">
-            <label for="auth-input">Access Code</label>
-            <input type="password" id="auth-input" placeholder="••••••" autocomplete="off" autofocus>
-        </div>
-
-        <button id="login-btn" class="btn">Unlock System</button>
-        <div id="msg" class="msg"></div>
+    <div class="login-card">
+        <h2>Authority Panel</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" class="form-input" placeholder="Enter username" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" class="form-input" placeholder="Enter password" required>
+            </div>
+            <div id="login-error" class="login-error"></div>
+            <button type="submit" class="btn">Login</button>
+        </form>
     </div>
 
     <script>
-        // 1. Check if Supabase library loaded
-        if (typeof supabase === 'undefined') {
-            alert("Error: Supabase library failed to load. Check your internet connection.");
-            console.error("Supabase is undefined");
-        }
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
 
-        const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-        
-        let sb;
-        try {
-            sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch (e) {
-            console.error("Client creation failed", e);
-            alert("Error initializing database client.");
-        }
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
 
-        const input = document.getElementById('auth-input');
-        const btn = document.getElementById('login-btn');
-        const msg = document.getElementById('msg');
-
-        input.focus();
-
-        function showToast(message) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.innerHTML = `<span style="font-size:1.2rem;">👁️</span> <span>${message}</span>`;
-            container.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
-        }
-
-        async function verifyCode() {
-            const code = input.value.trim();
-            if (!code) { showMessage("Please scan or enter a code.", "error"); return; }
-
-            const originalBtnText = btn.textContent;
-            btn.innerHTML = '<div class="spinner"></div> Checking...';
-            btn.disabled = true;
-            input.disabled = true;
-
-            try {
-                console.log("Checking code:", code);
-                const { data, error } = await sb
-                    .from('staff')
-                    .select('*')
-                    .eq('pin_code', code)
-                    .maybeSingle();
-
-                console.log("DB Response:", { data, error });
-
-                if (error) throw error;
-
-                if (data) {
-                    // SUCCESS
-                    console.log("Login successful for:", data.name);
-                    showToast(`Welcome ${data.name} to the access and you're under observation`);
-                    
-                    // Save session
-                    sessionStorage.setItem('authority_user', JSON.stringify(data));
-
-                    // --- REDIRECT LOGIC ---
-                    // We use window.location.replace for a harder redirect than href
-                    console.log("Attempting redirect to admin.html...");
-                    
-                    setTimeout(() => {
-                        console.log("Redirecting now...");
-                        window.location.replace('admin.html');
-                    }, 1500);
-
-                } else {
-                    // FAIL
-                    console.log("Access denied");
-                    showMessage("Access Denied: Invalid Code", "error");
-                    input.value = '';
-                    input.disabled = false;
-                    input.focus();
-                    btn.textContent = originalBtnText;
-                    btn.disabled = false;
-                }
-            } catch (err) {
-                console.error("Login Error:", err);
-                showMessage("System Error. Check Console (F12).", "error");
-                input.disabled = false;
-                input.focus();
-                btn.textContent = originalBtnText;
-                btn.disabled = false;
+            // Hardcoded credentials from your original request
+            if (u === 'blucheeztm' && p === 'oppeen22') {
+                // --- CHANGED: Use localStorage to persist login ---
+                localStorage.setItem('auth_token', 'valid');
+                
+                loginError.textContent = '';
+                // Redirect to index.html
+                window.location.href = 'index.html';
+            } else {
+                loginError.textContent = 'Invalid credentials';
             }
-        }
-
-        function showMessage(text, type) {
-            msg.textContent = text;
-            msg.className = `msg ${type}`;
-        }
-
-        btn.addEventListener('click', verifyCode);
-        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyCode(); });
-        
-        document.addEventListener('click', (e) => {
-            if (e.target !== btn && !input.disabled) input.focus();
         });
     </script>
 </body>
