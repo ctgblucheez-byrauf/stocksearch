@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Analyzer (Updated)</title>
+    <title>Sales Analyzer (Final)</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -233,31 +233,47 @@
         }
 
         /* =========================================
-           FIX: PRINT MEDIA QUERY
+           FINAL PRINT MEDIA QUERY (Landscape & Fixed)
            ========================================= */
         @media print {
-            body { background: white; padding: 0; margin: 0; -webkit-print-color-adjust: exact; }
+            body { 
+                background: white; 
+                padding: 0; 
+                margin: 0; 
+                -webkit-print-color-adjust: exact; 
+            }
+
+            /* FIX 1: Hide the main header */
+            header { display: none !important; }
             
+            /* FIX 2: Expand container to full width */
+            .container { max-width: 100%; width: 100%; margin: 0; }
+
             /* Hide Navigation & Controls */
             .tabs, .btn-row, .report-controls, #toast-container, details, .no-print { display: none !important; }
             
             /* Hide input/dashboard tabs completely */
             #tab-process, #tab-analysis, #tab-dashboard { display: none !important; }
 
-            /* FIX: Only show the ACTIVE tab */
-            .section-content { display: none !important; }
+            /* Handle Active Tab visibility */
+            .section-content { 
+                display: none !important; 
+                background: white; 
+                padding: 0;
+                /* FIX 3: Remove min-height to prevent blank pages at bottom */
+                min-height: 0 !important; 
+            }
+            
             .section-content.active { 
                 display: block !important; 
-                background: white; 
-                padding: 0; 
-                min-height: auto;
                 width: 100%;
             }
 
             /* Report Page Styles */
             .report-page { 
                 width: 100%; 
-                min-height: auto; 
+                height: auto; 
+                min-height: 0; /* FIX 3: Auto height */
                 box-shadow: none; 
                 margin: 0; 
                 padding: 0; 
@@ -279,9 +295,11 @@
             }
             .report-input::placeholder { color: transparent; }
             
-            @page { size: A4 portrait; margin: 10mm; }
-            
-            #tab-master.active .report-page { width: 100%; }
+            /* FIX 4: Default Landscape */
+            @page { 
+                size: A4 landscape; 
+                margin: 10mm; 
+            }
         }
     </style>
 </head>
@@ -454,7 +472,7 @@
                 <div class="report-header">
                     <div class="report-title">
                         <h1>Detailed Sales Ledger</h1>
-                        <p>Company Name: Blucheez Outfitters Chottogram</p>
+                        <p>Company Name:Blucheez Outfitters Chottogram</p>
                     </div>
                     <div class="report-meta">
                         Date Range: <span id="rptDateRange">All</span><br>
@@ -596,7 +614,7 @@
                 <div class="report-header">
                     <div class="report-title">
                         <h1>Sales Summary Report</h1>
-                        <p>Company: Blucheez Outfitters Chottogram</p>
+                        <p>Company:Blucheez Outfitters Chottogram</p>
                     </div>
                     <div class="report-meta">
                         Period: <span id="sumPeriod">All</span> | Generated: <span id="sumGenDate"></span><br>
@@ -790,7 +808,7 @@
                 <div class="report-header">
                     <div class="report-title">
                         <h1>Sales & Stock Consolidated Report</h1>
-                        <p>Company: Blucheez Outfitters Chottogram</p>
+                        <p>Company:Blucheez Outfitters Chottogram</p>
                     </div>
                     <div class="report-meta">
                         Period: <span id="mstPeriod">All</span><br>
@@ -928,7 +946,7 @@
                 <div class="report-header">
                     <div class="report-title">
                         <h1>Seasonal Analysis Report</h1>
-                        <p>Company: Blucheez Outfitters Chottogram</p>
+                        <p>Company:Blucheez Outfitters Chottogram</p>
                     </div>
                     <div class="report-meta">
                         Period: <span id="snsPeriod">All</span><br>
@@ -1403,7 +1421,7 @@ Day Total`;
     // --- DETAILED PRINT REPORT GENERATION (Tab 3) ---
     function generatePrintReport() {
         if (processedData.length === 0) return;
-        // FIX: Chronological Sort
+        // Chronological Sort
         const dates = [...new Set(processedData.map(d => d.date))];
         dates.sort((a, b) => parseCustomDate(a) - parseCustomDate(b));
         
@@ -1485,7 +1503,7 @@ Day Total`;
     function generateSummaryReport() {
         if (processedData.length === 0) return;
 
-        // FIX: Chronological Sort
+        // Chronological Sort
         const dates = [...new Set(processedData.map(d => d.date))];
         dates.sort((a, b) => parseCustomDate(a) - parseCustomDate(b));
 
@@ -1596,7 +1614,7 @@ Day Total`;
     function generateMasterReport() {
         if (processedData.length === 0) return;
 
-        // FIX: Chronological Sort
+        // Chronological Sort
         const dates = [...new Set(processedData.map(d => d.date))];
         dates.sort((a, b) => parseCustomDate(a) - parseCustomDate(b));
 
@@ -1715,7 +1733,7 @@ Day Total`;
     function generateSeasonReport() {
         if (processedData.length === 0) return;
 
-        // FIX: Chronological Sort
+        // Chronological Sort
         const dates = [...new Set(processedData.map(d => d.date))];
         dates.sort((a, b) => parseCustomDate(a) - parseCustomDate(b));
 
