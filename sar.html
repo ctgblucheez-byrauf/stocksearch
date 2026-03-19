@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Analyzer</title>
+    <title>Sales Analyzer (Updated)</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -69,7 +69,7 @@
         
         /* Buttons */
         .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem; }
-        button, select { padding: 0.6rem 1.2rem; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.95rem; background-color: white; transition: background 0.2s; }
+        button, select, input[type="text"] { padding: 0.6rem 1.2rem; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.95rem; background-color: white; transition: background 0.2s; }
         .btn-primary { background-color: var(--primary); color: white; border: none; }
         .btn-primary:hover { background-color: var(--primary-hover); }
         .btn-outline { background-color: transparent; color: var(--text-main); }
@@ -203,22 +203,67 @@
         }
         .report-controls h3 { margin: 0; font-size: 1.1rem; }
 
-        .report-analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .note-input-group {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            max-width: 500px;
+        }
+        .note-input-group label {
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+        }
+        .note-input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
 
-        /* PRINT MEDIA QUERY */
+        .report-note {
+            margin-top: 30px;
+            padding: 10px;
+            border: 1px dashed #999;
+            font-style: italic;
+            font-size: 9pt;
+            color: #333;
+            min-height: 30px;
+        }
+
+        /* =========================================
+           FIX: PRINT MEDIA QUERY
+           ========================================= */
         @media print {
             body { background: white; padding: 0; margin: 0; -webkit-print-color-adjust: exact; }
+            
+            /* Hide Navigation & Controls */
             .tabs, .btn-row, .report-controls, #toast-container, details, .no-print { display: none !important; }
+            
+            /* Hide input/dashboard tabs completely */
             #tab-process, #tab-analysis, #tab-dashboard { display: none !important; }
-            #tab-report, #tab-summary, #tab-master, #tab-season { display: block !important; background: white; padding: 0; }
+
+            /* FIX: Only show the ACTIVE tab */
+            .section-content { display: none !important; }
+            .section-content.active { 
+                display: block !important; 
+                background: white; 
+                padding: 0; 
+                min-height: auto;
+                width: 100%;
+            }
+
+            /* Report Page Styles */
             .report-page { 
                 width: 100%; 
                 min-height: auto; 
                 box-shadow: none; 
                 margin: 0; 
                 padding: 0; 
-                page-break-after: always;
+                page-break-after: auto; 
             }
+            
             .report-scroll-area { overflow: visible; border: none; max-height: none; }
             .report-section { page-break-inside: avoid; }
             th, td { border: 1px solid #999 !important; color: #000 !important; }
@@ -235,13 +280,8 @@
             .report-input::placeholder { color: transparent; }
             
             @page { size: A4 portrait; margin: 10mm; }
-        }
-
-        /* Master Report Specific Landscape Override */
-        @media print {
-            #tab-master .report-page {
-                width: 100%; 
-            }
+            
+            #tab-master.active .report-page { width: 100%; }
         }
     </style>
 </head>
@@ -389,7 +429,7 @@
         </div>
     </div>
 
-    <!-- TAB 3: Detailed Report (RESTRUCTURED) -->
+    <!-- TAB 3: Detailed Report -->
     <div id="tab-report" class="section-content">
         <div id="reportPlaceholder" class="empty-state">
             <h3>No Data Available</h3>
@@ -400,6 +440,10 @@
             <!-- Controls -->
             <div class="report-controls">
                 <h3>Ledger Actions</h3>
+                <div class="note-input-group">
+                    <label>Report Note (Visible on Print):</label>
+                    <input type="text" id="rptNoteInput" class="note-input" placeholder="e.g. Stock shortage observed in Week 2" oninput="updateNote('rpt', this.value)">
+                </div>
                 <button class="btn-primary no-print" onclick="window.print()">🖨️ Print Report</button>
                 <button class="btn-success no-print" onclick="downloadDetailedReportCSV()">📥 Export Excel/CSV</button>
             </div>
@@ -415,7 +459,7 @@
                     <div class="report-meta">
                         Date Range: <span id="rptDateRange">All</span><br>
                         Generated: <span id="rptGenDate"></span><br>
-                        Generated By: Admin
+                        Generated By: Maruf Mohammadii
                     </div>
                 </div>
 
@@ -480,7 +524,7 @@
                     </div>
                 </div>
 
-                <!-- 3. Top Selling Styles (SPLIT FROM ANALYTICS) -->
+                <!-- 3. Top Selling Styles -->
                 <div class="report-section">
                     <div class="report-section-title">3. Top Selling Styles</div>
                     <table class="report-table">
@@ -496,7 +540,7 @@
                     </table>
                 </div>
 
-                <!-- 4. Slow Moving Styles (MOVED TO TOP LEVEL) -->
+                <!-- 4. Slow Moving Styles -->
                 <div class="report-section">
                     <div class="report-section-title">4. Slow Moving Styles</div>
                     <table class="report-table">
@@ -512,13 +556,16 @@
                     </table>
                 </div>
 
-                <!-- 5. Footer -->
+                <!-- 5. Footer & Note -->
                 <div class="report-section" style="border-top: 1px solid #ccc; padding-top: 10px; margin-top: 30px;">
                     <p style="font-size: 8pt; color: #666; margin:0;">
                         Total Records: <span id="rptRecordCount">0</span> entries processed. <br>
                         Generated by Sales Analyzer.
                     </p>
                 </div>
+                
+                <!-- Note Display -->
+                <div id="rptNoteDisplay" class="report-note"></div>
 
             </div>
         </div>
@@ -535,6 +582,10 @@
             <!-- Controls -->
             <div class="report-controls">
                 <h3>Summary Actions</h3>
+                <div class="note-input-group">
+                    <label>Report Note (Visible on Print):</label>
+                    <input type="text" id="sumNoteInput" class="note-input" placeholder="e.g. Comparison includes holiday sales" oninput="updateNote('sum', this.value)">
+                </div>
                 <button class="btn-primary no-print" onclick="window.print()">🖨️ Print Summary</button>
                 <button class="btn-success no-print" onclick="downloadSummaryCSV()">📥 Export Excel/CSV</button>
             </div>
@@ -549,7 +600,7 @@
                     </div>
                     <div class="report-meta">
                         Period: <span id="sumPeriod">All</span> | Generated: <span id="sumGenDate"></span><br>
-                        Generated By: Admin
+                        Generated By: Maruf Mohammadii
                     </div>
                 </div>
 
@@ -570,25 +621,25 @@
                             <tr>
                                 <td>Total Net Sales</td>
                                 <td class="num" id="sumCurrentSales">0.00</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Sales', this.value)"></td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Sales', this.value, '')"></td>
                                 <td class="num growth-cell" id="growthSales">-</td>
                             </tr>
                             <tr>
                                 <td>Total Quantity Sold</td>
                                 <td class="num" id="sumCurrentQty">0 Units</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="Qty" oninput="calcGrowth('Qty', this.value)"></td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Qty" oninput="calcGrowth('Qty', this.value, '')"></td>
                                 <td class="num growth-cell" id="growthQty">-</td>
                             </tr>
                             <tr>
                                 <td>Total Invoice Count</td>
                                 <td class="num" id="sumCurrentInv">0</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="#" oninput="calcGrowth('Inv', this.value)"></td>
+                                <td class="num"><input type="number" class="report-input" placeholder="#" oninput="calcGrowth('Inv', this.value, '')"></td>
                                 <td class="num growth-cell" id="growthInv">-</td>
                             </tr>
                             <tr>
                                 <td>Average Bill Value</td>
                                 <td class="num" id="sumCurrentAvg">0.00</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Avg', this.value)"></td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Avg', this.value, '')"></td>
                                 <td class="num growth-cell" id="growthAvg">-</td>
                             </tr>
                         </tbody>
@@ -688,6 +739,9 @@
                     </table>
                 </div>
 
+                <!-- Note Display -->
+                <div id="sumNoteDisplay" class="report-note"></div>
+
             </div>
         </div>
     </div>
@@ -722,6 +776,10 @@
             <!-- Controls -->
             <div class="report-controls">
                 <h3>Master Report Actions</h3>
+                <div class="note-input-group">
+                    <label>Report Note (Visible on Print):</label>
+                    <input type="text" id="mstNoteInput" class="note-input" placeholder="e.g. Seasonal clearance affected margins" oninput="updateNote('mst', this.value)">
+                </div>
                 <button class="btn-primary no-print" onclick="window.print()">🖨️ Print Report</button>
                 <button class="btn-success no-print" onclick="downloadMasterCSV()">📥 Export Excel/CSV</button>
             </div>
@@ -737,7 +795,7 @@
                     <div class="report-meta">
                         Period: <span id="mstPeriod">All</span><br>
                         Generated: <span id="mstGenDate"></span><br>
-                        User: Admin
+                        User: Maruf Mohammadii
                     </div>
                 </div>
 
@@ -758,26 +816,26 @@
                             <tr>
                                 <td>Total Net Sales</td>
                                 <td class="num" id="mstSales">0.00</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Sales', this.value)"></td>
-                                <td class="num growth-cell" id="growthSales">-</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Sales', this.value, 'mst')"></td>
+                                <td class="num growth-cell" id="mstGrowthSales">-</td>
                             </tr>
                             <tr>
                                 <td>Total Quantity Sold</td>
                                 <td class="num" id="mstQty">0</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="#" oninput="calcGrowth('Qty', this.value)"></td>
-                                <td class="num growth-cell" id="growthQty">-</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="#" oninput="calcGrowth('Qty', this.value, 'mst')"></td>
+                                <td class="num growth-cell" id="mstGrowthQty">-</td>
                             </tr>
                             <tr>
                                 <td>Total Invoice Count</td>
                                 <td class="num" id="mstInv">0</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="#" oninput="calcGrowth('Inv', this.value)"></td>
-                                <td class="num growth-cell" id="growthInv">-</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="#" oninput="calcGrowth('Inv', this.value, 'mst')"></td>
+                                <td class="num growth-cell" id="mstGrowthInv">-</td>
                             </tr>
                             <tr>
                                 <td>Average Bill Value</td>
                                 <td class="num" id="mstAvg">0.00</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Avg', this.value)"></td>
-                                <td class="num growth-cell" id="growthAvg">-</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Avg', this.value, 'mst')"></td>
+                                <td class="num growth-cell" id="mstGrowthAvg">-</td>
                             </tr>
                         </tbody>
                     </table>
@@ -838,6 +896,9 @@
                     </table>
                 </div>
 
+                <!-- Note Display -->
+                <div id="mstNoteDisplay" class="report-note"></div>
+
             </div>
         </div>
     </div>
@@ -853,6 +914,10 @@
             <!-- Controls -->
             <div class="report-controls">
                 <h3>Season Analysis Actions</h3>
+                <div class="note-input-group">
+                    <label>Report Note (Visible on Print):</label>
+                    <input type="text" id="snsNoteInput" class="note-input" placeholder="e.g. Early summer trends observed" oninput="updateNote('sns', this.value)">
+                </div>
                 <button class="btn-primary no-print" onclick="window.print()">🖨️ Print Report</button>
                 <button class="btn-success no-print" onclick="downloadSeasonCSV()">📥 Export Excel/CSV</button>
             </div>
@@ -868,7 +933,7 @@
                     <div class="report-meta">
                         Period: <span id="snsPeriod">All</span><br>
                         Generated: <span id="snsGenDate"></span><br>
-                        User: Admin
+                        User: Maruf Mohammadii
                     </div>
                 </div>
 
@@ -908,6 +973,9 @@
                     </div>
                 </div>
 
+                <!-- Note Display -->
+                <div id="snsNoteDisplay" class="report-note"></div>
+
             </div>
         </div>
     </div>
@@ -925,6 +993,40 @@
     // Helper to format numbers with commas but NO currency symbol
     function formatNum(num) {
         return parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // Helper to parse "DD-Month-YYYY" to Date object for sorting
+    const monthMap = {
+        "January": 0, "February": 1, "March": 2, "April": 3, "May": 4, "June": 5,
+        "July": 6, "August": 7, "September": 8, "October": 9, "November": 10, "December": 11
+    };
+
+    function parseCustomDate(dateStr) {
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return new Date(0); // Invalid date goes to epoch
+        const day = parseInt(parts[0], 10);
+        const monthName = parts[1];
+        const year = parseInt(parts[2], 10);
+        const monthIndex = monthMap[monthName];
+        
+        if (isNaN(day) || monthIndex === undefined || isNaN(year)) return new Date(0);
+        
+        // Month is 0-indexed in JS Date
+        return new Date(year, monthIndex, day);
+    }
+
+    // Update Note Function
+    function updateNote(idPrefix, val) {
+        const display = document.getElementById(idPrefix + 'NoteDisplay');
+        if (display) {
+            if (val && val.trim() !== "") {
+                display.innerText = "Remarks / Notes: " + val;
+                display.style.display = 'block';
+            } else {
+                display.innerText = "";
+                display.style.display = 'none';
+            }
+        }
     }
 
     // --- Tab Handling ---
@@ -963,12 +1065,12 @@
 
     function loadSampleData() {
         const sample = 
-`01-February-2026
+`01-March-2026
 100040000768
 8901234567890	10	20	ETHNIC, WKL-101, PINK, M	100.5	5.00	0.5	0	0	10	1,500.00	5	5	15,000.00
 8901234567891	10	20	ETHNIC, WKL-101, BLUE, L	100.5	2.00	1.0	0	0	10	500.00	5	2.5	5,000.00
 
-02-February-2026
+28-February-2026
 100040000769
 8909999999999	5	10	CASUAL, CS-202, RED, S	200	1.00	2	0	0	7.5	150.00	10	20	2,000.00
 8908888888888	5	10	CASUAL, CS-202, RED, M	50	5.00	5	0	0	7.5	75.00	10	10	750.00
@@ -1301,7 +1403,10 @@ Day Total`;
     // --- DETAILED PRINT REPORT GENERATION (Tab 3) ---
     function generatePrintReport() {
         if (processedData.length === 0) return;
-        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        // FIX: Chronological Sort
+        const dates = [...new Set(processedData.map(d => d.date))];
+        dates.sort((a, b) => parseCustomDate(a) - parseCustomDate(b));
+        
         document.getElementById('rptDateRange').innerText = dates.length > 0 ? `${dates[0]} to ${dates[dates.length-1]}` : "N/A";
         document.getElementById('rptGenDate').innerText = new Date().toLocaleString();
         document.getElementById('rptRecordCount').innerText = processedData.length;
@@ -1380,7 +1485,10 @@ Day Total`;
     function generateSummaryReport() {
         if (processedData.length === 0) return;
 
-        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        // FIX: Chronological Sort
+        const dates = [...new Set(processedData.map(d => d.date))];
+        dates.sort((a, b) => parseCustomDate(a) - parseCustomDate(b));
+
         document.getElementById('sumPeriod').innerText = dates.length > 0 ? `${dates[0]} to ${dates[dates.length-1]}` : "N/A";
         document.getElementById('sumGenDate').innerText = new Date().toLocaleString();
 
@@ -1488,8 +1596,11 @@ Day Total`;
     function generateMasterReport() {
         if (processedData.length === 0) return;
 
+        // FIX: Chronological Sort
+        const dates = [...new Set(processedData.map(d => d.date))];
+        dates.sort((a, b) => parseCustomDate(a) - parseCustomDate(b));
+
         // 1. Meta
-        const dates = [...new Set(processedData.map(d => d.date))].sort();
         document.getElementById('mstPeriod').innerText = dates.length > 0 ? `${dates[0]} to ${dates[dates.length-1]}` : "N/A";
         document.getElementById('mstGenDate').innerText = new Date().toLocaleDateString();
 
@@ -1604,7 +1715,10 @@ Day Total`;
     function generateSeasonReport() {
         if (processedData.length === 0) return;
 
-        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        // FIX: Chronological Sort
+        const dates = [...new Set(processedData.map(d => d.date))];
+        dates.sort((a, b) => parseCustomDate(a) - parseCustomDate(b));
+
         document.getElementById('snsPeriod').innerText = dates.length > 0 ? `${dates[0]} to ${dates[dates.length-1]}` : "N/A";
         document.getElementById('snsGenDate').innerText = new Date().toLocaleDateString();
 
@@ -1669,7 +1783,7 @@ Day Total`;
         document.getElementById('snsCatBody').innerHTML = catHTML;
     }
 
-    // --- EXPORT FUNCTIONS (FIXED TO WORK) ---
+    // --- EXPORT FUNCTIONS ---
 
     // Helper to download any CSV string
     function triggerCSVDownload(csvContent, filename) {
@@ -1804,11 +1918,18 @@ Day Total`;
         triggerCSVDownload(csvContent, "Seasonal_Report.csv");
     }
 
-    // --- Helper: Calc Growth ---
-    function calcGrowth(type, value) {
+    // --- Helper: Calc Growth (FIXED) ---
+    function calcGrowth(type, value, idPrefix) {
         const prev = parseFloat(value);
         const current = summaryStats[type.toLowerCase()];
-        let el = document.getElementById('growth' + type);
+        
+        // Construct the ID: e.g. "growthSales" or "mstGrowthSales"
+        const targetId = (idPrefix ? idPrefix : '') + 'growth' + type;
+        
+        let el = document.getElementById(targetId);
+        
+        if (!el) { console.error("Element not found: " + targetId); return; }
+
         if (isNaN(prev) || isNaN(current)) { el.innerText = "-"; return; }
         if (prev === 0) { el.innerText = "N/A"; return; }
         const growth = ((current - prev) / prev) * 100;
@@ -1833,6 +1954,15 @@ Day Total`;
         document.getElementById('reportContent').classList.add('hidden');
         document.getElementById('summaryPlaceholder').classList.remove('hidden');
         document.getElementById('summaryContent').classList.add('hidden');
+        
+        // Clear Notes
+        ['rpt','sum','mst','sns'].forEach(id => {
+            const inp = document.getElementById(id + 'NoteInput');
+            const dis = document.getElementById(id + 'NoteDisplay');
+            if(inp) inp.value = '';
+            if(dis) dis.style.display = 'none';
+        });
+
         processedData = [];
         inventoryData = [];
         showToast('Cleared', 'success');
