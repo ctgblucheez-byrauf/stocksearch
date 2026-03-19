@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Analyzer (All Reports)</title>
+    <title>Sales Analyzer</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -34,12 +34,12 @@
         /* Tabs */
         .tabs { display: flex; justify-content: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
         .tab-btn {
-            padding: 10px 15px;
+            padding: 8px 12px;
             background: none;
             border: none;
             border-bottom: 3px solid transparent;
             cursor: pointer;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 600;
             color: var(--text-muted);
             transition: all 0.2s;
@@ -76,6 +76,7 @@
         .btn-outline:hover { background-color: #f1f5f9; }
         .btn-success { background-color: var(--success); color: white; border: none; }
         .btn-success:hover { background-color: #059669; }
+        .btn-icon { padding: 0.6rem; font-size: 1.1rem; }
 
         /* Tables (Dashboard) */
         .table-container { overflow-x: auto; max-height: 600px; border: 1px solid var(--border); border-radius: 6px; }
@@ -113,7 +114,7 @@
         /* =========================================
            PRINT & SUMMARY REPORT STYLES
            ========================================= */
-        #tab-report, #tab-summary {
+        #tab-report, #tab-summary, #tab-master, #tab-season {
             background-color: #525659; 
             padding: 20px;
             min-height: 80vh;
@@ -121,8 +122,8 @@
 
         .report-page {
             background: white;
-            width: 210mm; /* A4 Width */
-            min-height: 297mm; /* A4 Height */
+            width: 210mm; 
+            min-height: 297mm; 
             margin: 0 auto;
             padding: 15mm;
             box-shadow: 0 0 15px rgba(0,0,0,0.3);
@@ -140,39 +141,39 @@
             align-items: flex-end;
         }
 
-        .report-title h1 { font-size: 24pt; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
-        .report-title p { font-size: 10pt; color: #444; margin: 5px 0 0 0; }
-        .report-meta { text-align: right; font-size: 9pt; color: #333; line-height: 1.4; }
+        .report-title h1 { font-size: 20pt; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+        .report-title p { font-size: 9pt; color: #444; margin: 5px 0 0 0; }
+        .report-meta { text-align: right; font-size: 8pt; color: #333; line-height: 1.4; }
 
-        .report-section { margin-bottom: 25px; page-break-inside: avoid; }
+        .report-section { margin-bottom: 20px; page-break-inside: avoid; }
         .report-section-title { 
-            font-size: 12pt; font-weight: 700; 
+            font-size: 10pt; font-weight: 700; 
             background: #f0f0f0; 
-            padding: 5px 10px; 
-            margin-bottom: 10px; 
-            border-left: 4px solid #000;
+            padding: 4px 8px; 
+            margin-bottom: 8px; 
+            border-left: 3px solid #000;
             text-transform: uppercase;
         }
 
         /* Report Tables */
-        .report-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 10px; }
+        .report-table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: 10px; }
         .report-table th { 
             background: #e0e0e0; 
             border: 1px solid #999; 
-            padding: 6px 8px; 
+            padding: 4px 6px; 
             text-align: left; 
             font-weight: 700; 
             color: #000;
         }
         .report-table td { 
             border: 1px solid #e0e0e0; 
-            padding: 5px 8px; 
+            padding: 4px 6px; 
             vertical-align: middle;
         }
         .report-table .num { text-align: right; }
         .report-table thead { position: static; background: #e0e0e0; }
 
-        /* Form Inputs for Previous Month Data */
+        /* Form Inputs */
         .report-input {
             width: 100px;
             padding: 4px;
@@ -180,7 +181,7 @@
             border-radius: 4px;
             text-align: right;
             font-family: inherit;
-            font-size: 9pt;
+            font-size: 8pt;
             color: #000;
         }
         .report-input:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
@@ -198,6 +199,7 @@
             display: flex;
             gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
         .report-controls h3 { margin: 0; font-size: 1.1rem; }
 
@@ -206,9 +208,9 @@
         /* PRINT MEDIA QUERY */
         @media print {
             body { background: white; padding: 0; margin: 0; -webkit-print-color-adjust: exact; }
-            .tabs, .btn-row, .report-controls, #toast-container { display: none !important; }
+            .tabs, .btn-row, .report-controls, #toast-container, details, .no-print { display: none !important; }
             #tab-process, #tab-analysis, #tab-dashboard { display: none !important; }
-            #tab-report, #tab-summary { display: block !important; background: white; padding: 0; }
+            #tab-report, #tab-summary, #tab-master, #tab-season { display: block !important; background: white; padding: 0; }
             .report-page { 
                 width: 100%; 
                 min-height: auto; 
@@ -221,7 +223,6 @@
             .report-section { page-break-inside: avoid; }
             th, td { border: 1px solid #999 !important; color: #000 !important; }
             
-            /* Input styles for print - Look like blanks */
             .report-input {
                 border: none;
                 border-bottom: 1px solid #000;
@@ -229,9 +230,18 @@
                 padding: 0;
                 margin: 0;
                 width: auto;
-                min-width: 80px;
+                min-width: 60px;
             }
             .report-input::placeholder { color: transparent; }
+            
+            @page { size: A4 portrait; margin: 10mm; }
+        }
+
+        /* Master Report Specific Landscape Override */
+        @media print {
+            #tab-master .report-page {
+                width: 100%; 
+            }
         }
     </style>
 </head>
@@ -246,23 +256,25 @@
     <!-- Navigation Tabs -->
     <nav class="tabs">
         <button class="tab-btn active" onclick="switchTab('tab-process')">1. Data Processing</button>
-        <button class="tab-btn" onclick="switchTab('tab-analysis')">2. Sales Analysis Dashboard</button>
+        <button class="tab-btn" onclick="switchTab('tab-analysis')">2. Sales Analysis</button>
         <button class="tab-btn" onclick="switchTab('tab-report')">3. Detailed Ledger</button>
         <button class="tab-btn" onclick="switchTab('tab-summary')">4. Summary Report</button>
+        <button class="tab-btn" onclick="switchTab('tab-master')">5. Master Consolidated</button>
+        <button class="tab-btn" onclick="switchTab('tab-season')">6. Season Analysis</button>
     </nav>
 
     <!-- TAB 1: Data Processing -->
     <div id="tab-process" class="section-content active">
         <section class="card">
             <div class="card-header">
-                <span>Raw Data Input</span>
-                <button class="btn-outline" onclick="loadSampleData()" style="font-size: 0.8rem;">Load Sample Data</button>
+                <span>Raw Sales Data Input</span>
+                <button class="btn-outline" onclick="loadSampleData()" style="font-size: 0.8rem;">Load Sample Sales Data</button>
             </div>
             
             <div class="input-group">
                 <label>Option A: Upload File</label>
                 <div class="file-drop-area">
-                    <span class="file-msg">Drag & drop CSV/TXT here</span>
+                    <span class="file-msg">Drag & drop Sales CSV/TXT here</span>
                     <input type="file" id="fileInput" accept=".csv, .txt">
                 </div>
             </div>
@@ -270,8 +282,8 @@
             <div style="text-align: center; margin: 10px 0; color: var(--text-muted); font-size: 0.9rem;">— OR —</div>
 
             <div class="input-group">
-                <label for="dataInput">Option B: Paste Data</label>
-                <textarea id="dataInput" placeholder="Paste raw spreadsheet data here..."></textarea>
+                <label for="dataInput">Option B: Paste Sales Data</label>
+                <textarea id="dataInput" placeholder="Paste raw spreadsheet sales data here..."></textarea>
             </div>
 
             <div class="info-text">
@@ -332,69 +344,52 @@
             <h3>No Data Available</h3>
             <p>Please go to "Data Processing", upload/parse data, and click "Process Data".</p>
         </div>
-
         <div id="analysisContent" class="hidden">
             <!-- 1. Summary Cards -->
-            <div class="kpi-grid" id="kpiContainer">
-                <!-- KPIs injected here -->
-            </div>
-
+            <div class="kpi-grid" id="kpiContainer"></div>
             <!-- 2. Grid Layout for Tables -->
             <div class="analysis-grid">
-                
-                <!-- Daily Trend -->
                 <div class="card analysis-full">
                     <div class="card-header">Daily Sales Trend (Net Sales)</div>
                     <div class="table-container" style="max-height: 300px;">
                         <table id="dailyTrendTable"><thead><tr><th>Date</th><th class="text-right">Qty Sold</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
                     </div>
                 </div>
-
-                <!-- Top Products -->
                 <div class="card">
                     <div class="card-header">Top 10 Selling Products (By Qty)</div>
                     <div class="table-container" style="max-height: 350px;">
                         <table id="topProductsTable"><thead><tr><th>Style Code</th><th>Name</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
                     </div>
                 </div>
-
-                <!-- Slow Moving -->
                 <div class="card">
                     <div class="card-header">Slow Moving Products (Bottom 10)</div>
                     <div class="table-container" style="max-height: 350px;">
                         <table id="slowProductsTable"><thead><tr><th>Style Code</th><th>Name</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
                     </div>
                 </div>
-
-                <!-- Colour Wise -->
                 <div class="card">
                     <div class="card-header">Colour Wise Sales</div>
                     <div class="table-container" style="max-height: 300px;">
                         <table id="colourTable"><thead><tr><th>Colour</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
                     </div>
                 </div>
-
-                <!-- Size Wise -->
                 <div class="card">
                     <div class="card-header">Size Wise Sales</div>
                     <div class="table-container" style="max-height: 300px;">
                         <table id="sizeTable"><thead><tr><th>Size</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th></tr></thead><tbody></tbody></table>
                     </div>
                 </div>
-
-                <!-- Product Revenue Detail -->
                 <div class="card analysis-full">
                     <div class="card-header">Product Revenue Analysis (Contribution %)</div>
                     <div class="table-container" style="max-height: 400px;">
                         <table id="revenueTable"><thead><tr><th>Style Code</th><th>Name</th><th class="text-right">Qty</th><th class="text-right">Net Sales</th><th class="text-right">Disc</th><th class="text-right">VAT</th><th class="text-right">Contrib %</th></tr></thead><tbody></tbody></table>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
-    <!-- TAB 3: Detailed Ledger (Print Report) -->
+    <!-- TAB 3: Detailed Report (RESTRUCTURED) -->
     <div id="tab-report" class="section-content">
         <div id="reportPlaceholder" class="empty-state">
             <h3>No Data Available</h3>
@@ -405,8 +400,8 @@
             <!-- Controls -->
             <div class="report-controls">
                 <h3>Ledger Actions</h3>
-                <button class="btn-primary" onclick="window.print()">🖨️ Print Report</button>
-                <button class="btn-success" onclick="downloadProcessedCSV()">📥 Download CSV</button>
+                <button class="btn-primary no-print" onclick="window.print()">🖨️ Print Report</button>
+                <button class="btn-success no-print" onclick="downloadDetailedReportCSV()">📥 Export Excel/CSV</button>
             </div>
 
             <!-- The A4 Paper -->
@@ -414,8 +409,8 @@
                 <!-- Header -->
                 <div class="report-header">
                     <div class="report-title">
-                        <h1>Sales Analysis Report</h1>
-                        <p>Company Name: Blucheez Outfiters Chottogram.</p>
+                        <h1>Detailed Sales Ledger</h1>
+                        <p>Company Name: Blucheez Outfitters Chottogram</p>
                     </div>
                     <div class="report-meta">
                         Date Range: <span id="rptDateRange">All</span><br>
@@ -438,12 +433,12 @@
                                 <th>Avg. Bill Value</th>
                             </tr>
                             <tr>
-                                <td class="num" id="rptTotalSales">$0.00</td>
+                                <td class="num" id="rptTotalSales">0.00</td>
                                 <td class="num" id="rptTotalQty">0</td>
                                 <td class="num" id="rptTotalInv">0</td>
-                                <td class="num" id="rptTotalDisc">$0.00</td>
-                                <td class="num" id="rptTotalVat">$0.00</td>
-                                <td class="num" id="rptAvgBill">$0.00</td>
+                                <td class="num" id="rptTotalDisc">0.00</td>
+                                <td class="num" id="rptTotalVat">0.00</td>
+                                <td class="num" id="rptAvgBill">0.00</td>
                             </tr>
                         </tbody>
                     </table>
@@ -451,7 +446,7 @@
 
                 <!-- 2. Detailed Sales Transaction Ledger -->
                 <div class="report-section">
-                    <div class="report-section-title">2. Detailed Sales Transaction Ledger</div>
+                    <div class="report-section-title">2. Transaction Ledger</div>
                     <div class="report-scroll-area">
                         <table class="report-table">
                             <thead>
@@ -470,9 +465,7 @@
                                     <th class="num">Net</th>
                                 </tr>
                             </thead>
-                            <tbody id="rptLedgerBody">
-                                <!-- Rows injected here -->
-                            </tbody>
+                            <tbody id="rptLedgerBody"></tbody>
                             <tfoot>
                                 <tr style="font-weight:bold; background:#f0f0f0;">
                                     <td colspan="7" style="text-align:right;">TOTAL:</td>
@@ -487,44 +480,39 @@
                     </div>
                 </div>
 
-                <!-- 3. Performance Analytics -->
+                <!-- 3. Top Selling Styles (SPLIT FROM ANALYTICS) -->
                 <div class="report-section">
-                    <div class="report-section-title">3. Performance Analytics</div>
-                    <div class="report-analytics-grid">
-                        <!-- Top Selling -->
-                        <div>
-                            <h4 style="margin-bottom:5px; font-size:10pt; font-weight:bold;">Top Selling Styles</h4>
-                            <table class="report-table">
-                                <thead>
-                                    <tr>
-                                        <th>Style Code</th>
-                                        <th>Product Name</th>
-                                        <th class="num">Qty Sold</th>
-                                        <th class="num">Revenue</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="rptTopBody"></tbody>
-                            </table>
-                        </div>
-                        <!-- Slow Moving -->
-                        <div>
-                            <h4 style="margin-bottom:5px; font-size:10pt; font-weight:bold;">Slow Moving Styles</h4>
-                            <table class="report-table">
-                                <thead>
-                                    <tr>
-                                        <th>Style Code</th>
-                                        <th>Product Name</th>
-                                        <th class="num">Qty Sold</th>
-                                        <th class="num">Revenue</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="rptSlowBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <div class="report-section-title">3. Top Selling Styles</div>
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Style Code</th>
+                                <th>Product Name</th>
+                                <th class="num">Qty Sold</th>
+                                <th class="num">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rptTopBody"></tbody>
+                    </table>
                 </div>
 
-                <!-- 4. Footer -->
+                <!-- 4. Slow Moving Styles (MOVED TO TOP LEVEL) -->
+                <div class="report-section">
+                    <div class="report-section-title">4. Slow Moving Styles</div>
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Style Code</th>
+                                <th>Product Name</th>
+                                <th class="num">Qty Sold</th>
+                                <th class="num">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rptSlowBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 5. Footer -->
                 <div class="report-section" style="border-top: 1px solid #ccc; padding-top: 10px; margin-top: 30px;">
                     <p style="font-size: 8pt; color: #666; margin:0;">
                         Total Records: <span id="rptRecordCount">0</span> entries processed. <br>
@@ -536,7 +524,7 @@
         </div>
     </div>
 
-    <!-- TAB 4: Summary Report (Executive) -->
+    <!-- TAB 4: Summary Report -->
     <div id="tab-summary" class="section-content">
         <div id="summaryPlaceholder" class="empty-state">
             <h3>No Data Available</h3>
@@ -547,7 +535,8 @@
             <!-- Controls -->
             <div class="report-controls">
                 <h3>Summary Actions</h3>
-                <button class="btn-primary" onclick="window.print()">🖨️ Print Summary</button>
+                <button class="btn-primary no-print" onclick="window.print()">🖨️ Print Summary</button>
+                <button class="btn-success no-print" onclick="downloadSummaryCSV()">📥 Export Excel/CSV</button>
             </div>
 
             <!-- The A4 Paper -->
@@ -580,8 +569,8 @@
                         <tbody>
                             <tr>
                                 <td>Total Net Sales</td>
-                                <td class="num" id="sumCurrentSales">$0.00</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="$" oninput="calcGrowth('Sales', this.value)"></td>
+                                <td class="num" id="sumCurrentSales">0.00</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Sales', this.value)"></td>
                                 <td class="num growth-cell" id="growthSales">-</td>
                             </tr>
                             <tr>
@@ -598,8 +587,8 @@
                             </tr>
                             <tr>
                                 <td>Average Bill Value</td>
-                                <td class="num" id="sumCurrentAvg">$0.00</td>
-                                <td class="num"><input type="number" class="report-input" placeholder="$" oninput="calcGrowth('Avg', this.value)"></td>
+                                <td class="num" id="sumCurrentAvg">0.00</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Avg', this.value)"></td>
                                 <td class="num growth-cell" id="growthAvg">-</td>
                             </tr>
                         </tbody>
@@ -702,6 +691,227 @@
             </div>
         </div>
     </div>
+
+    <!-- TAB 5: Master Consolidated Report -->
+    <div id="tab-master" class="section-content">
+        <div id="masterPlaceholder" class="empty-state">
+            <h3>No Data Available</h3>
+            <p>Please process sales data first.</p>
+        </div>
+
+        <div id="masterContent" class="hidden">
+            <!-- Inventory Input (Collapsible) -->
+            <details class="card">
+                <summary class="card-header" style="cursor:pointer; user-select:none;">
+                    <span>📦 Inventory Data (Optional - Required for Stock Analysis)</span>
+                    <span style="font-size:0.8rem; color:var(--primary);">Click to Expand</span>
+                </summary>
+                <div class="card-body">
+                    <div class="info-text">
+                        Paste your Inventory Data here to calculate Stock vs. Sales.<br>
+                        <strong>Format:</strong> Style Code [Tab/Comma] Received Quantity (Rcv Qty)<br>
+                        Example: <code>AB-EF55-001	500</code>
+                    </div>
+                    <textarea id="inventoryInput" placeholder="Paste inventory data (Style Code, Rcv Qty) here..."></textarea>
+                    <div class="btn-row">
+                        <button class="btn-primary" onclick="processInventory()">Load Inventory Data</button>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Controls -->
+            <div class="report-controls">
+                <h3>Master Report Actions</h3>
+                <button class="btn-primary no-print" onclick="window.print()">🖨️ Print Report</button>
+                <button class="btn-success no-print" onclick="downloadMasterCSV()">📥 Export Excel/CSV</button>
+            </div>
+
+            <!-- The A4 Landscape Paper -->
+            <div class="report-page" style="width: 297mm; min-height: 210mm;"> 
+                <!-- Header -->
+                <div class="report-header">
+                    <div class="report-title">
+                        <h1>Sales & Stock Consolidated Report</h1>
+                        <p>Company: Blucheez Outfitters Chottogram</p>
+                    </div>
+                    <div class="report-meta">
+                        Period: <span id="mstPeriod">All</span><br>
+                        Generated: <span id="mstGenDate"></span><br>
+                        User: Admin
+                    </div>
+                </div>
+
+                <!-- 1. Core Financial Metrics -->
+                <div class="report-section">
+                    <div class="report-section-title">1. Core Financial Metrics (With Comparison)</div>
+                    <div style="font-size:7pt; color:#666; margin-bottom:5px;">* Fill in "Previous Month" to calculate Variance % automatically.</div>
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Metric Description</th>
+                                <th>Current Month</th>
+                                <th>Previous Month (Input)</th>
+                                <th>Variance %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Total Net Sales</td>
+                                <td class="num" id="mstSales">0.00</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Sales', this.value)"></td>
+                                <td class="num growth-cell" id="growthSales">-</td>
+                            </tr>
+                            <tr>
+                                <td>Total Quantity Sold</td>
+                                <td class="num" id="mstQty">0</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="#" oninput="calcGrowth('Qty', this.value)"></td>
+                                <td class="num growth-cell" id="growthQty">-</td>
+                            </tr>
+                            <tr>
+                                <td>Total Invoice Count</td>
+                                <td class="num" id="mstInv">0</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="#" oninput="calcGrowth('Inv', this.value)"></td>
+                                <td class="num growth-cell" id="growthInv">-</td>
+                            </tr>
+                            <tr>
+                                <td>Average Bill Value</td>
+                                <td class="num" id="mstAvg">0.00</td>
+                                <td class="num"><input type="number" class="report-input" placeholder="Val" oninput="calcGrowth('Avg', this.value)"></td>
+                                <td class="num growth-cell" id="growthAvg">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2. Stock vs Sales Breakdown -->
+                <div class="report-section">
+                    <div class="report-section-title">2. Stock vs Sales Breakdown (Season & Brand)</div>
+                    <div class="report-scroll-area">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Grouping Type</th>
+                                    <th>Identification</th>
+                                    <th class="num">Received (Rcv Qty)</th>
+                                    <th class="num">Sold (Sale Qty)</th>
+                                    <th class="num">Stock Balance</th>
+                                    <th class="num">Sell-Through %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mstStockBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. Season Wise Report -->
+                <div class="report-section">
+                    <div class="report-section-title">3. Season Wise Report</div>
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Season</th>
+                                <th class="num">Rcv Qty</th>
+                                <th class="num">Sale Qty</th>
+                                <th class="num">Net Amt</th>
+                                <th class="num">Sell-Through %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mstSeasonBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 4. Category & Style Performance -->
+                <div class="report-section">
+                    <div class="report-section-title">4. Category & Style Performance (Top 10)</div>
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Category (Inferred)</th>
+                                <th>Season</th>
+                                <th>Style Code</th>
+                                <th class="num">Rcv Qty</th>
+                                <th class="num">Sale Qty</th>
+                                <th class="num">Net Amt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mstStyleBody"></tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 6: Season Analysis -->
+    <div id="tab-season" class="section-content">
+        <div id="seasonPlaceholder" class="empty-state">
+            <h3>No Data Available</h3>
+            <p>Please process sales data first.</p>
+        </div>
+
+        <div id="seasonContent" class="hidden">
+            <!-- Controls -->
+            <div class="report-controls">
+                <h3>Season Analysis Actions</h3>
+                <button class="btn-primary no-print" onclick="window.print()">🖨️ Print Report</button>
+                <button class="btn-success no-print" onclick="downloadSeasonCSV()">📥 Export Excel/CSV</button>
+            </div>
+
+            <!-- The A4 Paper -->
+            <div class="report-page">
+                <!-- Header -->
+                <div class="report-header">
+                    <div class="report-title">
+                        <h1>Seasonal Analysis Report</h1>
+                        <p>Company: Blucheez Outfitters Chottogram</p>
+                    </div>
+                    <div class="report-meta">
+                        Period: <span id="snsPeriod">All</span><br>
+                        Generated: <span id="snsGenDate"></span><br>
+                        User: Admin
+                    </div>
+                </div>
+
+                <!-- 1. Season Overview -->
+                <div class="report-section">
+                    <div class="report-section-title">1. Season Overview</div>
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Season</th>
+                                <th class="num">Rcv Qty</th>
+                                <th class="num">Sold Qty</th>
+                                <th class="num">Net Amt</th>
+                                <th class="num">Avg Price</th>
+                                <th class="num">Sell-Through %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="snsOverviewBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 2. Season Wise Category Breakdown -->
+                <div class="report-section">
+                    <div class="report-section-title">2. Season Wise Category Breakdown</div>
+                    <div class="report-scroll-area">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Season</th>
+                                    <th>Category (Inferred)</th>
+                                    <th class="num">Sold Qty</th>
+                                    <th class="num">Net Amt</th>
+                                </tr>
+                            </thead>
+                            <tbody id="snsCatBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <div id="toast-container"></div>
@@ -709,7 +919,13 @@
 <script>
     // State
     let processedData = []; 
+    let inventoryData = [];
     let summaryStats = { sales: 0, qty: 0, inv: 0, avg: 0 };
+
+    // Helper to format numbers with commas but NO currency symbol
+    function formatNum(num) {
+        return parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
 
     // --- Tab Handling ---
     function switchTab(tabId) {
@@ -720,13 +936,17 @@
         if(tabId === 'tab-process') buttons[0].classList.add('active');
         else if(tabId === 'tab-analysis') buttons[1].classList.add('active');
         else if(tabId === 'tab-report') buttons[2].classList.add('active');
-        else buttons[3].classList.add('active');
+        else if(tabId === 'tab-summary') buttons[3].classList.add('active');
+        else if(tabId === 'tab-master') buttons[4].classList.add('active');
+        else buttons[5].classList.add('active');
 
         document.getElementById(tabId).classList.add('active');
 
         // Tab Specific Loaders
         if(tabId === 'tab-report' && processedData.length > 0) generatePrintReport();
         if(tabId === 'tab-summary' && processedData.length > 0) generateSummaryReport();
+        if(tabId === 'tab-master' && processedData.length > 0) generateMasterReport();
+        if(tabId === 'tab-season' && processedData.length > 0) generateSeasonReport();
     }
 
     // --- Data Loading ---
@@ -759,7 +979,7 @@ Day Total`;
         showToast('Sample data loaded', 'success');
     }
 
-    // --- Core Processing Logic ---
+    // --- Core Processing Logic (Sales) ---
     function processData() {
         const rawText = document.getElementById('dataInput').value.trim();
         if (!rawText) { showToast('Please enter data', 'error'); return; }
@@ -837,6 +1057,34 @@ Day Total`;
         document.getElementById('reportContent').classList.remove('hidden');
         document.getElementById('summaryPlaceholder').classList.add('hidden');
         document.getElementById('summaryContent').classList.remove('hidden');
+        document.getElementById('masterPlaceholder').classList.add('hidden');
+        document.getElementById('masterContent').classList.remove('hidden');
+        document.getElementById('seasonPlaceholder').classList.add('hidden');
+        document.getElementById('seasonContent').classList.remove('hidden');
+    }
+
+    // --- Inventory Processing Logic ---
+    function processInventory() {
+        const rawText = document.getElementById('inventoryInput').value.trim();
+        if (!rawText) { showToast('Please enter inventory data', 'error'); return; }
+        
+        const rows = parseCSV(rawText);
+        inventoryData = [];
+
+        rows.forEach(row => {
+            // Expecting: Style Code, Rcv Qty
+            if (row.length >= 2) {
+                const style = row[0].trim();
+                const rcv = parseFloat(String(row[1]).replace(/,/g, ''));
+                if (style && !isNaN(rcv)) {
+                    inventoryData.push({ style_code: style, rcv_qty: rcv });
+                }
+            }
+        });
+
+        showToast(`Loaded ${inventoryData.length} inventory items.`, 'success');
+        generateMasterReport(); 
+        generateSeasonReport();
     }
 
     function parseCSV(text) {
@@ -886,9 +1134,9 @@ Day Total`;
                 <td>${item.colour}</td>
                 <td>${item.size}</td>
                 <td class="text-right">${item.qty.toFixed(2)}</td>
-                <td class="text-right">${item.mrp.toFixed(2)}</td>
-                <td class="text-right">${item.vat_amt.toFixed(2)}</td>
-                <td class="text-right highlight-col" style="font-weight:600;">${item.net_sales.toFixed(2)}</td>
+                <td class="text-right">${formatNum(item.mrp)}</td>
+                <td class="text-right">${formatNum(item.vat_amt)}</td>
+                <td class="text-right highlight-col" style="font-weight:600;">${formatNum(item.net_sales)}</td>
             `;
             tbody.appendChild(tr);
 
@@ -902,8 +1150,8 @@ Day Total`;
                 <td colspan="7" style="text-align:right; padding-right:15px; border-top: 2px solid #333;">TOTAL:</td>
                 <td class="text-right" style="border-top: 2px solid #333;">${totalSQty.toFixed(2)}</td>
                 <td></td>
-                <td class="text-right" style="border-top: 2px solid #333;">${totalVatAmt.toFixed(2)}</td>
-                <td class="text-right highlight-col" style="border-top: 2px solid #333; font-weight:bold; color:var(--primary);">${totalNetSales.toFixed(2)}</td>
+                <td class="text-right" style="border-top: 2px solid #333;">${formatNum(totalVatAmt)}</td>
+                <td class="text-right highlight-col" style="border-top: 2px solid #333; font-weight:bold; color:var(--primary);">${formatNum(totalNetSales)}</td>
             </tr>
         `;
         document.getElementById('statsBar').innerText = `Rows: ${tbody.children.length}`;
@@ -944,27 +1192,27 @@ Day Total`;
         const totalInvoices = uniqueInvoices.size;
         const avgBill = totalInvoices > 0 ? (totalSales / totalInvoices) : 0;
 
-        // Save for Summary Report
+        // Save for Master Report
         summaryStats = { sales: totalSales, qty: totalQty, inv: totalInvoices, avg: avgBill };
 
         const kpiHTML = `
             <div class="kpi-card">
                 <span class="kpi-label">Total Net Sales</span>
-                <div class="kpi-value">${totalSales.toFixed(2)}</div>
+                <div class="kpi-value">${formatNum(totalSales)}</div>
                 <div class="kpi-sub">${totalQty.toFixed(0)} Units Sold</div>
             </div>
             <div class="kpi-card">
                 <span class="kpi-label">Total Invoices</span>
                 <div class="kpi-value">${totalInvoices}</div>
-                <div class="kpi-sub">Avg Bill: ${avgBill.toFixed(2)}</div>
+                <div class="kpi-sub">Avg Bill: ${formatNum(avgBill)}</div>
             </div>
             <div class="kpi-card">
                 <span class="kpi-label">Total Discount</span>
-                <div class="kpi-value" style="color:var(--danger)">${totalDisc.toFixed(2)}</div>
+                <div class="kpi-value" style="color:var(--danger)">${formatNum(totalDisc)}</div>
             </div>
             <div class="kpi-card">
                 <span class="kpi-label">Total VAT Collected</span>
-                <div class="kpi-value" style="color:var(--success)">${totalVat.toFixed(2)}</div>
+                <div class="kpi-value" style="color:var(--success)">${formatNum(totalVat)}</div>
             </div>
         `;
         document.getElementById('kpiContainer').innerHTML = kpiHTML;
@@ -983,7 +1231,7 @@ Day Total`;
             const items = dailyGroups[date];
             const dSales = items.reduce((s,i)=>s+i.net_sales,0);
             const dQty = items.reduce((s,i)=>s+i.qty,0);
-            dailyHTML += `<tr><td>${date}</td><td class="text-right">${dQty.toFixed(0)}</td><td class="text-right">${dSales.toFixed(2)}</td></tr>`;
+            dailyHTML += `<tr><td>${date}</td><td class="text-right">${dQty.toFixed(0)}</td><td class="text-right">${formatNum(dSales)}</td></tr>`;
         });
         document.querySelector('#dailyTrendTable tbody').innerHTML = dailyHTML;
 
@@ -1003,14 +1251,14 @@ Day Total`;
 
         let topHTML = "";
         styleStats.slice(0, 10).forEach(s => {
-            topHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="text-right">${s.qty.toFixed(0)}</td><td class="text-right">${s.sales.toFixed(2)}</td></tr>`;
+            topHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="text-right">${s.qty.toFixed(0)}</td><td class="text-right">${formatNum(s.sales)}</td></tr>`;
         });
         document.querySelector('#topProductsTable tbody').innerHTML = topHTML;
 
         let slowHTML = "";
         const sortedAsc = [...styleStats].sort((a,b) => a.qty - b.qty);
         sortedAsc.slice(0, 10).forEach(s => {
-            slowHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="text-right">${s.qty.toFixed(0)}</td><td class="text-right">${s.sales.toFixed(2)}</td></tr>`;
+            slowHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="text-right">${s.qty.toFixed(0)}</td><td class="text-right">${formatNum(s.sales)}</td></tr>`;
         });
         document.querySelector('#slowProductsTable tbody').innerHTML = slowHTML;
 
@@ -1022,9 +1270,9 @@ Day Total`;
                 <td>${s.style}</td>
                 <td>${s.name}</td>
                 <td class="text-right">${s.qty.toFixed(0)}</td>
-                <td class="text-right">${s.sales.toFixed(2)}</td>
-                <td class="text-right">${s.disc.toFixed(2)}</td>
-                <td class="text-right">${s.vat.toFixed(2)}</td>
+                <td class="text-right">${formatNum(s.sales)}</td>
+                <td class="text-right">${formatNum(s.disc)}</td>
+                <td class="text-right">${formatNum(s.vat)}</td>
                 <td class="text-right">${s.contrib.toFixed(2)}%</td>
             </tr>`;
         });
@@ -1036,7 +1284,7 @@ Day Total`;
         Object.entries(colourGroups).forEach(([col, items]) => {
             const cQty = items.reduce((s,i)=>s+i.qty,0);
             const cSales = items.reduce((s,i)=>s+i.net_sales,0);
-            colourHTML += `<tr><td>${col}</td><td class="text-right">${cQty.toFixed(0)}</td><td class="text-right">${cSales.toFixed(2)}</td></tr>`;
+            colourHTML += `<tr><td>${col}</td><td class="text-right">${cQty.toFixed(0)}</td><td class="text-right">${formatNum(cSales)}</td></tr>`;
         });
         document.querySelector('#colourTable tbody').innerHTML = colourHTML;
 
@@ -1045,7 +1293,7 @@ Day Total`;
         Object.entries(sizeGroups).forEach(([sz, items]) => {
             const sQty = items.reduce((s,i)=>s+i.qty,0);
             const sSales = items.reduce((s,i)=>s+i.net_sales,0);
-            sizeHTML += `<tr><td>${sz}</td><td class="text-right">${sQty.toFixed(0)}</td><td class="text-right">${sSales.toFixed(2)}</td></tr>`;
+            sizeHTML += `<tr><td>${sz}</td><td class="text-right">${sQty.toFixed(0)}</td><td class="text-right">${formatNum(sSales)}</td></tr>`;
         });
         document.querySelector('#sizeTable tbody').innerHTML = sizeHTML;
     }
@@ -1065,12 +1313,12 @@ Day Total`;
         const totalInv = new Set(processedData.map(i => i.invoice)).size;
         const avgBill = totalInv > 0 ? (totalSales / totalInv) : 0;
 
-        document.getElementById('rptTotalSales').innerText = "$" + totalSales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('rptTotalSales').innerText = formatNum(totalSales);
         document.getElementById('rptTotalQty').innerText = totalQty.toFixed(0);
         document.getElementById('rptTotalInv').innerText = totalInv;
-        document.getElementById('rptTotalDisc').innerText = "$" + totalDisc.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('rptTotalVat').innerText = "$" + totalVat.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('rptAvgBill').innerText = "$" + avgBill.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('rptTotalDisc').innerText = formatNum(totalDisc);
+        document.getElementById('rptTotalVat').innerText = formatNum(totalVat);
+        document.getElementById('rptAvgBill').innerText = formatNum(avgBill);
 
         // Ledger Table
         const ledgerBody = document.getElementById('rptLedgerBody');
@@ -1090,20 +1338,20 @@ Day Total`;
                 <td>${item.colour}</td>
                 <td>${item.size}</td>
                 <td class="num">${item.qty.toFixed(2)}</td>
-                <td class="num">${item.mrp.toFixed(2)}</td>
-                <td class="num">${item.disc_amt.toFixed(2)}</td>
-                <td class="num">${item.vat_amt.toFixed(2)}</td>
-                <td class="num" style="font-weight:bold;">${item.net_sales.toFixed(2)}</td>
+                <td class="num">${formatNum(item.mrp)}</td>
+                <td class="num">${formatNum(item.disc_amt)}</td>
+                <td class="num">${formatNum(item.vat_amt)}</td>
+                <td class="num" style="font-weight:bold;">${formatNum(item.net_sales)}</td>
             `;
             ledgerBody.appendChild(tr);
         });
 
         document.getElementById('rptLedgerQty').innerText = lQty.toFixed(2);
-        document.getElementById('rptLedgerDisc').innerText = lDisc.toFixed(2);
-        document.getElementById('rptLedgerVat').innerText = lVat.toFixed(2);
-        document.getElementById('rptLedgerNet').innerText = lNet.toFixed(2);
+        document.getElementById('rptLedgerDisc').innerText = formatNum(lDisc);
+        document.getElementById('rptLedgerVat').innerText = formatNum(lVat);
+        document.getElementById('rptLedgerNet').innerText = formatNum(lNet);
 
-        // Analytics Tables (Re-calculate grouping for Report)
+        // Analytics Tables
         const styleGroups = {};
         processedData.forEach(item => {
             if(!styleGroups[item.style_code]) styleGroups[item.style_code] = { qty:0, sales:0, name: item.name };
@@ -1113,17 +1361,17 @@ Day Total`;
 
         const sortedStyles = Object.entries(styleGroups).map(([k,v]) => ({style:k, ...v})).sort((a,b) => b.qty - a.qty);
         
-        // Top 10
+        // Top 10 (Section 3)
         let topHTML = "";
         sortedStyles.slice(0, 10).forEach(s => {
-            topHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="num">${s.qty.toFixed(0)}</td><td class="num">$${s.sales.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+            topHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="num">${s.qty.toFixed(0)}</td><td class="num">${formatNum(s.sales)}</td></tr>`;
         });
         document.getElementById('rptTopBody').innerHTML = topHTML;
 
-        // Slow 10
+        // Slow 10 (Section 4)
         let slowHTML = "";
         [...sortedStyles].sort((a,b) => a.qty - b.qty).slice(0, 10).forEach(s => {
-            slowHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="num">${s.qty.toFixed(0)}</td><td class="num">$${s.sales.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+            slowHTML += `<tr><td>${s.style}</td><td>${s.name}</td><td class="num">${s.qty.toFixed(0)}</td><td class="num">${formatNum(s.sales)}</td></tr>`;
         });
         document.getElementById('rptSlowBody').innerHTML = slowHTML;
     }
@@ -1132,16 +1380,15 @@ Day Total`;
     function generateSummaryReport() {
         if (processedData.length === 0) return;
 
-        // Meta
         const dates = [...new Set(processedData.map(d => d.date))].sort();
         document.getElementById('sumPeriod').innerText = dates.length > 0 ? `${dates[0]} to ${dates[dates.length-1]}` : "N/A";
         document.getElementById('sumGenDate').innerText = new Date().toLocaleString();
 
         // 1. Core Metrics
-        document.getElementById('sumCurrentSales').innerText = "$" + summaryStats.sales.toFixed(2);
+        document.getElementById('sumCurrentSales').innerText = formatNum(summaryStats.sales);
         document.getElementById('sumCurrentQty').innerText = summaryStats.qty.toFixed(0) + " Units";
         document.getElementById('sumCurrentInv').innerText = summaryStats.inv;
-        document.getElementById('sumCurrentAvg').innerText = "$" + summaryStats.avg.toFixed(2);
+        document.getElementById('sumCurrentAvg').innerText = formatNum(summaryStats.avg);
 
         // 2. Top Invoices
         const invoiceGroups = {};
@@ -1159,13 +1406,12 @@ Day Total`;
                 <td>${inv.inv}</td>
                 <td>${inv.date}</td>
                 <td class="num">${inv.qty.toFixed(0)}</td>
-                <td class="num">$${inv.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td class="num">${formatNum(inv.total)}</td>
             </tr>`;
         });
         document.getElementById('sumTopInvoicesBody').innerHTML = invHTML;
 
         // 3. Inventory Performance
-        // Top Style
         const styleGroups = {};
         processedData.forEach(item => {
             if(!styleGroups[item.style_code]) styleGroups[item.style_code] = { qty: 0, name: item.name, sales: 0 };
@@ -1203,21 +1449,20 @@ Day Total`;
             document.getElementById('rowBusiestDay').innerHTML = `
                 <td>Busiest Day</td>
                 <td>${busiest[0]}</td>
-                <td class="num">$${busiest[1].toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td class="num">${formatNum(busiest[1])}</td>
             `;
             
             const lowest = sortedDays[sortedDays.length - 1];
             document.getElementById('rowLowestDay').innerHTML = `
                 <td>Lowest Activity Day</td>
                 <td>${lowest[0]}</td>
-                <td class="num">$${lowest[1].toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td class="num">${formatNum(lowest[1])}</td>
             `;
         }
 
-        // 5. Category Contribution (Group by Colour/Style as proxy)
+        // 5. Category Contribution
         const categoryGroups = {};
         processedData.forEach(item => {
-            // Using Name as category proxy since no specific category column exists
             if(!categoryGroups[item.name]) categoryGroups[item.name] = { qty:0, sales:0 };
             categoryGroups[item.name].qty += item.qty;
             categoryGroups[item.name].sales += item.net_sales;
@@ -1232,30 +1477,340 @@ Day Total`;
             catHTML += `<tr>
                 <td>${c.cat}</td>
                 <td class="num">${c.qty.toFixed(0)}</td>
-                <td class="num">$${c.sales.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td class="num">${formatNum(c.sales)}</td>
                 <td class="num">${pct.toFixed(1)}%</td>
             </tr>`;
         });
         document.getElementById('sumCategoryBody').innerHTML = catHTML;
     }
 
-    // --- Helper: Calc Growth for Inputs ---
+    // --- MASTER REPORT GENERATION (Tab 5) ---
+    function generateMasterReport() {
+        if (processedData.length === 0) return;
+
+        // 1. Meta
+        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        document.getElementById('mstPeriod').innerText = dates.length > 0 ? `${dates[0]} to ${dates[dates.length-1]}` : "N/A";
+        document.getElementById('mstGenDate').innerText = new Date().toLocaleDateString();
+
+        // 2. Financials
+        document.getElementById('mstSales').innerText = formatNum(summaryStats.sales);
+        document.getElementById('mstQty').innerText = summaryStats.qty.toFixed(0);
+        document.getElementById('mstInv').innerText = summaryStats.inv;
+        document.getElementById('mstAvg').innerText = formatNum(summaryStats.avg);
+
+        // 3. Inventory Merge Logic
+        const masterMap = {}; 
+        processedData.forEach(item => {
+            if (!masterMap[item.style_code]) {
+                const parts = item.style_code.split('-');
+                masterMap[item.style_code] = {
+                    sold: 0, revenue: 0, rcv: 0,
+                    name: item.name,
+                    brand: parts[0] || "Unknown",
+                    season: parts[1] || "Unknown",
+                    category: item.name 
+                };
+            }
+            masterMap[item.style_code].sold += item.qty;
+            masterMap[item.style_code].revenue += item.net_sales;
+        });
+
+        inventoryData.forEach(inv => {
+            if (masterMap[inv.style_code]) {
+                masterMap[inv.style_code].rcv = inv.rcv_qty;
+            } else {
+                const parts = inv.style_code.split('-');
+                masterMap[inv.style_code] = {
+                    sold: 0, revenue: 0, rcv: inv.rcv_qty,
+                    name: "No Sales",
+                    brand: parts[0] || "Unknown",
+                    season: parts[1] || "Unknown",
+                    category: "Unknown"
+                };
+            }
+        });
+
+        // 4. Stock vs Sales Breakdown
+        const brandSeasonMap = {}; 
+        Object.values(masterMap).forEach(item => {
+            const key = `${item.brand}-${item.season}`;
+            if(!brandSeasonMap[key]) brandSeasonMap[key] = { type: "Brand/Season", id: key, rcv:0, sold:0 };
+            brandSeasonMap[key].rcv += item.rcv;
+            brandSeasonMap[key].sold += item.sold;
+        });
+        const brandOnlyMap = {};
+        Object.values(masterMap).forEach(item => {
+            if(!brandOnlyMap[item.brand]) brandOnlyMap[item.brand] = { type: "Brand (Prefix)", id: item.brand, rcv:0, sold:0 };
+            brandOnlyMap[item.brand].rcv += item.rcv;
+            brandOnlyMap[item.brand].sold += item.sold;
+        });
+
+        const stockRows = [...Object.values(brandSeasonMap), ...Object.values(brandOnlyMap)];
+        let stockHTML = "";
+        stockRows.forEach(row => {
+            const balance = row.rcv - row.sold;
+            const sthru = row.rcv > 0 ? ((row.sold / row.rcv) * 100).toFixed(1) + "%" : "0.0%";
+            stockHTML += `<tr>
+                <td>${row.type}</td>
+                <td>${row.id}</td>
+                <td class="num">${row.rcv}</td>
+                <td class="num">${row.sold}</td>
+                <td class="num">${balance}</td>
+                <td class="num">${sthru}</td>
+            </tr>`;
+        });
+        document.getElementById('mstStockBody').innerHTML = stockHTML;
+
+        // 5. Season Wise Report
+        const seasonMap = {};
+        Object.values(masterMap).forEach(item => {
+            if(!seasonMap[item.season]) seasonMap[item.season] = { rcv:0, sold:0, revenue:0 };
+            seasonMap[item.season].rcv += item.rcv;
+            seasonMap[item.season].sold += item.sold;
+            seasonMap[item.season].revenue += item.revenue;
+        });
+        let seasonHTML = "";
+        Object.keys(seasonMap).sort().forEach(season => {
+            const s = seasonMap[season];
+            const sthru = s.rcv > 0 ? ((s.sold / s.rcv) * 100).toFixed(1) + "%" : "0.0%";
+            seasonHTML += `<tr>
+                <td>${season}</td>
+                <td class="num">${s.rcv}</td>
+                <td class="num">${s.sold}</td>
+                <td class="num">${formatNum(s.revenue)}</td>
+                <td class="num">${sthru}</td>
+            </tr>`;
+        });
+        document.getElementById('mstSeasonBody').innerHTML = seasonHTML;
+
+        // 6. Category & Style Performance
+        const topStyles = Object.values(masterMap).sort((a,b) => b.revenue - a.revenue).slice(0, 10);
+        let styleHTML = "";
+        topStyles.forEach(s => {
+            styleHTML += `<tr>
+                <td>${s.category}</td>
+                <td>${s.season}</td>
+                <td>${Object.keys(masterMap).find(key => masterMap[key] === s)}</td>
+                <td class="num">${s.rcv}</td>
+                <td class="num">${s.sold.toFixed(0)}</td>
+                <td class="num">${formatNum(s.revenue)}</td>
+            </tr>`;
+        });
+        document.getElementById('mstStyleBody').innerHTML = styleHTML;
+    }
+
+    // --- SEASONAL ANALYSIS REPORT (Tab 6) ---
+    function generateSeasonReport() {
+        if (processedData.length === 0) return;
+
+        const dates = [...new Set(processedData.map(d => d.date))].sort();
+        document.getElementById('snsPeriod').innerText = dates.length > 0 ? `${dates[0]} to ${dates[dates.length-1]}` : "N/A";
+        document.getElementById('snsGenDate').innerText = new Date().toLocaleDateString();
+
+        // Reuse masterMap logic (or recreate) - recreating for cleanliness
+        const masterMap = {};
+        processedData.forEach(item => {
+            const parts = item.style_code.split('-');
+            const season = parts[1] || "Unknown";
+            if (!masterMap[item.style_code]) {
+                masterMap[item.style_code] = { sold: 0, revenue: 0, rcv: 0, name: item.name, season: season };
+            }
+            masterMap[item.style_code].sold += item.qty;
+            masterMap[item.style_code].revenue += item.net_sales;
+        });
+        inventoryData.forEach(inv => {
+            if (masterMap[inv.style_code]) masterMap[inv.style_code].rcv = inv.rcv_qty;
+        });
+
+        // 1. Overview
+        const seasonStats = {};
+        Object.values(masterMap).forEach(item => {
+            if(!seasonStats[item.season]) seasonStats[item.season] = { rcv:0, sold:0, revenue:0 };
+            seasonStats[item.season].rcv += item.rcv;
+            seasonStats[item.season].sold += item.sold;
+            seasonStats[item.season].revenue += item.revenue;
+        });
+
+        let overviewHTML = "";
+        Object.keys(seasonStats).sort().forEach(season => {
+            const s = seasonStats[season];
+            const sthru = s.rcv > 0 ? ((s.sold / s.rcv) * 100).toFixed(1) + "%" : "0.0%";
+            const avgPrice = s.sold > 0 ? (s.revenue / s.sold) : 0;
+            overviewHTML += `<tr>
+                <td>${season}</td>
+                <td class="num">${s.rcv}</td>
+                <td class="num">${s.sold}</td>
+                <td class="num">${formatNum(s.revenue)}</td>
+                <td class="num">${formatNum(avgPrice)}</td>
+                <td class="num">${sthru}</td>
+            </tr>`;
+        });
+        document.getElementById('snsOverviewBody').innerHTML = overviewHTML;
+
+        // 2. Season Wise Category Breakdown
+        const seasonCatMap = {};
+        Object.values(masterMap).forEach(item => {
+            const key = `${item.season}-${item.name}`;
+            if(!seasonCatMap[key]) seasonCatMap[key] = { season: item.season, cat: item.name, sold:0, revenue:0 };
+            seasonCatMap[key].sold += item.sold;
+            seasonCatMap[key].revenue += item.revenue;
+        });
+
+        let catHTML = "";
+        Object.values(seasonCatMap).sort((a,b) => b.revenue - a.revenue).forEach(item => {
+            catHTML += `<tr>
+                <td>${item.season}</td>
+                <td>${item.cat}</td>
+                <td class="num">${item.sold.toFixed(0)}</td>
+                <td class="num">${formatNum(item.revenue)}</td>
+            </tr>`;
+        });
+        document.getElementById('snsCatBody').innerHTML = catHTML;
+    }
+
+    // --- EXPORT FUNCTIONS (FIXED TO WORK) ---
+
+    // Helper to download any CSV string
+    function triggerCSVDownload(csvContent, filename) {
+        const link = document.createElement("a");
+        link.setAttribute("href", encodeURI(csvContent));
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function downloadDetailedReportCSV() {
+        if (processedData.length === 0) return;
+        
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Date,Invoice,Barcode,Name,Style,Color,Size,Qty,MRP,Disc,VAT,Net Sales\r\n";
+        
+        processedData.forEach(item => {
+            const row = [
+                item.date, item.invoice, item.barcode, 
+                `"${item.name}"`, item.style_code, item.colour, item.size,
+                item.qty, item.mrp, item.disc_amt, item.vat_amt, item.net_sales
+            ];
+            csvContent += row.join(",") + "\r\n";
+        });
+        
+        triggerCSVDownload(csvContent, "Detailed_Ledger_Report.csv");
+    }
+
+    function downloadSummaryCSV() {
+        if (processedData.length === 0) return;
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "SUMMARY REPORT\n";
+        csvContent += "Metric,Value\n";
+        csvContent += `Total Sales,${summaryStats.sales}\n`;
+        csvContent += `Total Qty,${summaryStats.qty}\n`;
+        csvContent += `Total Invoices,${summaryStats.inv}\n`;
+        
+        // Add Category Contribution
+        const categoryGroups = {};
+        processedData.forEach(item => {
+            if(!categoryGroups[item.name]) categoryGroups[item.name] = { qty:0, sales:0 };
+            categoryGroups[item.name].qty += item.qty;
+            categoryGroups[item.name].sales += item.net_sales;
+        });
+        csvContent += "\nCATEGORY CONTRIBUTION\n";
+        csvContent += "Category,Qty Sold,Net Sales\n";
+        Object.entries(categoryGroups).forEach(([cat, data]) => {
+            csvContent += `"${cat}",${data.qty},"${data.sales}\n`;
+        });
+
+        triggerCSVDownload(csvContent, "Summary_Report.csv");
+    }
+
+    function downloadMasterCSV() {
+        if (processedData.length === 0) return;
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // 1. Financials
+        csvContent += "MASTER CONSOLIDATED REPORT\n\n";
+        csvContent += "Metric,Value\n";
+        csvContent += `Total Sales,${summaryStats.sales}\n`;
+        csvContent += `Total Qty,${summaryStats.qty}\n`;
+        csvContent += `Total Invoices,${summaryStats.inv}\n\n`;
+        
+        // 2. Season Wise
+        const masterMap = {};
+        processedData.forEach(item => {
+            const parts = item.style_code.split('-');
+            const season = parts[1] || "Unknown";
+            if (!masterMap[item.style_code]) {
+                masterMap[item.style_code] = { sold: 0, revenue: 0, rcv: 0, season: season, brand: parts[0] || "Unknown" };
+            }
+            masterMap[item.style_code].sold += item.qty;
+            masterMap[item.style_code].revenue += item.net_sales;
+        });
+        inventoryData.forEach(inv => {
+            if (masterMap[inv.style_code]) masterMap[inv.style_code].rcv = inv.rcv_qty;
+        });
+
+        const seasonStats = {};
+        Object.values(masterMap).forEach(item => {
+            if(!seasonStats[item.season]) seasonStats[item.season] = { rcv:0, sold:0, revenue:0 };
+            seasonStats[item.season].rcv += item.rcv;
+            seasonStats[item.season].sold += item.sold;
+            seasonStats[item.season].revenue += item.revenue;
+        });
+
+        csvContent += "\nSEASON WISE REPORT\n";
+        csvContent += "Season,Rcv Qty,Sold Qty,Net Amt\n";
+        Object.keys(seasonStats).sort().forEach(season => {
+            const s = seasonStats[season];
+            csvContent += `${season},${s.rcv},${s.sold},${s.revenue}\n`;
+        });
+
+        triggerCSVDownload(csvContent, "Master_Report.csv");
+    }
+
+    function downloadSeasonCSV() {
+        if (processedData.length === 0) return;
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "SEASONAL ANALYSIS REPORT\n\n";
+        csvContent += "Season,Rcv Qty,Sold Qty,Net Amt\n";
+
+        const masterMap = {};
+        processedData.forEach(item => {
+            const parts = item.style_code.split('-');
+            const season = parts[1] || "Unknown";
+            if (!masterMap[item.style_code]) {
+                masterMap[item.style_code] = { sold: 0, revenue: 0, rcv: 0, season: season };
+            }
+            masterMap[item.style_code].sold += item.qty;
+            masterMap[item.style_code].revenue += item.net_sales;
+        });
+        inventoryData.forEach(inv => {
+            if (masterMap[inv.style_code]) masterMap[inv.style_code].rcv = inv.rcv_qty;
+        });
+
+        const seasonStats = {};
+        Object.values(masterMap).forEach(item => {
+            if(!seasonStats[item.season]) seasonStats[item.season] = { rcv:0, sold:0, revenue:0 };
+            seasonStats[item.season].rcv += item.rcv;
+            seasonStats[item.season].sold += item.sold;
+            seasonStats[item.season].revenue += item.revenue;
+        });
+
+        Object.keys(seasonStats).sort().forEach(season => {
+            const s = seasonStats[season];
+            csvContent += `${season},${s.rcv},${s.sold},${s.revenue}\n`;
+        });
+
+        triggerCSVDownload(csvContent, "Seasonal_Report.csv");
+    }
+
+    // --- Helper: Calc Growth ---
     function calcGrowth(type, value) {
         const prev = parseFloat(value);
         const current = summaryStats[type.toLowerCase()];
-        
         let el = document.getElementById('growth' + type);
-        
-        if (isNaN(prev) || isNaN(current)) {
-            el.innerText = "-";
-            return;
-        }
-        
-        if (prev === 0) {
-            el.innerText = "N/A";
-            return;
-        }
-
+        if (isNaN(prev) || isNaN(current)) { el.innerText = "-"; return; }
+        if (prev === 0) { el.innerText = "N/A"; return; }
         const growth = ((current - prev) / prev) * 100;
         el.innerText = growth.toFixed(2) + "%";
         el.style.color = growth >= 0 ? "var(--success)" : "var(--danger)";
@@ -1263,17 +1818,23 @@ Day Total`;
 
     function clearAll() {
         document.getElementById('dataInput').value = '';
+        document.getElementById('inventoryInput').value = '';
         document.getElementById('fileInput').value = '';
         document.getElementById('outputSection').style.display = 'none';
         document.getElementById('tableBody').innerHTML = '';
         document.getElementById('tableFooter').innerHTML = '';
         document.getElementById('analysisPlaceholder').classList.remove('hidden');
         document.getElementById('analysisContent').classList.add('hidden');
+        document.getElementById('masterPlaceholder').classList.remove('hidden');
+        document.getElementById('masterContent').classList.add('hidden');
+        document.getElementById('seasonPlaceholder').classList.remove('hidden');
+        document.getElementById('seasonContent').classList.add('hidden');
         document.getElementById('reportPlaceholder').classList.remove('hidden');
         document.getElementById('reportContent').classList.add('hidden');
         document.getElementById('summaryPlaceholder').classList.remove('hidden');
         document.getElementById('summaryContent').classList.add('hidden');
         processedData = [];
+        inventoryData = [];
         showToast('Cleared', 'success');
     }
 
