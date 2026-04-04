@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Report (12h Format)</title>
+    <style>
+        /* --- CSS Variables & Reset --- */
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+            --header-bg: #f8fafc;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 85vh;
+        }
+
+        /* --- Header --- */
+        header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--header-bg);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title h1 { font-size: 1.5rem; font-weight: 700; }
+        .header-title p { color: #6b7280; font-size: 0.9rem; }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        select, button {
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-color);
+        }
+        .btn-outline:hover { background: #f9fafb; }
+
+        /* --- Table --- */
+        .table-wrapper {
+            flex: 1;
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px; /* Increased width for new time pickers */
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        thead th {
+            background-color: var(--header-bg);
+            color: #4b5563;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .col-sl { width: 50px; text-align: center; }
+        .col-date { width: 130px; }
+        .col-day { width: 100px; }
+        .col-time { width: 200px; } /* Wider for 12h picker */
+        .col-total { width: 110px; font-weight: 600; color: var(--primary-color); }
+        .col-ot { width: 110px; font-weight: 600; color: var(--warning-color); }
+        .col-remarks { min-width: 180px; }
+
+        /* --- Custom 12H Time Picker Styles --- */
+        .time-picker {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tp-part {
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #fff;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        
+        .tp-part:focus { border-color: var(--primary-color); }
+        .tp-hour { width: 60px; }
+        .tp-min { width: 60px; }
+        .tp-ampm { width: 65px; }
+
+        /* --- Inputs --- */
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            background: transparent;
+            transition: 0.2s;
+        }
+        input[type="text"]:hover { background: #f9fafb; }
+        input[type="text"]:focus {
+            background: #fff;
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        /* --- Footer --- */
+        footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--header-bg);
+            display: flex;
+            justify-content: flex-end;
+            gap: 20px;
+            font-size: 0.9rem;
+        }
+        .summary-item span { color: #6b7280; margin-right: 5px; }
+
+        @media (max-width: 768px) {
+            header { flex-direction: column; align-items: stretch; }
+            .controls { flex-direction: column; }
+            .btn-group { display: flex; gap: 10px; width: 100%; }
+            .btn-group button { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="header-title">
+                <h1>Attendance Report</h1>
+                <p>Select month to auto-generate dates.</p>
+            </div>
+            <div class="controls">
+                <select id="monthSelect"></select>
+                <select id="yearSelect"></select>
+                <div class="btn-group">
+                    <button class="btn-outline" id="resetBtn">Reset</button>
+                    <button class="btn-primary" id="exportBtn">Export to Excel</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="table-wrapper">
+            <table id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th class="col-sl">SL</th>
+                        <th class="col-date">Date</th>
+                        <th class="col-day">Day</th>
+                        <th class="col-time">In Time</th>
+                        <th class="col-time">Out Time</th>
+                        <th class="col-total">Total Duty</th>
+                        <th class="col-ot">Over Time</th>
+                        <th class="col-remarks">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Rows generated by JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <footer>
+            <div class="summary-item"><span>Total Duty:</span> <b id="totalDutySummary">0h 0m</b></div>
+            <div class="summary-item"><span>Total OT:</span> <b id="totalOtSummary">0h 0m</b></div>
+        </footer>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const STANDARD_DUTY_HOURS = 12;
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+        // --- State ---
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+        let attendanceData = {};
+
+        // --- DOM Elements ---
+        const monthSelect = document.getElementById('monthSelect');
+        const yearSelect = document.getElementById('yearSelect');
+        const tableBody = document.getElementById('tableBody');
+        const exportBtn = document.getElementById('exportBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const totalDutySummary = document.getElementById('totalDutySummary');
+        const totalOtSummary = document.getElementById('totalOtSummary');
+
+        // --- Initialization ---
+        function init() {
+            populateSelectors();
+            loadDataFromStorage();
+            renderTable();
+            attachEventListeners();
+        }
+
+        // 1. Populate Month/Year Dropdowns
+        function populateSelectors() {
+            // Years (Current year - 2 to + 5)
+            const startYear = currentYear - 2;
+            const endYear = currentYear + 5;
+            for (let y = startYear; y <= endYear; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+
+            // Months
+            monthNames.forEach((name, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = name;
+                if (idx === currentMonth) opt.selected = true;
+                monthSelect.appendChild(opt);
+            });
+        }
+
+        // 2. Data Handling (LocalStorage)
+        function loadDataFromStorage() {
+            const key = `attendance_${currentYear}_${currentMonth}`;
+            const stored = localStorage.getItem(key);
+            attendanceData = stored ? JSON.parse(stored) : {};
+            updateSummary();
+        }
+
+        function saveDataToStorage() {
+            const key = `attendance_${currentYear}_${currentMonth}`;
+            localStorage.setItem(key, JSON.stringify(attendanceData));
+            updateSummary();
+        }
+
+        // 3. Helper: Create Time Picker Dropdowns (12h Format)
+        function createTimePickerHTML(type, dateKey, value24h) {
+            // value24h is "HH:MM" or ""
+            let h = 12, m = '00', ampm = 'AM';
+            
+            if (value24h) {
+                const [valH, valM] = value24h.split(':').map(Number);
+                m = String(valM).padStart(2, '0');
+                if (valH === 0) { h = 12; ampm = 'AM'; }
+                else if (valH < 12) { h = valH; ampm = 'AM'; }
+                else if (valH === 12) { h = 12; ampm = 'PM'; }
+                else { h = valH - 12; ampm = 'PM'; }
+            }
+
+            // Generate Options
+            let hourOpts = '';
+            for(let i=1; i<=12; i++) hourOpts += `<option value="${i}" ${i===h?'selected':''}>${i}</option>`;
+
+            let minOpts = '';
+            for(let i=0; i<60; i+=5) { // Steps of 5 mins for easier selection
+                let val = String(i).padStart(2, '0');
+                minOpts += `<option value="${val}" ${val===m?'selected':''}>${val}</option>`;
+            }
+
+            const ampmOpts = `
+                <option value="AM" ${ampm==='AM'?'selected':''}>AM</option>
+                <option value="PM" ${ampm==='PM'?'selected':''}>PM</option>
+            `;
+
+            return `
+                <div class="time-picker" data-type="${type}" data-date="${dateKey}">
+                    <select class="tp-part tp-hour">${hourOpts}</select> :
+                    <select class="tp-part tp-min">${minOpts}</select>
+                    <select class="tp-part tp-ampm">${ampmOpts}</select>
+                </div>
+            `;
+        }
+
+        // 4. Render Table
+        function renderTable() {
+            tableBody.innerHTML = '';
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateObj = new Date(currentYear, currentMonth, day);
+                const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayName = dayNames[dateObj.getDay()];
+
+                const record = attendanceData[dateKey] || { in: '', out: '', remark: '' };
+                const calc = calculateTimeDifference(record.in, record.out);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="col-sl">${day}</td>
+                    <td class="col-date">${dateKey}</td>
+                    <td class="col-day">${dayName}</td>
+                    <td class="col-time">${createTimePickerHTML('in', dateKey, record.in)}</td>
+                    <td class="col-time">${createTimePickerHTML('out', dateKey, record.out)}</td>
+                    <td class="col-total" id="total-${dateKey}">${calc.totalStr}</td>
+                    <td class="col-ot" id="ot-${dateKey}">${calc.otStr}</td>
+                    <td class="col-remarks"><input type="text" class="remark-input" value="${record.remark || ''}" data-date="${dateKey}" placeholder="Remark..."></td>
+                `;
+                tableBody.appendChild(tr);
+            }
+        }
+
+        // 5. Calculation Logic
+        function calculateTimeDifference(inTime, outTime) {
+            if (!inTime || !outTime) return { totalStr: '-', otStr: '-' };
+
+            const [inH, inM] = inTime.split(':').map(Number);
+            const [outH, outM] = outTime.split(':').map(Number);
+
+            let startMins = inH * 60 + inM;
+            let endMins = outH * 60 + outM;
+
+            // Handle Overnight (e.g., 11 PM to 7 AM)
+            if (endMins < startMins) {
+                endMins += 24 * 60;
+            }
+
+            const diff = endMins - startMins;
+            const standard = STANDARD_DUTY_HOURS * 60;
+            
+            let duty = diff;
+            let ot = diff > standard ? diff - standard : 0;
+
+            const format = (m) => {
+                if(m <= 0) return '0h 0m';
+                return `${Math.floor(m/60)}h ${m%60}m`;
+            };
+
+            return { totalStr: format(duty), otStr: format(ot) };
+        }
+
+        function updateSummary() {
+            let totalDuty = 0, totalOt = 0;
+            Object.values(attendanceData).forEach(rec => {
+                const res = calculateTimeDifference(rec.in, rec.out);
+                totalDuty += (res.totalStr === '-' ? 0 : (parseInt(res.totalStr) || 0)); // Simple parse just for demo logic
+                // Better parse logic for summary:
+                if(res.totalStr !== '-') {
+                    const parts = res.totalStr.split(' ');
+                    totalDuty += (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+                }
+                if(res.otStr !== '-') {
+                    const parts = res.otStr.split(' ');
+                    totalOt += (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+                }
+            });
+            const format = (m) => `${Math.floor(m/60)}h ${m%60}m`;
+            totalDutySummary.textContent = format(totalDuty);
+            totalOtSummary.textContent = format(totalOt);
+        }
+
+        // 6. Event Listeners
+        function attachEventListeners() {
+            // Month/Year Change
+            const refresh = () => {
+                currentMonth = parseInt(monthSelect.value);
+                currentYear = parseInt(yearSelect.value);
+                loadDataFromStorage();
+                renderTable();
+            };
+            monthSelect.addEventListener('change', refresh);
+            yearSelect.addEventListener('change', refresh);
+
+            // Table Delegation (Time Pickers & Remarks)
+            tableBody.addEventListener('change', (e) => {
+                if (e.target.tagName !== 'SELECT' && e.target.type !== 'text') return;
+
+                const pickerContainer = e.target.closest('.time-picker');
+                
+                // Case A: Time Picker Changed
+                if (pickerContainer) {
+                    const row = pickerContainer.closest('tr');
+                    const dateKey = pickerContainer.dataset.date;
+                    const type = pickerContainer.dataset.type; // 'in' or 'out'
+
+                    // Get all 3 parts from this picker
+                    const h = pickerContainer.querySelector('.tp-hour').value;
+                    const m = pickerContainer.querySelector('.tp-min').value;
+                    const ampm = pickerContainer.querySelector('.tp-ampm').value;
+
+                    // Convert to 24h "HH:MM"
+                    let h24 = parseInt(h);
+                    if (ampm === 'PM' && h24 !== 12) h24 += 12;
+                    if (ampm === 'AM' && h24 === 12) h24 = 0;
+                    
+                    const time24 = `${String(h24).padStart(2,'0')}:${m}`;
+
+                    // Save
+                    if (!attendanceData[dateKey]) attendanceData[dateKey] = { in: '', out: '', remark: '' };
+                    attendanceData[dateKey][type] = time24;
+
+                    // Update Row Calculation
+                    const record = attendanceData[dateKey];
+                    const calc = calculateTimeDifference(record.in, record.out);
+                    row.querySelector(`#total-${dateKey}`).textContent = calc.totalStr;
+                    row.querySelector(`#ot-${dateKey}`).textContent = calc.otStr;
+                    
+                    saveDataToStorage();
+                }
+                // Case B: Remark Changed
+                else if (e.target.classList.contains('remark-input')) {
+                    const dateKey = e.target.dataset.date;
+                    if (!attendanceData[dateKey]) attendanceData[dateKey] = { in: '', out: '', remark: '' };
+                    attendanceData[dateKey].remark = e.target.value;
+                    saveDataToStorage();
+                }
+            });
+
+            // Reset
+            resetBtn.addEventListener('click', () => {
+                if(confirm('Clear all data for this month?')) {
+                    attendanceData = {};
+                    saveDataToStorage();
+                    renderTable();
+                }
+            });
+
+            // Export
+            exportBtn.addEventListener('click', exportToCSV);
+        }
+
+        // 7. Export to CSV
+        function exportToCSV() {
+            const monthName = monthNames[currentMonth];
+            let csv = "SL,Date,Day,In Time,Out Time,Total Duty,Over Time,Remarks\n";
+
+            const rows = tableBody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                let rowData = [];
+                cols.forEach((col, idx) => {
+                    // For Time columns (3 and 4), combine dropdowns into readable string
+                    if (idx === 3 || idx === 4) {
+                        const h = col.querySelector('.tp-hour').value;
+                        const m = col.querySelector('.tp-min').value;
+                        const ampm = col.querySelector('.tp-ampm').value;
+                        rowData.push(`${h}:${m} ${ampm}`);
+                    } 
+                    // For Remarks (7), handle commas
+                    else if (idx === 7) {
+                        const val = col.querySelector('input').value;
+                        rowData.push(`"${val.replace(/"/g, '""')}"`); // Escape quotes
+                    } 
+                    // Standard text columns
+                    else {
+                        rowData.push(col.innerText);
+                    }
+                });
+                csv += rowData.join(",") + "\n";
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Attendance_${monthName}_${currentYear}.csv`;
+            link.click();
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
