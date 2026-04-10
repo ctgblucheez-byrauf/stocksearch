@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blucheez Chottogram - Petty Cash Manager</title>
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* --- Layout & Containers --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* --- Header Section --- */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h1.brand-name {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        p.report-title {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+            border-color: var(--secondary);
+        }
+
+        .btn-danger {
+            background-color: #fee2e2;
+            color: var(--danger);
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+        
+        .btn-danger:hover {
+            background-color: #fecaca;
+        }
+
+        /* --- Table Styling --- */
+        .table-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        thead {
+            background-color: #f8fafc;
+            border-bottom: 2px solid var(--border);
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        tr:not(:last-child) {
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        .amount-col {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 600;
+            text-align: right !important;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .tfooter {
+            background-color: #f8fafc;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .total-amount {
+            color: var(--primary);
+        }
+
+        /* --- Modal / Form Overlay --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        /* --- Form Elements --- */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* --- Toast Notification --- */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--text-main);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+
+        /* --- Empty State --- */
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #cbd5e1;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+            h1.brand-name { font-size: 1.5rem; }
+            .btn { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="printable-area">
+        <!-- Header -->
+        <header>
+            <h1 class="brand-name">Blucheez Chottogram</h1>
+            <p class="report-title" id="report-subtitle">Petty Cash for the month of <span id="current-month-display">...</span></p>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-primary" onclick="openModal()">
+                <i class="fas fa-plus"></i> New Entry
+            </button>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel" style="color: #107c41;"></i> Excel
+                </button>
+                <button class="btn btn-secondary" onclick="exportToPDF()">
+                    <i class="fas fa-file-pdf" style="color: #ef4444;"></i> PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="table-container">
+            <table id="petty-cash-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">Sl</th>
+                        <th style="width: 120px;">Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th style="width: 100px;">Amount</th>
+                        <th>Remarks</th>
+                        <th style="width: 80px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Rows will be injected here via JS -->
+                </tbody>
+                <tfoot class="tfooter">
+                    <tr>
+                        <td colspan="4" style="text-align: right;">Total:</td>
+                        <td class="amount-col total-amount" id="total-amount">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <div id="empty-state" class="empty-state">
+                <i class="fas fa-receipt empty-icon"></i>
+                <p>No entries found for this month.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form -->
+    <div class="modal-overlay" id="entry-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Entry</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="entry-form" onsubmit="handleFormSubmit(event)">
+                
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" id="inp-date" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select id="inp-category" class="form-select" required>
+                        <option value="" disabled selected>Select Category</option>
+                        <option value="Conveyance">Conveyance</option>
+                        <option value="Others">Others</option>
+                        <option value="Stationary">Stationary</option>
+                        <option value="Official Receipt">Official Receipt</option>
+                        <option value="Courier">Courier</option>
+                        <option value="Mobile Bill">Mobile Bill</option>
+                        <option value="Alter">Alter</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" id="inp-desc" class="form-input" placeholder="e.g. Taxi fare to office" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Amount</label>
+                    <input type="number" id="inp-amount" class="form-input" placeholder="0.00" step="0.01" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Remarks</label>
+                    <textarea id="inp-remarks" class="form-textarea" rows="2" placeholder="Optional details..."></textarea>
+                </div>
+
+                <div style="margin-top: 25px; text-align: right;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="margin-right: 10px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> Save Entry
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i class="fas fa-info-circle"></i>
+        <span id="toast-msg">Message goes here</span>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+        const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+        
+        let sbClient;
+        if (window.supabase) {
+            sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } else {
+            console.error("Supabase library failed to load.");
+            showToast("Failed to load database library. Check internet.", "error");
+        }
+
+        // --- 2. STATE MANAGEMENT ---
+        let entriesData = [];
+
+        // --- 3. INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateHeaderDate();
+            fetchEntries();
+            
+            // Set default date in form to today
+            document.getElementById('inp-date').valueAsDate = new Date();
+        });
+
+        function updateHeaderDate() {
+            const now = new Date();
+            const monthYear = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+            // Adjusting title as requested: "January-2026" (Based on user input, though usually current year)
+            // Since user asked for "January-2026", I will use current date logic, but note the format
+            const formatted = now.toLocaleString('default', { month: 'long' }) + "-" + now.getFullYear();
+            document.getElementById('current-month-display').textContent = formatted;
+        }
+
+        // --- 4. SUPABASE INTERACTIONS ---
+
+        async function fetchEntries() {
+            if (!sbClient) return;
+
+            // Get current month start and end for filtering (optional, or fetch all and sort)
+            // For this demo, we fetch all and sort by date descending
+            const { data, error } = await sbClient
+                .from('petty_cash_entries')
+                .select('*')
+                .order('created_at', { ascending: true }); // Oldest first for Serial No logic
+
+            if (error) {
+                console.error('Error fetching data:', error);
+                showToast('Error loading data', 'error');
+            } else {
+                entriesData = data;
+                renderTable();
+            }
+        }
+
+        async function addEntryToSupabase(entry) {
+            if (!sbClient) return;
+
+            const { data, error } = await sbClient
+                .from('petty_cash_entries')
+                .insert([
+                    { 
+                        entry_date: entry.date,
+                        category: entry.category,
+                        description: entry.description,
+                        amount: entry.amount,
+                        remarks: entry.remarks
+                    }
+                ]);
+
+            if (error) {
+                console.error('Error inserting:', error);
+                showToast('Failed to save entry', 'error');
+                return false;
+            } else {
+                showToast('Entry saved successfully!', 'success');
+                fetchEntries(); // Refresh table
+                return true;
+            }
+        }
+
+        async function deleteEntry(id) {
+            if(!confirm("Are you sure you want to delete this entry?")) return;
+
+            const { error } = await sbClient
+                .from('petty_cash_entries')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error deleting:', error);
+                showToast('Could not delete entry', 'error');
+            } else {
+                showToast('Entry deleted', 'success');
+                fetchEntries();
+            }
+        }
+
+        // --- 5. UI RENDERING ---
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            const emptyState = document.getElementById('empty-state');
+            const totalEl = document.getElementById('total-amount');
+            
+            tbody.innerHTML = '';
+            let total = 0;
+
+            if (entriesData.length === 0) {
+                emptyState.style.display = 'block';
+                totalEl.textContent = '0.00';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            entriesData.forEach((row, index) => {
+                const sl = index + 1;
+                total += parseFloat(row.amount);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${sl}</td>
+                    <td>${formatDate(row.entry_date)}</td>
+                    <td><span class="category-badge">${row.category}</span></td>
+                    <td>${row.description}</td>
+                    <td class="amount-col">${parseFloat(row.amount).toFixed(2)}</td>
+                    <td>${row.remarks || '-'}</td>
+                    <td>
+                        <button class="btn btn-danger" onclick="deleteEntry(${row.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            totalEl.textContent = total.toFixed(2);
+        }
+
+        function formatDate(dateString) {
+            if(!dateString) return '';
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('en-US', options);
+        }
+
+        // --- 6. FORM HANDLING ---
+
+        function openModal() {
+            document.getElementById('entry-modal').classList.add('active');
+            document.getElementById('inp-date').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('entry-modal').classList.remove('active');
+            document.getElementById('entry-form').reset();
+            // Reset date to today after clear
+            document.getElementById('inp-date').valueAsDate = new Date();
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const entry = {
+                date: document.getElementById('inp-date').value,
+                category: document.getElementById('inp-category').value,
+                description: document.getElementById('inp-desc').value,
+                amount: document.getElementById('inp-amount').value,
+                remarks: document.getElementById('inp-remarks').value
+            };
+
+            const success = await addEntryToSupabase(entry);
+            if (success) {
+                closeModal();
+            }
+        }
+
+        // --- 7. EXPORT FUNCTIONS ---
+
+        function exportToExcel() {
+            if (entriesData.length === 0) {
+                showToast("No data to export", "error");
+                return;
+            }
+
+            // Prepare data for Excel
+            const excelData = entriesData.map((row, index) => ({
+                "Sl No": index + 1,
+                "Date": row.entry_date,
+                "Category": row.category,
+                "Description": row.description,
+                "Amount": row.amount,
+                "Remarks": row.remarks
+            }));
+
+            // Calculate Total Row
+            const total = excelData.reduce((sum, item) => sum + Number(item.Amount), 0);
+            excelData.push({}); // Empty row
+            excelData.push({ "Date": "Total", "Amount": total });
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Petty Cash");
+            
+            const filename = `Blucheez_PettyCash_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(workbook, filename);
+        }
+
+        function exportToPDF() {
+            if (entriesData.length === 0) {
+                showToast("No data to export", "error");
+                return;
+            }
+
+            const element = document.getElementById('printable-area');
+            const opt = {
+                margin:       [10, 10, 10, 10], // top, left, bottom, right
+                filename:     `Blucheez_PettyCash_${new Date().toISOString().slice(0,10)}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Temporarily hide action column for PDF
+            const actionCols = document.querySelectorAll('th:last-child, td:last-child');
+            actionCols.forEach(col => col.style.display = 'none');
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Restore action column
+                actionCols.forEach(col => col.style.display = '');
+            });
+        }
+
+        // --- 8. UTILITIES ---
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-msg');
+            
+            msgEl.textContent = message;
+            toast.className = `toast show ${type}`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Close modal if clicked outside
+        document.getElementById('entry-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('entry-modal')) {
+                closeModal();
+            }
+        });
+
+    </script>
+</body>
+</html>
