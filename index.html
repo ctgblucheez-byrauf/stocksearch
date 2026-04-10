@@ -21,9 +21,9 @@
             --text-main: #1e293b;
             --text-secondary: #64748b;
             --border: #e2e8f0;
-            --success: #10b981; /* Green */
+            --success: #10b981;
             --success-bg: #ecfdf5;
-            --danger: #ef4444; /* Red */
+            --danger: #ef4444;
             --danger-bg: #fef2f2;
             --sidebar-width: 260px;
             --header-height: 64px;
@@ -236,7 +236,7 @@
             font-weight: 500;
         }
 
-        /* --- 5. SCANNER UI (UPDATED) --- */
+        /* --- 5. SCANNER UI (FULLSCREEN) --- */
         #reader-wrapper {
             margin-top: 1.5rem;
             border-radius: var(--radius);
@@ -248,10 +248,66 @@
             box-shadow: var(--shadow-md);
             transform: translateZ(0); 
             -webkit-transform: translateZ(0);
+            /* Default Dimensions */
+            width: 100%;
+            min-height: 350px;
+        }
+
+        /* --- FULL SCREEN SCANNER CLASS --- */
+        .scanner-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            background: #000 !important;
         }
         
-        /* Hide the default 'link' provided by html5-qrcode */
+        /* Force reader to fill container in fullscreen */
+        .scanner-fullscreen #reader {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: unset !important;
+            object-fit: cover;
+        }
+        .scanner-fullscreen #reader video {
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Hide default html5-qrcode links */
         #reader a { display: none !important; }
+
+        /* Close Button for Full Screen */
+        .btn-close-fullscreen {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            cursor: pointer;
+            z-index: 10010;
+        }
+        .scanner-fullscreen .btn-close-fullscreen {
+            display: flex;
+        }
+        .btn-close-fullscreen:hover { background: rgba(255, 255, 255, 0.4); }
 
         /* Custom Scanning Overlay */
         .scanner-overlay {
@@ -260,9 +316,9 @@
             transform: translate(-50%, -50%);
             width: 300px; height: 200px;
             pointer-events: none;
-            border: 2px solid rgba(37, 99, 235, 0.6);
-            border-radius: 8px;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(37, 99, 235, 0.8);
+            border-radius: 12px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
             overflow: hidden;
             z-index: 5;
         }
@@ -273,10 +329,10 @@
             width: 100%;
             height: 2px;
             background: var(--accent);
-            box-shadow: 0 0 10px var(--accent);
+            box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
             top: 0;
             left: 0;
-            animation: scanMove 2s infinite linear;
+            animation: scanMove 2.5s infinite linear;
             opacity: 0.8;
         }
 
@@ -290,33 +346,35 @@
         .scan-text-hint {
             position: absolute;
             bottom: 10px; width: 100%; text-align: center;
-            color: white;
-            font-size: 0.8rem;
-            font-weight: 500;
-            text-shadow: 0 1px 2px black;
+            color: rgba(255,255,255,0.9);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
             z-index: 6;
         }
 
         /* Scanner Control Buttons */
         .scanner-controls {
-            position: absolute; bottom: 20px; left: 50%;
+            position: absolute; bottom: 40px; left: 50%;
             transform: translateX(-50%);
-            display: flex; gap: 15px;
-            z-index: 10; width: 100%; justify-content: center;
+            display: flex; gap: 25px;
+            z-index: 10010; width: 100%; justify-content: center;
         }
 
         .btn-ctrl {
-            background: rgba(255,255,255,0.9);
-            width: 48px; height: 48px; border-radius: 50%;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(8px);
+            width: 56px; height: 56px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            cursor: pointer; z-index: 10; border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            cursor: pointer; z-index: 10; border: 1px solid rgba(255,255,255,0.2);
             transition: transform 0.1s;
+            color: white;
         }
-        .btn-ctrl:active { transform: scale(0.95); }
-        .btn-ctrl.on { background: #fbbf24; color: white; }
+        .btn-ctrl:active { transform: scale(0.9); }
+        .btn-ctrl.on { background: var(--accent); color: white; border-color: var(--accent); }
 
-        /* Hidden file input for scanning image */
+        /* Hidden file input */
         #qr-input-file { display: none; }
 
         /* --- 6. FILTERS --- */
@@ -412,7 +470,7 @@
             background: #1e293b; color: white; padding: 12px 24px;
             border-radius: 6px; box-shadow: var(--shadow-lg);
             font-size: 0.9rem; display: flex; align-items: center; gap: 10px;
-            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 2000;
+            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 20000;
             max-width: 90%; text-align: center;
         }
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -427,7 +485,6 @@
             header { padding: 0 1rem; }
             main { padding: 1rem; }
             .price-grid { grid-template-columns: 1fr; }
-            #reader { min-height: 300px; }
             .checkbox-wrapper { 
                 border-left: none; 
                 padding-left: 0; 
@@ -579,12 +636,20 @@
             <!-- Hidden File Input -->
             <input type="file" id="qr-input-file" accept="image/*">
 
+            <!-- FULL SCREEN SCANNER WRAPPER -->
             <div id="reader-wrapper">
+                <!-- Close Button (Visible only in Full Screen) -->
+                <button class="btn-close-fullscreen" onclick="stopScanner()">
+                    <svg viewBox="0 0 24 24" style="width:24px; height:24px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+
                 <div id="reader"></div>
+                
                 <div class="scanner-overlay">
                     <div class="scan-laser"></div>
                     <div class="scan-text-hint">Align Barcode in frame</div>
                 </div>
+
                 <div class="scanner-controls">
                     <!-- Flashlight -->
                     <button class="btn-ctrl" id="flashBtn" onclick="toggleFlashlight()" title="Toggle Flashlight">
@@ -629,7 +694,7 @@
     var currentMode = 'barcode'; 
     var originalStyleData = []; 
     var lastBarcodeData = []; 
-    var currentCameraId = 0; // 0 = environment (back), 1 = user (front)
+    var currentCameraId = 0; 
     var cameraIds = []; 
 
     // --- 2. LOGIC ---
@@ -721,19 +786,15 @@
 
     // --- SCANNER LOGIC ---
 
-    // 1. Handle File Scanning
     document.getElementById('qr-input-file').addEventListener('change', e => {
         if (e.target.files.length == 0) return;
         const imageFile = e.target.files[0];
-        
-        // Use Html5Qrcode static method to scan file
         const html5QrCode = new Html5Qrcode("reader");
         html5QrCode.scanFile(imageFile, true)
         .then(decodedText => {
             playBeep();
             document.getElementById('searchInput').value = decodedText;
             performSearch();
-            // Clear input so same file can be selected again if needed
             e.target.value = '';
         })
         .catch(err => {
@@ -756,18 +817,10 @@
 
     async function switchCamera() {
         if (!html5QrCode || !isScanning) return;
-        
-        // Stop current
         try {
             await html5QrCode.stop();
-            // Clear is optional but helps reset state
-            // await html5QrCode.clear(); 
         } catch(e) { console.log(e); }
-
-        // Toggle index
         currentCameraId = (currentCameraId + 1) % cameraIds.length;
-        
-        // Restart with new camera
         startScanner(cameraIds[currentCameraId]);
     }
 
@@ -785,14 +838,15 @@
         
         if (isScanning) return; 
         
-        wrapper.style.display = 'block'; 
+        // ADD FULLSCREEN CLASS
+        wrapper.classList.add('scanner-fullscreen');
+        
         btn.classList.add('active'); 
         iconOff.style.display = 'none'; 
         iconOn.style.display = 'block'; 
         text.textContent = "Stop";
 
         try {
-            // Clean up previous instance
             if (html5QrCode) {
                 try { 
                     if (isScanning) await html5QrCode.stop(); 
@@ -803,9 +857,8 @@
 
             html5QrCode = new Html5Qrcode("reader");
             
-            // Powerful Config: Higher FPS, wide range of formats
             var config = {
-                fps: 20, // Increased for faster detection
+                fps: 20, 
                 qrbox: { width: 300, height: 200 }, 
                 aspectRatio: 1.0,
                 formatsToSupport: [
@@ -819,14 +872,11 @@
                 ]
             };
 
-            // If we don't have camera IDs yet, get them
             if (cameraIds.length === 0) {
                 const devices = await Html5Qrcode.getCameras();
                 if (devices && devices.length) {
                     cameraIds = devices.map(d => d.id);
-                    // Prefer back camera initially
                     currentCameraId = 0;
-                    // Try to find environment facing
                     const envCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
                     if(envCam) currentCameraId = cameraIds.indexOf(envCam.id);
                 }
@@ -838,7 +888,7 @@
                 cameraConfig, 
                 config, 
                 onScanSuccess, 
-                (errorMessage) => { /* Silent fail for speed */ }
+                (errorMessage) => { /* Silent fail */ }
             );
             
             isScanning = true;
@@ -863,6 +913,9 @@
         isScanning = false; 
         isFlashOn = false; 
         document.getElementById('flashBtn').classList.remove('on'); 
+        
+        // REMOVE FULLSCREEN CLASS
+        document.getElementById('reader-wrapper').classList.remove('scanner-fullscreen');
         document.getElementById('reader-wrapper').style.display = 'none';
         
         var btn = document.getElementById('scanBtn'); 
