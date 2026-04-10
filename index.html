@@ -14,7 +14,7 @@
         :root {
             --primary: #0f172a;
             --primary-light: #334155;
-            --accent: #2563eb;
+            --accent: #2563eb; /* Bright Blue for the Frame */
             --accent-hover: #1d4ed8;
             --bg-body: #f1f5f9;
             --surface: #ffffff;
@@ -29,7 +29,7 @@
             --header-height: 64px;
             --radius: 8px;
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
@@ -236,7 +236,7 @@
             font-weight: 500;
         }
 
-        /* --- 5. SCANNER UI (FULLSCREEN) --- */
+        /* --- 5. SCANNER UI (PROFESSIONAL BIG FRAME) --- */
         #reader-wrapper {
             margin-top: 1.5rem;
             border-radius: var(--radius);
@@ -291,88 +291,116 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            width: 44px;
-            height: 44px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
             border-radius: 50%;
-            display: none; /* Hidden by default */
+            display: none;
             align-items: center;
             justify-content: center;
             color: white;
-            border: 1px solid rgba(255,255,255,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
             cursor: pointer;
             z-index: 10010;
         }
         .scanner-fullscreen .btn-close-fullscreen {
             display: flex;
         }
-        .btn-close-fullscreen:hover { background: rgba(255, 255, 255, 0.4); }
+        .btn-close-fullscreen:hover { background: rgba(255, 255, 255, 0.2); }
 
-        /* Custom Scanning Overlay */
+        /* --- THE BIG FRAME OVERLAY --- */
         .scanner-overlay {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 300px; height: 200px;
+            /* BIG FRAME DIMENSIONS */
+            width: 85%; 
+            height: 55%; 
+            border-radius: 16px;
             pointer-events: none;
-            border: 2px solid rgba(37, 99, 235, 0.8);
-            border-radius: 12px;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
-            overflow: hidden;
             z-index: 5;
+            /* The Dimming Effect: Massive shadow outside the box */
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7); 
+            border: 1px solid rgba(255,255,255,0.2); /* Faint outer border */
         }
+
+        /* Corner Brackets (The "Professional" Look) */
+        .corner-bracket {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: var(--accent);
+            border-style: solid;
+            transition: all 0.3s ease;
+        }
+        
+        /* Top Left */
+        .cb-tl { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-radius: 8px 0 0 0; }
+        /* Top Right */
+        .cb-tr { top: -2px; right: -2px; border-width: 4px 4px 0 0; border-radius: 0 8px 0 0; }
+        /* Bottom Left */
+        .cb-bl { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; border-radius: 0 0 0 8px; }
+        /* Bottom Right */
+        .cb-br { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-radius: 0 0 8px 0; }
 
         /* Animated Laser Line */
         .scan-laser {
             position: absolute;
             width: 100%;
-            height: 2px;
+            height: 3px;
             background: var(--accent);
-            box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+            box-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent);
             top: 0;
             left: 0;
-            animation: scanMove 2.5s infinite linear;
+            animation: scanMove 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
             opacity: 0.8;
+            border-radius: 2px;
         }
 
         @keyframes scanMove {
-            0% { top: 10px; opacity: 0; }
+            0% { top: 0%; opacity: 0; }
             10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 190px; opacity: 0; }
+            50% { top: 100%; opacity: 1; }
+            60% { opacity: 0; }
+            100% { top: 0%; opacity: 0; }
         }
 
         .scan-text-hint {
             position: absolute;
-            bottom: 10px; width: 100%; text-align: center;
+            bottom: 10%; width: 100%; text-align: center;
             color: rgba(255,255,255,0.9);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 600;
             text-shadow: 0 1px 4px rgba(0,0,0,0.8);
             z-index: 6;
+            letter-spacing: 0.5px;
         }
 
-        /* Scanner Control Buttons */
+        /* Scanner Control Buttons (Floating) */
         .scanner-controls {
-            position: absolute; bottom: 40px; left: 50%;
+            position: absolute; bottom: 30px; left: 50%;
             transform: translateX(-50%);
-            display: flex; gap: 25px;
+            display: flex; gap: 40px;
             z-index: 10010; width: 100%; justify-content: center;
+            padding-bottom: env(safe-area-inset-bottom); /* For iPhone home bar */
         }
 
         .btn-ctrl {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(8px);
-            width: 56px; height: 56px; border-radius: 50%;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            width: 64px; height: 64px; 
+            border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            cursor: pointer; z-index: 10; border: 1px solid rgba(255,255,255,0.2);
-            transition: transform 0.1s;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            cursor: pointer; z-index: 10; border: 1px solid rgba(255,255,255,0.15);
+            transition: transform 0.1s, background 0.2s;
             color: white;
         }
-        .btn-ctrl:active { transform: scale(0.9); }
-        .btn-ctrl.on { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn-ctrl:active { transform: scale(0.9); background: rgba(30, 41, 59, 0.8); }
+        .btn-ctrl svg { width: 28px; height: 28px; }
+        .btn-ctrl.on { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 20px rgba(37, 99, 235, 0.4); }
 
         /* Hidden file input */
         #qr-input-file { display: none; }
@@ -492,13 +520,8 @@
                 margin-top: 0.5rem; 
                 justify-content: flex-start;
             }
-            .scanner-overlay { width: 260px; height: 160px; }
-            @keyframes scanMove {
-                0% { top: 10px; opacity: 0; }
-                10% { opacity: 1; }
-                90% { opacity: 1; }
-                100% { top: 150px; opacity: 0; }
-            }
+            /* Adjust Frame for mobile to ensure buttons don't cover it */
+            .scanner-overlay { height: 45%; }
         }
     </style>
 </head>
@@ -646,8 +669,16 @@
                 <div id="reader"></div>
                 
                 <div class="scanner-overlay">
+                    <!-- Corner Brackets -->
+                    <div class="corner-bracket cb-tl"></div>
+                    <div class="corner-bracket cb-tr"></div>
+                    <div class="corner-bracket cb-bl"></div>
+                    <div class="corner-bracket cb-br"></div>
+                    
+                    <!-- Laser -->
                     <div class="scan-laser"></div>
-                    <div class="scan-text-hint">Align Barcode in frame</div>
+                    
+                    <div class="scan-text-hint">Align Barcode Here</div>
                 </div>
 
                 <div class="scanner-controls">
