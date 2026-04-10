@@ -43,24 +43,18 @@
         h1.brand-name { font-size: 2rem; font-weight: 800; color: var(--text-main); text-transform: uppercase; margin-bottom: 10px; }
 
         .month-selector-wrapper {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: white;
-            padding: 8px 16px;
-            border-radius: 50px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
+            display: inline-flex; align-items: center; gap: 5px; background: white; padding: 8px 16px; border-radius: 50px;
+            box-shadow: var(--shadow); border: 1px solid var(--border);
         }
 
+        .nav-btn {
+            background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1rem; padding: 5px; transition: color 0.2s;
+        }
+        .nav-btn:hover { color: var(--primary); }
+
         select#month-filter {
-            border: none;
-            background: transparent;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--primary);
-            cursor: pointer;
-            outline: none;
+            border: none; background: transparent; font-size: 1.1rem; font-weight: 600; color: var(--primary);
+            cursor: pointer; outline: none; padding: 0 10px;
         }
 
         /* --- Controls --- */
@@ -79,6 +73,12 @@
         .btn-danger:hover { background-color: #fecaca; }
         .btn-warning { background-color: #fef3c7; color: var(--warning); padding: 6px 12px; font-size: 0.85rem; }
         .btn-warning:hover { background-color: #fde68a; }
+        
+        /* Finalize Button Specific Style */
+        .btn-finalize {
+            background-color: var(--text-main); color: white; width: 100%; justify-content: center;
+        }
+        .btn-finalize:hover { background-color: black; }
 
         /* --- Table --- */
         .table-container { background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; overflow-x: auto; }
@@ -117,17 +117,18 @@
         /* --- Toast --- */
         .toast {
             position: fixed; bottom: 20px; right: 20px; background: var(--text-main); color: white; padding: 12px 24px; border-radius: 8px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 2000;
+            box-shadow: 0 10px 15px -3px rgba(0 0 0 / 0.1); transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 2000;
         }
         .toast.show { transform: translateY(0); opacity: 1; }
         .toast.success { border-left: 4px solid var(--success); }
         .toast.error { border-left: 4px solid var(--danger); }
 
         /* --- PDF Printing Styles --- */
-        /* These classes are toggled via JS before export */
         .printing-pdf .controls { display: none !important; }
+        .printing-pdf .nav-btn { display: none !important; }
         .printing-pdf .action-col { display: none !important; }
         .printing-pdf .empty-state { display: none !important; }
+        .printing-pdf .btn-finalize-cell { display: none !important; } /* Hide finalize button in PDF */
         
         /* Official Report Look */
         .printing-pdf header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
@@ -150,6 +151,7 @@
             .controls { flex-direction: column; align-items: stretch; }
             .btn-group { flex-direction: column; }
             .btn { justify-content: center; }
+            .month-selector-wrapper { flex-direction: column; gap: 10px; border-radius: 12px; }
         }
     </style>
 </head>
@@ -160,11 +162,15 @@
         <header>
             <h1 class="brand-name">Blucheez Chottogram</h1>
             <div class="month-selector-wrapper">
-                <i class="fas fa-calendar-alt" style="color: var(--text-muted);"></i>
-                <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Petty Cash for:</span>
-                <select id="month-filter" onchange="fetchEntries()">
-                    <!-- Options populated by JS -->
-                </select>
+                <button class="nav-btn" onclick="changeMonth(-1)" title="Previous Month"><i class="fas fa-chevron-left"></i></button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-calendar-alt" style="color: var(--text-muted);"></i>
+                    <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Petty Cash for:</span>
+                    <select id="month-filter" onchange="fetchEntries()">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+                <button class="nav-btn" onclick="changeMonth(1)" title="Next Month"><i class="fas fa-chevron-right"></i></button>
             </div>
         </header>
 
@@ -203,7 +209,12 @@
                         <td colspan="4" style="text-align: right;">Total:</td>
                         <td class="amount-col total-amount" id="total-amount">0.00</td>
                         <td class="action-col"></td>
-                        <td class="action-col"></td>
+                        <!-- Finalize Button Cell -->
+                        <td class="btn-finalize-cell action-col">
+                            <button class="btn btn-finalize" onclick="finalizeMonth()" title="Save Month & Move to Next">
+                                <i class="fas fa-check-double"></i> Finalize Month
+                            </button>
+                        </td>
                     </tr>
                 </tfoot>
             </table>
@@ -290,20 +301,18 @@
         document.addEventListener('DOMContentLoaded', () => {
             populateMonthDropdown();
             fetchEntries();
-            
-            // Set default date in form
             document.getElementById('inp-date').valueAsDate = new Date();
         });
 
-        // Generate Month Dropdown Options
+        // --- 3. MONTH NAVIGATION LOGIC ---
+
         function populateMonthDropdown() {
             const select = document.getElementById('month-filter');
             const now = new Date();
-            // Generate options for this year, previous year, and next year
             const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
             const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             
-            let selectedValue = "";
+            select.innerHTML = ""; // Clear existing
 
             years.forEach(year => {
                 months.forEach((month, index) => {
@@ -316,30 +325,72 @@
                     // Set current month as default
                     if (year === now.getFullYear() && index === now.getMonth()) {
                         option.selected = true;
-                        selectedValue = value;
                     }
                     select.appendChild(option);
                 });
             });
         }
 
-        // --- 3. DATA FETCHING (Filtered) ---
+        // Change month by arrows (-1 or +1)
+        function changeMonth(offset) {
+            const select = document.getElementById('month-filter');
+            const currentIndex = select.selectedIndex;
+            const newIndex = currentIndex + offset;
+
+            if (newIndex >= 0 && newIndex < select.options.length) {
+                select.selectedIndex = newIndex;
+                fetchEntries();
+            } else {
+                showToast("No more months available in this list.", "error");
+            }
+        }
+
+        function finalizeMonth() {
+            const select = document.getElementById('month-filter');
+            const currentText = select.options[select.selectedIndex].text;
+            
+            // Show Success Message
+            showToast(`Report for ${currentText} Finalized & Saved!`, 'success');
+
+            // Calculate Next Month
+            const currentDate = new Date(select.value + "-01");
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            const nextYear = currentDate.getFullYear();
+            const nextMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+            const nextValue = `${nextYear}-${nextMonth}`;
+
+            // Set Dropdown to next month
+            select.value = nextValue;
+            
+            // If the next month value doesn't exist (e.g. end of list), append it
+            if(select.value !== nextValue) {
+                const option = document.createElement('option');
+                const monthName = currentDate.toLocaleString('default', { month: 'long' });
+                option.value = nextValue;
+                option.text = `${monthName} ${nextYear}`;
+                select.appendChild(option);
+                select.value = nextValue;
+            }
+
+            // Refresh Table (which will be empty for the new month)
+            fetchEntries();
+        }
+
+        // --- 4. DATA FETCHING ---
         async function fetchEntries() {
             if (!sbClient) return;
 
-            const selectedMonth = document.getElementById('month-filter').value; // Format: "YYYY-MM"
-            
-            // Calculate Start and End of the month for Supabase query
+            const selectedMonth = document.getElementById('month-filter').value;
             const [year, month] = selectedMonth.split('-').map(Number);
             const startDate = new Date(year, month - 1, 1).toISOString();
-            const endDate = new Date(year, month, 1).toISOString(); // First day of next month
+            const endDate = new Date(year, month, 1).toISOString();
 
             const { data, error } = await sbClient
                 .from('petty_cash_entries')
                 .select('*')
                 .gte('entry_date', startDate)
                 .lt('entry_date', endDate)
-                .order('entry_date', { ascending: true }); // Sort by date for correct serial
+                .order('entry_date', { ascending: true });
 
             if (error) {
                 console.error('Error fetching data:', error);
@@ -350,7 +401,7 @@
             }
         }
 
-        // --- 4. RENDER TABLE ---
+        // --- 5. RENDER TABLE ---
         function renderTable() {
             const tbody = document.getElementById('table-body');
             const emptyState = document.getElementById('empty-state');
@@ -396,16 +447,14 @@
 
         function formatDate(dateString) {
             if(!dateString) return '';
-            const options = { year: 'numeric', month: 'short', day: 'numeric' };
-            return new Date(dateString).toLocaleDateString('en-US', options);
+            return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         }
 
-        // --- 5. FORM & CRUD LOGIC ---
+        // --- 6. FORM & CRUD LOGIC ---
 
         function openModal(isEdit = false) {
             document.getElementById('entry-modal').classList.add('active');
             if(!isEdit) {
-                // Reset for new entry
                 document.getElementById('entry-form').reset();
                 document.getElementById('inp-id').value = '';
                 document.getElementById('modal-title').textContent = "Add New Entry";
@@ -421,7 +470,6 @@
             document.getElementById('entry-modal').classList.remove('active');
         }
 
-        // Open Modal with Data for Editing
         window.editEntry = async function(id) {
             const row = entriesData.find(r => r.id === id);
             if(!row) return;
@@ -435,7 +483,6 @@
 
             document.getElementById('modal-title').textContent = "Edit Entry";
             document.getElementById('save-btn').innerHTML = '<i class="fas fa-sync-alt"></i> Update Entry';
-            
             openModal(true);
         }
 
@@ -483,14 +530,13 @@
             }
 
             if (success) {
-                fetchEntries(); // Refresh table
-                // Reset form but keep modal open
+                fetchEntries();
+                // Reset form but keep modal open for new entries
                 if(!id) {
                     document.getElementById('entry-form').reset();
                     document.getElementById('inp-date').valueAsDate = new Date();
                     document.getElementById('inp-category').focus();
                 } else {
-                    // If it was an edit, we close the modal
                     closeModal();
                 }
             }
@@ -513,7 +559,7 @@
             }
         }
 
-        // --- 6. EXPORT FUNCTIONS ---
+        // --- 7. EXPORT FUNCTIONS ---
 
         function exportToExcel() {
             if (entriesData.length === 0) { showToast("No data to export", "error"); return; }
@@ -543,8 +589,6 @@
             if (entriesData.length === 0) { showToast("No data to export", "error"); return; }
 
             const element = document.getElementById('printable-area');
-            
-            // 1. Add class to apply "Official Report" styles
             element.classList.add('printing-pdf');
 
             const opt = {
@@ -556,12 +600,11 @@
             };
 
             html2pdf().set(opt).from(element).save().then(() => {
-                // 2. Remove class after generating
                 element.classList.remove('printing-pdf');
             });
         }
 
-        // --- 7. UTILS ---
+        // --- 8. UTILS ---
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             const msgEl = document.getElementById('toast-msg');
@@ -570,10 +613,8 @@
             setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
-        // Close modal if clicked outside
         document.getElementById('entry-modal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('entry-modal')) {
-                // Only close if not editing to prevent accidental data loss
                 if(!document.getElementById('inp-id').value) {
                     closeModal();
                 } else {
