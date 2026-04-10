@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Stock Manager Pro</title>
-    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- HTML5-QRCode Library -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    
+    <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+
     <style>
-        /* --- 1. PROFESSIONAL COLOR PALETTE & RESET --- */
+        /* --- 1. COLOR PALETTE & RESET --- */
         :root {
             --primary: #0f172a;
             --primary-light: #334155;
@@ -21,27 +19,27 @@
             --text-main: #1e293b;
             --text-secondary: #64748b;
             --border: #e2e8f0;
-            --success: #10b981; /* Green */
+            --success: #10b981;
             --success-bg: #ecfdf5;
-            --danger: #ef4444; /* Red */
+            --danger: #ef4444;
             --danger-bg: #fef2f2;
             --sidebar-width: 260px;
             --header-height: 64px;
             --radius: 8px;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-sm: 0 1px 2px 0 rgba(0,0,0,.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -1px rgba(0,0,0,.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1);
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        
-        body { 
-            margin: 0; 
+
+        body {
+            margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: var(--bg-body);
             color: var(--text-main);
-            display: flex; 
-            min-height: 100vh; 
+            display: flex;
+            min-height: 100vh;
             overflow-x: hidden;
         }
 
@@ -56,26 +54,23 @@
             top: 0; bottom: 0; left: 0;
             z-index: 1000;
             transition: transform 0.3s ease;
-            border-right: 1px solid rgba(255,255,255,0.1);
+            border-right: 1px solid rgba(255,255,255,.1);
         }
-
         .sidebar-header {
             height: var(--header-height);
             display: flex;
             align-items: center;
             padding: 0 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,.1);
             color: white;
             font-weight: 600;
             font-size: 1.1rem;
-            letter-spacing: 0.5px;
+            letter-spacing: .5px;
         }
         .logo-icon { width: 24px; height: 24px; margin-right: 12px; fill: white; }
-
-        .nav-section { padding: 1.5rem 0.75rem; flex: 1; overflow-y: auto; }
-        
+        .nav-section { padding: 1.5rem .75rem; flex: 1; overflow-y: auto; }
         .nav-group-title {
-            font-size: 0.7rem;
+            font-size: .7rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             padding-left: 12px;
@@ -83,7 +78,6 @@
             color: #475569;
             font-weight: 700;
         }
-
         .sidebar a {
             display: flex;
             align-items: center;
@@ -92,33 +86,29 @@
             text-decoration: none;
             border-radius: 4px;
             margin-bottom: 2px;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            font-size: .9rem;
+            transition: all .2s;
         }
-        
         .sidebar a svg { width: 18px; height: 18px; margin-right: 12px; stroke-width: 2; }
-
-        .sidebar a:hover { background-color: rgba(255,255,255,0.05); color: white; }
-        
+        .sidebar a:hover { background-color: rgba(255,255,255,.05); color: white; }
         .sidebar a.active {
             background-color: var(--accent);
             color: white;
             font-weight: 500;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 6px rgba(0,0,0,.2);
         }
-
         .sidebar-footer {
             padding: 1rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255,255,255,.1);
             display: flex; align-items: center; gap: 10px;
         }
         .user-avatar {
             width: 32px; height: 32px; background: var(--accent); border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: bold; font-size: 0.8rem;
+            color: white; font-weight: bold; font-size: .8rem;
         }
-        .user-info div:first-child { color: white; font-size: 0.9rem; font-weight: 500; }
-        .user-info div:last-child { font-size: 0.75rem; color: #64748b; }
+        .user-info div:first-child { color: white; font-size: .9rem; font-weight: 500; }
+        .user-info div:last-child { font-size: .75rem; color: #64748b; }
 
         .main-content {
             margin-left: var(--sidebar-width);
@@ -136,19 +126,16 @@
             padding: 0 2rem;
             position: sticky; top: 0; z-index: 50;
         }
-
         .header-title { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
         .menu-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--text-main); }
-        
         .overlay {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999;
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 999;
             backdrop-filter: blur(2px);
         }
         .overlay.show { display: block; }
 
         /* --- 4. MAIN CONTENT & CARDS --- */
         main { padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
-
         .card {
             background: var(--surface);
             border-radius: var(--radius);
@@ -165,32 +152,29 @@
             cursor: pointer;
             color: var(--text-secondary);
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: .95rem;
             border-bottom: 2px solid transparent;
-            transition: color 0.2s;
+            transition: color .2s;
         }
         .tab:hover { color: var(--text-main); }
         .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 
-        /* Inputs & Actions */
+        /* Action bar */
         .action-bar { display: flex; gap: 1rem; align-items: stretch; flex-wrap: wrap; }
-
         .input-group { flex: 1; position: relative; min-width: 250px; }
         .input-group svg {
             position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
             color: var(--text-secondary); width: 20px; height: 20px;
         }
-
         input[type="text"] {
             width: 100%;
-            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            padding: .75rem 1rem .75rem 2.5rem;
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            font-size: 0.95rem;
-            transition: border-color 0.2s;
+            font-size: .95rem;
+            transition: border-color .2s;
         }
         input[type="text"]:focus { border-color: var(--accent); }
-
         button {
             display: flex; align-items: center; justify-content: center; gap: 8px;
             padding: 0 1.5rem;
@@ -198,110 +182,169 @@
             border-radius: var(--radius);
             font-weight: 500;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            font-size: .9rem;
+            transition: all .2s;
             background: var(--surface);
             color: var(--text-main);
             height: 42px;
             white-space: nowrap;
         }
-
         .btn-scan { background: white; border-color: var(--border); color: var(--text-main); }
         .btn-scan:hover { background: #f8fafc; }
         .btn-scan.active { background: var(--danger); color: white; border-color: var(--danger); }
-
         .btn-search { background: var(--accent); color: white; }
-        .btn-search:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
-
-        /* Checkbox Styling */
+        .btn-search:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(37,99,235,.2); }
         .checkbox-wrapper {
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            padding-left: 1rem; 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-left: 1rem;
             border-left: 1px solid var(--border);
             height: 42px;
             user-select: none;
         }
-        .checkbox-wrapper input {
-            width: 18px; 
-            height: 18px; 
-            cursor: pointer;
-            accent-color: var(--accent);
-        }
-        .checkbox-wrapper label {
-            cursor: pointer;
-            font-size: 0.9rem;
-            color: var(--text-main);
-            font-weight: 500;
-        }
+        .checkbox-wrapper input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+        .checkbox-wrapper label { cursor: pointer; font-size: .9rem; color: var(--text-main); font-weight: 500; }
 
-        /* --- 5. SCANNER UI --- */
-        #reader-wrapper {
-            margin-top: 1.5rem;
-            border-radius: var(--radius);
-            overflow: hidden;
+        /* Legacy reader-wrapper — hidden, kept for layout compat */
+        #reader-wrapper { display: none; }
+
+        /* --- 5. FULL-SCREEN SCANNER OVERLAY --- */
+        #scanner-overlay {
             display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
             background: #000;
-            position: relative;
-            border: 4px solid var(--surface);
-            box-shadow: var(--shadow-md);
-            transform: translateZ(0); 
-            -webkit-transform: translateZ(0);
+            flex-direction: column;
         }
-        
-        #reader { 
-            width: 100%; 
-            min-height: 350px; 
-            object-fit: cover; 
-            display: block; 
-        }
-        
-        #reader a { display: none !important; }
+        #scanner-overlay.active { display: flex; }
 
-        .scanner-area-hint {
+        #scanner-video {
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 300px; height: 200px;
-            pointer-events: none;
-            border: 2px solid rgba(37, 99, 235, 0.5);
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-        }
-        .scan-text-hint {
-            color: white;
-            background: rgba(37, 99, 235, 0.9);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .btn-flashlight {
-            position: absolute; bottom: 20px; right: 20px;
-            background: rgba(255,255,255,0.9);
-            width: 48px; height: 48px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            cursor: pointer; z-index: 10; border: none;
+        .scan-shade {
+            position: absolute;
+            background: rgba(0,0,0,.55);
+            z-index: 2;
         }
-        .btn-flashlight.on { background: #fbbf24; color: white; }
+
+        .scan-frame {
+            position: absolute;
+            z-index: 3;
+            border: none;
+            pointer-events: none;
+        }
+        .scan-corner {
+            position: absolute;
+            width: 22px; height: 22px;
+        }
+        .scan-corner.tl { top:0; left:0; border-top:3px solid #ef4444; border-left:3px solid #ef4444; border-radius:2px 0 0 0; }
+        .scan-corner.tr { top:0; right:0; border-top:3px solid #ef4444; border-right:3px solid #ef4444; border-radius:0 2px 0 0; }
+        .scan-corner.bl { bottom:0; left:0; border-bottom:3px solid #ef4444; border-left:3px solid #ef4444; border-radius:0 0 0 2px; }
+        .scan-corner.br { bottom:0; right:0; border-bottom:3px solid #ef4444; border-right:3px solid #ef4444; border-radius:0 0 2px 0; }
+
+        .scan-line-anim {
+            position: absolute;
+            left: 0; right: 0; height: 2px;
+            background: #ef4444;
+            box-shadow: 0 0 8px 2px rgba(239,68,68,.6);
+            animation: scanSweep 1.8s ease-in-out infinite;
+            z-index: 4;
+        }
+        @keyframes scanSweep {
+            0%   { top: 6%; }
+            50%  { top: 90%; }
+            100% { top: 6%; }
+        }
+
+        .scan-hint-text {
+            position: absolute;
+            bottom: -34px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,.8);
+            font-size: .78rem;
+            white-space: nowrap;
+            background: rgba(0,0,0,.55);
+            padding: 4px 14px;
+            border-radius: 20px;
+        }
+
+        .scanner-result-bar {
+            position: absolute;
+            bottom: 72px; left: 0; right: 0;
+            z-index: 10;
+            padding: 10px 1.5rem;
+            background: rgba(15,23,42,.88);
+            color: #94a3b8;
+            font-size: .85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            border-top: 1px solid rgba(255,255,255,.07);
+            transition: color .3s;
+        }
+        .scanner-result-bar.has-result { color: #4ade80; }
+
+        .scanner-bottom-bar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            z-index: 10;
+            padding: 14px 1.5rem env(safe-area-inset-bottom, 0px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0,0,0,.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .btn-torch {
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.22);
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: background .2s, border-color .2s;
+            padding: 0;
+            height: 46px;
+        }
+        .btn-torch.on { background: #fbbf24; border-color: #fbbf24; color: #1c1917; }
+
+        .btn-stop-scan {
+            background: rgba(239,68,68,.2);
+            border: 1px solid rgba(239,68,68,.5);
+            color: #fca5a5;
+            padding: 0 1.4rem;
+            height: 46px;
+            border-radius: 23px;
+            font-size: .9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-stop-scan:hover { background: rgba(239,68,68,.3); }
 
         /* --- 6. FILTERS --- */
-        .filter-bar { 
-            display: none; gap: 1rem; padding: 1rem; 
+        .filter-bar {
+            display: none; gap: 1rem; padding: 1rem;
             background: var(--surface); border: 1px solid var(--border);
             border-radius: var(--radius); margin-bottom: 1.5rem;
             align-items: center; box-shadow: var(--shadow-sm);
         }
-        .filter-select { padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; min-width: 150px; background: white; }
+        .filter-select { padding: .5rem; border: 1px solid var(--border); border-radius: 4px; min-width: 150px; background: white; }
 
         /* --- 7. RESULTS --- */
         .results-list { display: flex; flex-direction: column; gap: 1rem; }
-
         .product-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -315,78 +358,69 @@
             display: flex; justify-content: space-between; align-items: flex-start;
         }
         .p-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
-        .p-meta { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
-        
+        .p-meta { font-size: .85rem; color: var(--text-secondary); margin-top: 4px; }
         .status-badge {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 4px 10px; border-radius: 99px;
-            font-size: 0.8rem; font-weight: 600;
-            background: var(--success-bg); 
+            font-size: .8rem; font-weight: 600;
+            background: var(--success-bg);
             color: var(--success);
             border: 1px solid transparent;
         }
-        .status-badge.black { background: #f8fafc; color: #000000; border-color: #e2e8f0; }
+        .status-badge.black { background: #f8fafc; color: #000; border-color: #e2e8f0; }
         .status-badge.red { background: var(--danger-bg); color: var(--danger); }
-
         .p-body { padding: 1.25rem; }
-
-        .price-grid {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 1rem; margin-bottom: 1rem;
-        }
-        .pg-item { background: #f8fafc; padding: 0.75rem; border-radius: 4px; border: 1px solid #e2e8f0; }
-        .pg-label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .pg-item { background: #f8fafc; padding: .75rem; border-radius: 4px; border: 1px solid #e2e8f0; }
+        .pg-label { font-size: .75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .5px; }
         .pg-value { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-top: 4px; }
         .pg-total .pg-value { color: var(--accent); font-size: 1.25rem; }
-
         .btn-expand {
             width: 100%; background: none; border: 1px dashed var(--border);
-            color: var(--accent); font-size: 0.85rem; padding: 0.75rem;
-            border-radius: var(--radius); margin-top: 0.5rem;
+            color: var(--accent); font-size: .85rem; padding: .75rem;
+            border-radius: var(--radius); margin-top: .5rem;
         }
         .btn-expand:hover { background: #f0f9ff; border-color: var(--accent); }
-
         .p-details {
             display: none; padding: 1.25rem;
             background: #f8fafc; border-top: 1px solid var(--border);
-            font-size: 0.9rem;
+            font-size: .9rem;
         }
-        .detail-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: .5rem; }
         .link { color: var(--accent); text-decoration: none; font-weight: 500; }
         .link:hover { text-decoration: underline; }
-
         .variant-box { margin-top: 1rem; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-        .mini-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .mini-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
         .mini-table th { background: #e2e8f0; text-align: left; padding: 8px; font-weight: 600; color: var(--text-secondary); }
         .mini-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
         .mini-table tr:last-child td { border-bottom: none; }
         .text-right { text-align: right; }
         .subtotal-row-mini { background: #cbd5e1; font-weight: 700; }
-
-        .table-container { 
-            background: var(--surface); border: 1px solid var(--border); 
+        .table-container {
+            background: var(--surface); border: 1px solid var(--border);
             border-radius: var(--radius); overflow-x: auto; box-shadow: var(--shadow-sm);
         }
         .results-table { width: 100%; border-collapse: collapse; min-width: 700px; }
         .results-table th {
             background: #f8fafc; padding: 12px 16px; text-align: left;
-            font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary);
+            font-size: .8rem; text-transform: uppercase; color: var(--text-secondary);
             border-bottom: 2px solid var(--border); font-weight: 600;
         }
-        .results-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+        .results-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: .9rem; }
         .results-table tr:hover { background: #f8fafc; }
         .subtotal-row { background: #f1f5f9; font-weight: 700; color: var(--text-main); border-top: 2px solid var(--border); }
-
         .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+
         #toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
             background: #1e293b; color: white; padding: 12px 24px;
             border-radius: 6px; box-shadow: var(--shadow-lg);
-            font-size: 0.9rem; display: flex; align-items: center; gap: 10px;
-            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 2000;
+            font-size: .9rem; display: flex; align-items: center; gap: 10px;
+            opacity: 0; pointer-events: none; transition: .3s; z-index: 20000;
             max-width: 90%; text-align: center;
         }
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
         svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
         /* Mobile */
@@ -398,20 +432,13 @@
             header { padding: 0 1rem; }
             main { padding: 1rem; }
             .price-grid { grid-template-columns: 1fr; }
-            #reader { min-height: 300px; }
-            .checkbox-wrapper { 
-                border-left: none; 
-                padding-left: 0; 
-                width: 100%; 
-                margin-top: 0.5rem; 
-                justify-content: flex-start;
-            }
+            .checkbox-wrapper { border-left: none; padding-left: 0; width: 100%; margin-top: .5rem; justify-content: flex-start; }
         }
     </style>
 </head>
 <body>
 
-<!-- Mobile Overlay -->
+<!-- Mobile Sidebar Overlay -->
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
 <!-- Sidebar -->
@@ -420,7 +447,6 @@
         <svg class="logo-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
         <span>STOCK MANAGER</span>
     </div>
-    
     <div class="nav-section">
         <div class="nav-group-title">Main</div>
         <a href="index.html" class="active">
@@ -435,8 +461,7 @@
             <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
             Discontinued
         </a>
-
-        <div class="nav-group-title" style="margin-top: 1rem;">Operations</div>
+        <div class="nav-group-title" style="margin-top:1rem">Operations</div>
         <a href="cstock.html">
             <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
             Requisition
@@ -466,31 +491,25 @@
             Images
         </a>
         <a href="attendance.html">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
-         stroke-linecap="round" stroke-linejoin="round">
-        
-        <!-- Calendar -->
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="16" y1="2" x2="16" y2="6"></line>
-        <line x1="8" y1="2" x2="8" y2="6"></line>
-        <line x1="3" y1="10" x2="21" y2="10"></line>
-        
-        <!-- Check mark (attendance) -->
-        <polyline points="9 14 11 16 15 12"></polyline>
-    </svg>
-    Attendance Report
-</a>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <polyline points="9 14 11 16 15 12"></polyline>
+            </svg>
+            Attendance Report
+        </a>
         <a href="sar.html">
-    <svg viewBox="0 0 24 24">
-        <line x1="4" y1="20" x2="4" y2="12"></line>
-        <line x1="10" y1="20" x2="10" y2="8"></line>
-        <line x1="16" y1="20" x2="16" y2="14"></line>
-        <polyline points="3 15 9 9 15 12 21 6"></polyline>
-    </svg>
-    Sales Analysis
-</a>
+            <svg viewBox="0 0 24 24">
+                <line x1="4" y1="20" x2="4" y2="12"></line>
+                <line x1="10" y1="20" x2="10" y2="8"></line>
+                <line x1="16" y1="20" x2="16" y2="14"></line>
+                <polyline points="3 15 9 9 15 12 21 6"></polyline>
+            </svg>
+            Sales Analysis
+        </a>
     </div>
-
     <div class="sidebar-footer">
         <div class="user-avatar">A</div>
         <div class="user-info">
@@ -500,10 +519,10 @@
     </div>
 </aside>
 
-<!-- Content -->
+<!-- Main Content -->
 <div class="main-content">
     <header>
-        <div style="display:flex; align-items:center;">
+        <div style="display:flex;align-items:center;">
             <button class="menu-toggle" onclick="toggleSidebar()">
                 <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
@@ -525,502 +544,660 @@
                 </div>
                 <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">
                     <svg id="scan-icon-off" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg>
-                    <svg id="scan-icon-on" style="display:none;" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <svg id="scan-icon-on" style="display:none" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     <span id="scan-text">Scan</span>
                 </button>
                 <button class="btn-search" onclick="performSearch()">
                     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     Search
                 </button>
-                
-                <!-- Checkbox Wrapper -->
                 <div class="checkbox-wrapper">
                     <input type="checkbox" id="checkZeroStock" onchange="handleZeroStockToggle()">
                     <label for="checkZeroStock">Show Zero Stock</label>
                 </div>
             </div>
 
-            <div id="reader-wrapper">
-                <div id="reader"></div>
-                <div class="scanner-area-hint">
-                    <div class="scan-text-hint">Align Barcode Here</div>
-                </div>
-                <button class="btn-flashlight" id="flashBtn" onclick="toggleFlashlight()">
-                    <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-2.26C4.19 13.47 3 11.38 3 9a7 7 0 0 1 9-7Z"></path></svg>
-                </button>
-            </div>
+            <!-- Legacy wrapper kept for DOM compat — scanner is now full-screen overlay -->
+            <div id="reader-wrapper"><div id="reader"></div></div>
         </section>
 
         <div id="filter-section" class="filter-bar">
             <svg style="color:var(--text-secondary)" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
             <select id="filter-color" class="filter-select" onchange="applyFilters()"><option value="all">All Colors</option></select>
             <select id="filter-size" class="filter-select" onchange="applyFilters()"><option value="all">All Sizes</option></select>
-            <button class="btn-scan" style="border:none; font-size:0.85rem; height:auto; padding: 0.5rem 1rem;" onclick="clearFilters()">Reset Filters</button>
+            <button class="btn-scan" style="border:none;font-size:.85rem;height:auto;padding:.5rem 1rem" onclick="clearFilters()">Reset Filters</button>
         </div>
 
         <div id="resultsArea" class="results-list"></div>
     </main>
 </div>
 
+<!-- Full-Screen Scanner Overlay -->
+<div id="scanner-overlay">
+    <video id="scanner-video" playsinline muted autoplay></video>
+
+    <!-- Shade panels (positioned by JS) -->
+    <div class="scan-shade" id="shade-top"></div>
+    <div class="scan-shade" id="shade-bottom"></div>
+    <div class="scan-shade" id="shade-left"></div>
+    <div class="scan-shade" id="shade-right"></div>
+
+    <!-- Targeting box -->
+    <div class="scan-frame" id="scan-frame">
+        <div class="scan-corner tl"></div>
+        <div class="scan-corner tr"></div>
+        <div class="scan-corner bl"></div>
+        <div class="scan-corner br"></div>
+        <div class="scan-line-anim"></div>
+        <div class="scan-hint-text">Align barcode within frame</div>
+    </div>
+
+    <!-- Live result strip -->
+    <div class="scanner-result-bar" id="scannerResult">
+        <svg style="width:16px;height:16px;flex-shrink:0" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span id="scannerResultText">Scanning — point camera at barcode...</span>
+    </div>
+
+    <!-- Controls -->
+    <div class="scanner-bottom-bar">
+        <button class="btn-torch" id="torchBtn" onclick="toggleTorch()" title="Toggle flashlight">
+            <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </button>
+        <button class="btn-stop-scan" onclick="stopScanner()">
+            <svg style="width:16px;height:16px" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Stop Scanner
+        </button>
+    </div>
+</div>
+
+<!-- Toast -->
 <div id="toast">
-    <svg style="color:var(--success); width:18px; height:18px;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <svg style="color:var(--success);width:18px;height:18px" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
     <span id="toast-msg">Notification</span>
 </div>
 
 <script>
-    // --- 1. CONFIGURATION ---
+    /* ============================================================
+       1. CONFIGURATION
+    ============================================================ */
     const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-    
+
+    var sbClient = null;
     if (window.supabase) {
-        var sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } else { console.error("Supabase library failed to load."); }
-
-    var html5QrCode = null; 
-    var isScanning = false; 
-    var isFlashOn = false; 
-    var currentMode = 'barcode'; 
-    var originalStyleData = []; 
-    var lastBarcodeData = []; 
-
-    // --- 2. LOGIC ---
-
-    // Helper to get balance color based on new rules
-    function getBalanceColor(bal) {
-        bal = parseInt(bal) || 0;
-        if (bal > 5) return 'var(--success)'; // Green
-        if (bal > 0) return '#000000';        // Black (1-5)
-        return 'var(--danger)';               // Red (0)
+        sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        console.error("Supabase library failed to load.");
     }
 
-    // Helper to get badge class based on new rules
+    /* ============================================================
+       2. SCANNER STATE
+    ============================================================ */
+    var isScanning      = false;
+    var isFlashOn       = false;
+    var scannerStream   = null;
+    var scannerAnimFrame = null;
+    var zxingReader     = null;
+    var lastScanTime    = 0;
+    var SCAN_DEBOUNCE   = 2500; // ms — prevents double-fire on same code
+
+    var currentMode      = 'barcode';
+    var originalStyleData = [];
+    var lastBarcodeData   = [];
+
+    /* ============================================================
+       3. SCANNER — POSITION BOX & SHADE PANELS
+    ============================================================ */
+    function positionScanBox() {
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var bw = Math.round(vw * 0.72);
+        var bh = Math.round(vh * 0.38);
+        var bx = Math.round((vw - bw) / 2);
+        var by = Math.round((vh - bh) / 2);
+
+        var frame = document.getElementById('scan-frame');
+        frame.style.cssText = 'left:' + bx + 'px;top:' + by + 'px;width:' + bw + 'px;height:' + bh + 'px;position:absolute;z-index:3;pointer-events:none;';
+
+        var st = document.getElementById('shade-top');
+        st.style.cssText    = 'position:absolute;background:rgba(0,0,0,.55);z-index:2;top:0;left:0;right:0;height:' + by + 'px;';
+        var sb = document.getElementById('shade-bottom');
+        sb.style.cssText    = 'position:absolute;background:rgba(0,0,0,.55);z-index:2;bottom:0;left:0;right:0;height:' + (vh - by - bh) + 'px;';
+        var sl = document.getElementById('shade-left');
+        sl.style.cssText    = 'position:absolute;background:rgba(0,0,0,.55);z-index:2;top:' + by + 'px;left:0;width:' + bx + 'px;height:' + bh + 'px;';
+        var sr = document.getElementById('shade-right');
+        sr.style.cssText    = 'position:absolute;background:rgba(0,0,0,.55);z-index:2;top:' + by + 'px;right:0;width:' + (vw - bx - bw) + 'px;height:' + bh + 'px;';
+    }
+
+    /* ============================================================
+       4. SCANNER — START / STOP
+    ============================================================ */
+    function toggleScanner() {
+        if (isScanning) { stopScanner(); return; }
+        startScanner();
+    }
+
+    async function startScanner() {
+        if (isScanning) return;
+
+        var overlay = document.getElementById('scanner-overlay');
+        overlay.classList.add('active');
+        positionScanBox();
+        window.addEventListener('resize', positionScanBox);
+
+        // Try to lock portrait (non-blocking)
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('portrait').catch(function(){});
+        }
+
+        try {
+            scannerStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width:      { ideal: 1920 },
+                    height:     { ideal: 1080 }
+                },
+                audio: false
+            });
+
+            var video = document.getElementById('scanner-video');
+            video.srcObject = scannerStream;
+
+            // Wait for video to be ready
+            await new Promise(function(resolve) {
+                video.onloadedmetadata = resolve;
+                video.onerror = resolve;
+            });
+            await video.play();
+
+            isScanning = true;
+            updateScanBtn(true);
+
+            // Init ZXing with barcode format hints
+            var hints = new Map();
+            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+                ZXing.BarcodeFormat.EAN_13,
+                ZXing.BarcodeFormat.EAN_8,
+                ZXing.BarcodeFormat.CODE_128,
+                ZXing.BarcodeFormat.CODE_39,
+                ZXing.BarcodeFormat.UPC_A,
+                ZXing.BarcodeFormat.UPC_E,
+                ZXing.BarcodeFormat.QR_CODE,
+                ZXing.BarcodeFormat.DATA_MATRIX
+            ]);
+            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+            zxingReader = new ZXing.BrowserMultiFormatReader(hints, 300);
+            startDecodeLoop();
+
+        } catch (err) {
+            console.error('Camera error:', err);
+            overlay.classList.remove('active');
+            if (err.name === 'NotAllowedError')      showToast('Camera permission denied');
+            else if (err.name === 'NotFoundError')   showToast('No camera found on this device');
+            else                                     showToast('Camera error: ' + (err.message || err));
+            isScanning = false;
+            updateScanBtn(false);
+        }
+    }
+
+    function startDecodeLoop() {
+        var video   = document.getElementById('scanner-video');
+        var canvas  = document.createElement('canvas');
+        var ctx     = canvas.getContext('2d', { willReadFrequently: true });
+
+        function decode() {
+            if (!isScanning) return;
+
+            if (video.readyState >= video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+                var vw = video.videoWidth;
+                var vh = video.videoHeight;
+
+                // Project the on-screen scan box onto the actual video resolution
+                var scaleX = vw / window.innerWidth;
+                var scaleY = vh / window.innerHeight;
+
+                var frame = document.getElementById('scan-frame');
+                var fx = parseFloat(frame.style.left)   * scaleX;
+                var fy = parseFloat(frame.style.top)    * scaleY;
+                var fw = parseFloat(frame.style.width)  * scaleX;
+                var fh = parseFloat(frame.style.height) * scaleY;
+
+                canvas.width  = Math.max(1, Math.round(fw));
+                canvas.height = Math.max(1, Math.round(fh));
+                ctx.drawImage(video, fx, fy, fw, fh, 0, 0, canvas.width, canvas.height);
+
+                try {
+                    var result = zxingReader.decodeFromCanvas(canvas);
+                    if (result) {
+                        var now  = Date.now();
+                        var text = result.getText();
+                        if (now - lastScanTime > SCAN_DEBOUNCE) {
+                            lastScanTime = now;
+                            onScanSuccess(text);
+                            return; // stop loop — onScanSuccess will close scanner
+                        }
+                    }
+                } catch (e) {
+                    // ZXing.NotFoundException is normal when no barcode is visible
+                }
+            }
+
+            scannerAnimFrame = requestAnimationFrame(decode);
+        }
+
+        scannerAnimFrame = requestAnimationFrame(decode);
+    }
+
+    function onScanSuccess(text) {
+        // 1. Visual feedback
+        var bar = document.getElementById('scannerResult');
+        bar.classList.add('has-result');
+        document.getElementById('scannerResultText').textContent = 'Found: ' + text;
+
+        // 2. Audio beep
+        playBeep();
+
+        // 3. Vibration (two short pulses)
+        if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+
+        // 4. Brief pause so the user sees the result, then close & search
+        cancelAnimationFrame(scannerAnimFrame);
+        setTimeout(function() {
+            stopScanner();
+            document.getElementById('searchInput').value = text;
+            performSearch();
+        }, 650);
+    }
+
+    function stopScanner() {
+        isScanning  = false;
+        isFlashOn   = false;
+
+        cancelAnimationFrame(scannerAnimFrame);
+
+        if (scannerStream) {
+            scannerStream.getTracks().forEach(function(t) { t.stop(); });
+            scannerStream = null;
+        }
+
+        var video = document.getElementById('scanner-video');
+        video.srcObject = null;
+
+        document.getElementById('scanner-overlay').classList.remove('active');
+        document.getElementById('scannerResult').classList.remove('has-result');
+        document.getElementById('scannerResultText').textContent = 'Scanning — point camera at barcode...';
+        document.getElementById('torchBtn').classList.remove('on');
+
+        window.removeEventListener('resize', positionScanBox);
+        updateScanBtn(false);
+    }
+
+    function updateScanBtn(active) {
+        var btn     = document.getElementById('scanBtn');
+        var iconOff = document.getElementById('scan-icon-off');
+        var iconOn  = document.getElementById('scan-icon-on');
+        var text    = document.getElementById('scan-text');
+        if (active) {
+            btn.classList.add('active');
+            iconOff.style.display = 'none';
+            iconOn.style.display  = 'block';
+            text.textContent = 'Stop';
+        } else {
+            btn.classList.remove('active');
+            iconOff.style.display = 'block';
+            iconOn.style.display  = 'none';
+            text.textContent = 'Scan';
+        }
+    }
+
+    /* ============================================================
+       5. TORCH
+    ============================================================ */
+    function toggleTorch() {
+        if (!scannerStream) return;
+        var track = scannerStream.getVideoTracks()[0];
+        if (!track) return;
+        isFlashOn = !isFlashOn;
+        track.applyConstraints({ advanced: [{ torch: isFlashOn }] })
+            .then(function() {
+                document.getElementById('torchBtn').classList.toggle('on', isFlashOn);
+                showToast(isFlashOn ? 'Flashlight ON' : 'Flashlight OFF');
+            })
+            .catch(function() {
+                isFlashOn = false;
+                showToast('Torch not supported on this device');
+            });
+    }
+
+    /* ============================================================
+       6. UTILITIES
+    ============================================================ */
+    function playBeep() {
+        try {
+            var ctx  = new (window.AudioContext || window.webkitAudioContext)();
+            var osc  = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200, ctx.currentTime);
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        } catch(e) {}
+    }
+
+    function showToast(msg) {
+        var t = document.getElementById('toast');
+        document.getElementById('toast-msg').innerText = msg;
+        t.classList.add('show');
+        setTimeout(function() { t.classList.remove('show'); }, 4000);
+    }
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('overlay').classList.toggle('show');
+    }
+
+    /* ============================================================
+       7. HELPERS — balance color / badge
+    ============================================================ */
+    function getBalanceColor(bal) {
+        bal = parseInt(bal) || 0;
+        if (bal > 5)  return 'var(--success)';
+        if (bal > 0)  return '#000000';
+        return 'var(--danger)';
+    }
+
     function getBalanceClass(bal) {
         bal = parseInt(bal) || 0;
-        if (bal > 5) return 'status-badge';      // Default Green
-        if (bal > 0) return 'status-badge black'; // Black
-        return 'status-badge red';               // Red
+        if (bal > 5)  return 'status-badge';
+        if (bal > 0)  return 'status-badge black';
+        return 'status-badge red';
     }
 
     function calculateVAT(item) {
-        var name = (item.name || "").toLowerCase(); 
-        var mrp = parseFloat(item.mrp) || 0;
-        var accessories = ["tie", "belt", "cufflink", "poket square", "pocket square", "wallet", "bag", "cap", "shocks", "accessories", "bracelet", "eyewear", "finger ring", "locket", "earring", "key ring"];
+        var name = (item.name || "").toLowerCase();
+        var mrp  = parseFloat(item.mrp) || 0;
+        var accessories = ["tie","belt","cufflink","poket square","pocket square","wallet","bag","cap","shocks","accessories","bracelet","eyewear","finger ring","locket","earring","key ring"];
         var isAccessory = accessories.some(function(k) { return name.includes(k); });
-        var rate = isAccessory ? 0.075 : 0.10; 
-        var vatAmount = mrp * rate; 
-        var totalAmount = mrp + vatAmount;
-        return { rate: rate * 100, amount: vatAmount.toFixed(2), total: totalAmount.toFixed(2) };
+        var rate      = isAccessory ? 0.075 : 0.10;
+        var vatAmount = mrp * rate;
+        var total     = mrp + vatAmount;
+        return { rate: rate * 100, amount: vatAmount.toFixed(2), total: total.toFixed(2) };
     }
 
-    // Filter logic based on Checkbox
     function filterZeroStock(items) {
         var showZero = document.getElementById('checkZeroStock').checked;
-        // If unchecked, return only items > 0. If checked, return all.
-        if (!showZero) {
-            return items.filter(function(i) { return (i.balance || 0) > 0; });
-        }
+        if (!showZero) return items.filter(function(i) { return (i.balance || 0) > 0; });
         return items;
     }
 
-    function toggleSidebar() { 
-        document.getElementById('sidebar').classList.toggle('open'); 
-        document.getElementById('overlay').classList.toggle('show'); 
-    }
-
-    function playBeep() { 
-        const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-        const osc = ctx.createOscillator(); 
-        const gain = ctx.createGain(); 
-        osc.connect(gain); 
-        gain.connect(ctx.destination); 
-        osc.type = 'sine'; 
-        osc.frequency.setValueAtTime(1200, ctx.currentTime); 
-        gain.gain.setValueAtTime(0.1, ctx.currentTime); 
-        osc.start(); 
-        osc.stop(ctx.currentTime + 0.1); 
-    }
-
+    /* ============================================================
+       8. MODE SWITCH
+    ============================================================ */
     function switchMode(mode) {
-        currentMode = mode; 
-        document.getElementById('sidebar').classList.remove('open'); 
+        currentMode = mode;
+        document.getElementById('sidebar').classList.remove('open');
         document.getElementById('overlay').classList.remove('show');
         if (isScanning) stopScanner();
+
         document.getElementById('tab-barcode').classList.toggle('active', mode === 'barcode');
         document.getElementById('tab-style').classList.toggle('active', mode === 'style');
-        var input = document.getElementById('searchInput'); 
-        var scanBtn = document.getElementById('scanBtn'); 
+
+        var input         = document.getElementById('searchInput');
+        var scanBtn       = document.getElementById('scanBtn');
         var filterSection = document.getElementById('filter-section');
-        if (mode === 'barcode') { 
-            input.placeholder = "Enter Barcode or Scan..."; 
-            scanBtn.style.display = 'flex'; 
-            filterSection.style.display = 'none'; 
-        } else { 
-            input.placeholder = "Enter Style Code..."; 
-            scanBtn.style.display = 'none'; 
-            filterSection.style.display = 'none'; 
+
+        if (mode === 'barcode') {
+            input.placeholder = "Enter Barcode or Scan...";
+            scanBtn.style.display = 'flex';
+            filterSection.style.display = 'none';
+        } else {
+            input.placeholder = "Enter Style Code...";
+            scanBtn.style.display = 'none';
+            filterSection.style.display = 'none';
         }
-        document.getElementById('resultsArea').innerHTML = ''; 
-        input.value = ''; 
+        document.getElementById('resultsArea').innerHTML = '';
+        input.value = '';
         input.focus();
     }
 
-    function showToast(msg) { 
-        var t = document.getElementById('toast'); 
-        document.getElementById('toast-msg').innerText = msg; 
-        t.classList.add('show'); 
-        setTimeout(function() { t.classList.remove('show'); }, 4000); 
-    }
-
-    function toggleFlashlight() {
-        if (!html5QrCode || !isScanning) return; 
-        isFlashOn = !isFlashOn; 
-        var btn = document.getElementById('flashBtn');
-        html5QrCode.applyVideoConstraints({ advanced: [{ torch: isFlashOn }] }).then(() => {
-            if(isFlashOn) { btn.classList.add('on'); showToast("Flashlight ON"); } else { btn.classList.remove('on'); showToast("Flashlight OFF"); }
-        }).catch(err => { 
-            console.error(err); 
-            isFlashOn = false; 
-            showToast("Flashlight not supported"); 
-        });
-    }
-
-    async function toggleScanner() { 
-        if (isScanning) stopScanner(); 
-        else startScanner(); 
-    }
-    
-    async function startScanner() {
-        var wrapper = document.getElementById('reader-wrapper'); 
-        var btn = document.getElementById('scanBtn');
-        var iconOff = document.getElementById('scan-icon-off'); 
-        var iconOn = document.getElementById('scan-icon-on'); 
-        var text = document.getElementById('scan-text');
-        
-        if (isScanning) return; 
-        
-        wrapper.style.display = 'block'; 
-        btn.classList.add('active'); 
-        iconOff.style.display = 'none'; 
-        iconOn.style.display = 'block'; 
-        text.textContent = "Stop";
-
-        try {
-            if (html5QrCode) {
-                try { 
-                    if (isScanning) await html5QrCode.stop(); 
-                    await html5QrCode.clear(); 
-                } catch (e) { console.log("Cleanup ignored"); }
-                html5QrCode = null;
-            }
-
-            html5QrCode = new Html5Qrcode("reader");
-            
-            var config = {
-                fps: 10,
-                qrbox: { width: 300, height: 200 }, 
-                aspectRatio: 1.0,
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39
-                ]
-            };
-
-            var cameraConfig = { facingMode: "environment" };
-
-            await html5QrCode.start(
-                cameraConfig, 
-                config, 
-                onScanSuccess, 
-                (errorMessage) => { /* Silent fail */ }
-            );
-            
-            isScanning = true;
-
-        } catch (err) {
-            console.error("Camera Start Error:", err);
-            var errMsg = err.message || err || "Unknown Camera Error";
-            if(errMsg.includes("NotAllowed")) showToast("Camera Permission Denied");
-            else if (errMsg.includes("NotFound")) showToast("No Camera Found");
-            else showToast("Error: " + errMsg);
-            stopScanner(); 
-        }
-    }
-
-    async function stopScanner() {
-        if (html5QrCode) {
-            try { 
-                if (isScanning) await html5QrCode.stop(); 
-                await html5QrCode.clear(); 
-            } catch (err) { /* Ignore cleanup errors */ }
-        }
-        isScanning = false; 
-        isFlashOn = false; 
-        document.getElementById('flashBtn').classList.remove('on'); 
-        document.getElementById('reader-wrapper').style.display = 'none';
-        
-        var btn = document.getElementById('scanBtn'); 
-        btn.classList.remove('active'); 
-        document.getElementById('scan-icon-off').style.display = 'block'; 
-        document.getElementById('scan-icon-on').style.display = 'none'; 
-        document.getElementById('scan-text').textContent = "Scan";
-    }
-
-    function onScanSuccess(decodedText) { 
-        playBeep(); 
-        if (navigator.vibrate) navigator.vibrate(200); 
-        stopScanner(); 
-        document.getElementById('searchInput').value = decodedText; 
-        performSearch(); 
-    }
-
-    // --- 4. SEARCH & RENDER ---
+    /* ============================================================
+       9. SEARCH & RENDER
+    ============================================================ */
     async function performSearch() {
         if (!sbClient) return showToast("Database not connected");
-        var query = document.getElementById('searchInput').value.trim(); 
-        if (!query) return showToast("Enter a value");
-        
-        var resultsArea = document.getElementById('resultsArea'); 
+        var query = document.getElementById('searchInput').value.trim();
+        if (!query) return showToast("Enter a value to search");
+
+        var resultsArea = document.getElementById('resultsArea');
         resultsArea.innerHTML = '<div class="empty-state">Searching...</div>';
-        
-        var data, error;
+
         try {
-            if (currentMode === 'barcode') { 
-                var res = await sbClient.from('inventory').select('*').eq('barcode', query); 
-                data = res.data; 
-                error = res.error; 
-            } else { 
-                var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${query}%`); 
-                data = res.data; 
-                error = res.error; 
-            }
-            if (error) throw error; 
-            
-            // Save raw data
-            if(currentMode === 'barcode') {
-                lastBarcodeData = data || [];
+            var res, data, error;
+            if (currentMode === 'barcode') {
+                res = await sbClient.from('inventory').select('*').eq('barcode', query);
             } else {
-                originalStyleData = data || [];
+                res = await sbClient.from('inventory').select('*').ilike('style_code', '%' + query + '%');
             }
-            
+            data  = res.data;
+            error = res.error;
+            if (error) throw error;
+
+            if (currentMode === 'barcode') { lastBarcodeData   = data || []; }
+            else                           { originalStyleData = data || []; }
+
             renderResults(data);
-        } catch (err) { 
-            console.error(err); 
-            resultsArea.innerHTML = `<div class="empty-state" style="color:var(--danger)">Error: ${err.message}</div>`; 
+        } catch (err) {
+            console.error(err);
+            resultsArea.innerHTML = '<div class="empty-state" style="color:var(--danger)">Error: ' + err.message + '</div>';
         }
     }
 
     function handleZeroStockToggle() {
-        // Re-render based on current mode and data
-        if (currentMode === 'style') {
-            applyFilters(); // This handles filtering from originalStyleData
-        } else if (currentMode === 'barcode') {
-            // Re-render barcode results from cached raw data
-            renderResults(lastBarcodeData);
-        }
+        if (currentMode === 'style')   applyFilters();
+        else                            renderResults(lastBarcodeData);
     }
 
     function renderResults(items) {
-        // 1. Apply Zero Stock Filter first
         items = filterZeroStock(items || []);
-
-        var area = document.getElementById('resultsArea'); 
+        var area          = document.getElementById('resultsArea');
         var filterSection = document.getElementById('filter-section');
-        
-        if (!items || items.length === 0) { 
-            area.innerHTML = '<div class="empty-state">No results found.</div>'; 
-            filterSection.style.display = 'none'; 
-            return; 
+
+        if (!items || items.length === 0) {
+            area.innerHTML = '<div class="empty-state">No results found.</div>';
+            filterSection.style.display = 'none';
+            return;
         }
-        
-        if (currentMode === 'style') { 
-            populateFilters(originalStyleData); // Always populate filters from RAW data
-            filterSection.style.display = 'flex'; 
-            renderTable(items); 
-            showToast(`Found ${items.length}`); 
+
+        if (currentMode === 'style') {
+            populateFilters(originalStyleData);
+            filterSection.style.display = 'flex';
+            renderTable(items);
+            showToast('Found ' + items.length + ' items');
         } else {
             filterSection.style.display = 'none';
+            area.innerHTML = '';
             items.forEach(function(item) {
-                var imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`; 
+                var imgUrl     = item.image_url || ('https://picsum.photos/seed/' + item.id + '/200/200');
                 var vatDetails = calculateVAT(item);
-                var bal = item.balance || 0;
+                var bal        = item.balance || 0;
                 var badgeClass = getBalanceClass(bal);
 
-                var card = document.createElement('div'); 
+                var card = document.createElement('div');
                 card.className = 'product-card';
-                card.innerHTML = `
-                    <div class="p-header">
-                        <div>
-                            <h3 class="p-title">${item.name}</h3>
-                            <div class="p-meta">Style: <strong>${item.style_code || '-'}</strong> &bull; ${item.color || '-'} / ${item.size || '-'}</div>
-                        </div>
-                        <div class="${badgeClass}">
-                            <svg style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-                            ${bal} Units
-                        </div>
-                    </div>
-                    <div class="p-body">
-                        <div class="price-grid">
-                            <div class="pg-item">
-                                <div class="pg-label">Retail Price</div>
-                                <div class="pg-value">${item.mrp || '0.00'}</div>
-                            </div>
-                            <div class="pg-item">
-                                <div class="pg-label">VAT (${vatDetails.rate}%)</div>
-                                <div class="pg-value">+ ${vatDetails.amount}</div>
-                            </div>
-                            <div class="pg-item pg-total" style="grid-column: span 2">
-                                <div class="pg-label">Total Payable</div>
-                                <div class="pg-value">${vatDetails.total}</div>
-                            </div>
-                        </div>
-                        <button class="btn-expand" data-style="${item.style_code || ''}" onclick="toggleDetails(this)">View Variant Details</button>
-                        <div class="p-details">
-                            <div class="detail-row"><span style="color:var(--text-secondary)">Barcode:</span> <span style="font-family:monospace; font-weight:600">${item.barcode}</span></div>
-                            <div class="detail-row"><span style="color:var(--text-secondary)">Image:</span> <a href="${imgUrl}" target="_blank" class="link">Open Image</a></div>
-                            <div class="related-table-area"></div>
-                        </div>
-                    </div>
-                `; 
+                card.innerHTML =
+                    '<div class="p-header">' +
+                        '<div>' +
+                            '<h3 class="p-title">' + item.name + '</h3>' +
+                            '<div class="p-meta">Style: <strong>' + (item.style_code || '-') + '</strong> &bull; ' + (item.color || '-') + ' / ' + (item.size || '-') + '</div>' +
+                        '</div>' +
+                        '<div class="' + badgeClass + '">' +
+                            '<svg style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>' +
+                            bal + ' Units' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="p-body">' +
+                        '<div class="price-grid">' +
+                            '<div class="pg-item">' +
+                                '<div class="pg-label">Retail Price</div>' +
+                                '<div class="pg-value">' + (item.mrp || '0.00') + '</div>' +
+                            '</div>' +
+                            '<div class="pg-item">' +
+                                '<div class="pg-label">VAT (' + vatDetails.rate + '%)</div>' +
+                                '<div class="pg-value">+ ' + vatDetails.amount + '</div>' +
+                            '</div>' +
+                            '<div class="pg-item pg-total" style="grid-column:span 2">' +
+                                '<div class="pg-label">Total Payable</div>' +
+                                '<div class="pg-value">' + vatDetails.total + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<button class="btn-expand" data-style="' + (item.style_code || '') + '" onclick="toggleDetails(this)">View Variant Details</button>' +
+                        '<div class="p-details">' +
+                            '<div class="detail-row"><span style="color:var(--text-secondary)">Barcode:</span><span style="font-family:monospace;font-weight:600">' + item.barcode + '</span></div>' +
+                            '<div class="detail-row"><span style="color:var(--text-secondary)">Image:</span><a href="' + imgUrl + '" target="_blank" class="link">Open Image</a></div>' +
+                            '<div class="related-table-area"></div>' +
+                        '</div>' +
+                    '</div>';
                 area.appendChild(card);
             });
-            showToast(`Found ${items.length}`);
+            showToast('Found ' + items.length + ' item(s)');
         }
     }
 
     async function toggleDetails(btn) {
-        var details = btn.nextElementSibling; 
-        var tableArea = details.querySelector('.related-table-area'); 
+        var details   = btn.nextElementSibling;
+        var tableArea = details.querySelector('.related-table-area');
         var styleCode = btn.getAttribute('data-style');
-        if (details.style.display === "none" || details.style.display === "") { 
-            details.style.display = "block"; 
-            btn.innerHTML = "Hide Variant Details"; 
-            if (styleCode && !details.classList.contains('loaded')) { 
-                await loadRelatedVariants(styleCode, tableArea); 
-                details.classList.add('loaded'); 
-            } 
-        } else { 
-            details.style.display = "none"; 
-            btn.innerHTML = "View Variant Details"; 
+        if (details.style.display === 'none' || details.style.display === '') {
+            details.style.display = 'block';
+            btn.textContent = 'Hide Variant Details';
+            if (styleCode && !details.classList.contains('loaded')) {
+                await loadRelatedVariants(styleCode, tableArea);
+                details.classList.add('loaded');
+            }
+        } else {
+            details.style.display = 'none';
+            btn.textContent = 'View Variant Details';
         }
     }
 
     async function loadRelatedVariants(styleCode, container) {
-        if (!styleCode) { 
-            container.innerHTML = '<div style="padding:10px">No Style Code.</div>'; 
-            return; 
-        }
+        if (!styleCode) { container.innerHTML = '<div style="padding:10px">No Style Code.</div>'; return; }
         try {
-            var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${styleCode}%`); 
-            if (res.error) throw res.error; 
-            var variants = res.data;
-            // Apply Zero Stock filter to variants
-            variants = filterZeroStock(variants);
-
-            if (!variants || variants.length === 0) { 
-                container.innerHTML = '<div style="padding:10px">No variants found with current filter.</div>'; 
-                return; 
+            var res = await sbClient.from('inventory').select('*').ilike('style_code', '%' + styleCode + '%');
+            if (res.error) throw res.error;
+            var variants = filterZeroStock(res.data);
+            if (!variants || variants.length === 0) {
+                container.innerHTML = '<div style="padding:10px">No variants found with current filter.</div>';
+                return;
             }
             variants.sort(function(a, b) { return (a.color || "").localeCompare(b.color || ""); });
-            var html = `<div class="variant-box"><table class="mini-table"><thead><tr><th>Barcode</th><th>Color</th><th>Size</th><th class="text-right">Bal</th></tr></thead><tbody>`;
-            var currentColor = ''; 
-            var currentTotal = 0;
+
+            var html = '<div class="variant-box"><table class="mini-table"><thead><tr><th>Barcode</th><th>Color</th><th>Size</th><th class="text-right">Bal</th></tr></thead><tbody>';
+            var currentColor = ''; var currentTotal = 0;
             variants.forEach(function(v) {
                 var bal = v.balance || 0;
                 var balColor = getBalanceColor(bal);
-                if (v.color !== currentColor) { 
-                    if (currentColor !== '') { 
-                        html += `<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
-                    } 
-                    currentColor = v.color; 
-                    currentTotal = 0; 
+                if (v.color !== currentColor) {
+                    if (currentColor !== '') {
+                        html += '<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total ' + currentColor + ':</td><td class="text-right">' + currentTotal + '</td></tr>';
+                    }
+                    currentColor = v.color; currentTotal = 0;
                 }
-                html += `<tr><td style="font-family:monospace; color:#64748b">${v.barcode}</td><td>${v.color||'-'}</td><td>${v.size||'-'}</td><td class="text-right" style="color:${balColor}; font-weight:bold;">${bal}</td></tr>`; 
+                html += '<tr><td style="font-family:monospace;color:#64748b">' + v.barcode + '</td><td>' + (v.color||'-') + '</td><td>' + (v.size||'-') + '</td><td class="text-right" style="color:' + balColor + ';font-weight:bold">' + bal + '</td></tr>';
                 currentTotal += bal;
             });
-            if (currentColor !== '') { 
-                html += `<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
+            if (currentColor !== '') {
+                html += '<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total ' + currentColor + ':</td><td class="text-right">' + currentTotal + '</td></tr>';
             }
-            html += `</tbody></table></div>`; 
+            html += '</tbody></table></div>';
             container.innerHTML = html;
-        } catch (err) { 
-            console.error(err); 
-            container.innerHTML = '<div style="color:red; padding:10px">Error loading variants</div>'; 
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = '<div style="color:red;padding:10px">Error loading variants</div>';
         }
     }
 
+    /* ============================================================
+       10. FILTERS
+    ============================================================ */
     function populateFilters(items) {
-        var colorSelect = document.getElementById('filter-color'); 
-        var sizeSelect = document.getElementById('filter-size');
-        colorSelect.innerHTML = '<option value="all">All Colors</option>'; 
-        sizeSelect.innerHTML = '<option value="all">All Sizes</option>';
-        var colors = [...new Set(items.map(i => i.color).filter(c => c))]; 
-        var sizes = [...new Set(items.map(i => i.size).filter(s => s))];
-        colors.sort(); 
-        sizes.sort(); 
-        colors.forEach(function(c) { colorSelect.innerHTML += `<option value="${c}">${c}</option>`; }); 
-        sizes.forEach(function(s) { sizeSelect.innerHTML += `<option value="${s}">${s}</option>`; });
+        var colorSelect = document.getElementById('filter-color');
+        var sizeSelect  = document.getElementById('filter-size');
+        colorSelect.innerHTML = '<option value="all">All Colors</option>';
+        sizeSelect.innerHTML  = '<option value="all">All Sizes</option>';
+        var colors = [...new Set(items.map(function(i){return i.color;}).filter(Boolean))].sort();
+        var sizes  = [...new Set(items.map(function(i){return i.size;}).filter(Boolean))].sort();
+        colors.forEach(function(c){ colorSelect.innerHTML += '<option value="' + c + '">' + c + '</option>'; });
+        sizes.forEach(function(s){  sizeSelect.innerHTML  += '<option value="' + s + '">' + s + '</option>'; });
     }
-    
+
     function applyFilters() {
-        // 1. Filter by Color/Size from RAW data
-        var c = document.getElementById('filter-color').value; 
+        var c = document.getElementById('filter-color').value;
         var s = document.getElementById('filter-size').value;
-        var filtered = originalStyleData.filter(function(item) { 
-            return (c === 'all' || item.color === c) && (s === 'all' || item.size === s); 
+        var filtered = originalStyleData.filter(function(item) {
+            return (c === 'all' || item.color === c) && (s === 'all' || item.size === s);
         });
-        
-        // 2. Apply Zero Stock Filter
         filtered = filterZeroStock(filtered);
-        
         renderTable(filtered);
     }
-    
-    function clearFilters() { 
-        document.getElementById('filter-color').value = 'all'; 
-        document.getElementById('filter-size').value = 'all'; 
-        applyFilters(); 
+
+    function clearFilters() {
+        document.getElementById('filter-color').value = 'all';
+        document.getElementById('filter-size').value  = 'all';
+        applyFilters();
     }
 
     function renderTable(items) {
-        var area = document.getElementById('resultsArea'); 
-        area.innerHTML = ''; 
-        if (items.length === 0) { 
-            area.innerHTML = '<div class="empty-state">No matches.</div>'; 
-            return; 
-        }
-        items.sort(function(a, b) { return (a.color || "").localeCompare(b.color || ""); });
-        var tableContainer = document.createElement('div'); 
-        tableContainer.className = 'table-container';
-        var tableHTML = `<table class="results-table"><thead><tr><th>Product</th><th>Barcode</th><th>Color / Size</th><th>MRP</th><th class="text-right">Balance</th></tr></thead><tbody>`;
-        var currentColor = ''; 
-        var currentTotal = 0;
+        var area = document.getElementById('resultsArea');
+        area.innerHTML = '';
+        if (items.length === 0) { area.innerHTML = '<div class="empty-state">No matches.</div>'; return; }
+        items.sort(function(a, b){ return (a.color||"").localeCompare(b.color||""); });
+
+        var container = document.createElement('div');
+        container.className = 'table-container';
+        var html = '<table class="results-table"><thead><tr><th>Product</th><th>Barcode</th><th>Color / Size</th><th>MRP</th><th class="text-right">Balance</th></tr></thead><tbody>';
+        var currentColor = ''; var currentTotal = 0;
+
         items.forEach(function(item) {
             var bal = item.balance || 0;
             var balColor = getBalanceColor(bal);
-
             if (item.color !== currentColor) {
-                if (currentColor !== '') { 
-                    tableHTML += `<tr class="subtotal-row"><td colspan="4" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
+                if (currentColor !== '') {
+                    html += '<tr class="subtotal-row"><td colspan="4" class="text-right">Total ' + currentColor + ':</td><td class="text-right">' + currentTotal + '</td></tr>';
                 }
-                currentColor = item.color; 
-                currentTotal = 0;
+                currentColor = item.color; currentTotal = 0;
             }
-            tableHTML += `<tr><td><strong>${item.name}</strong></td><td style="font-family:monospace; color:#64748b">${item.barcode}</td><td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.8rem; margin-right:4px;">${item.color||'-'}</span><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.8rem;">${item.size||'-'}</span></td><td>${item.mrp||'0.00'}</td><td class="text-right" style="font-weight:700; color:${balColor}">${bal}</td></tr>`; 
+            html += '<tr>' +
+                '<td><strong>' + item.name + '</strong></td>' +
+                '<td style="font-family:monospace;color:#64748b">' + item.barcode + '</td>' +
+                '<td>' +
+                    '<span style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:.8rem;margin-right:4px">' + (item.color||'-') + '</span>' +
+                    '<span style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:.8rem">' + (item.size||'-') + '</span>' +
+                '</td>' +
+                '<td>' + (item.mrp||'0.00') + '</td>' +
+                '<td class="text-right" style="font-weight:700;color:' + balColor + '">' + bal + '</td>' +
+            '</tr>';
             currentTotal += bal;
         });
-        if (currentColor !== '') { 
-            tableHTML += `<tr class="subtotal-row"><td colspan="4" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
+        if (currentColor !== '') {
+            html += '<tr class="subtotal-row"><td colspan="4" class="text-right">Total ' + currentColor + ':</td><td class="text-right">' + currentTotal + '</td></tr>';
         }
-        tableHTML += `</tbody></table>`; 
-        tableContainer.innerHTML = tableHTML; 
-        area.appendChild(tableContainer);
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        area.appendChild(container);
     }
 
-    document.getElementById('searchInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') performSearch(); });
+    /* ============================================================
+       11. KEYBOARD SHORTCUT
+    ============================================================ */
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') performSearch();
+    });
 </script>
 </body>
 </html>
