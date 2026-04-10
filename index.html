@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Stock Manager Pro</title>
+    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+    <!-- HTML5-QRCode Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
     <style>
+        /* --- 1. PROFESSIONAL COLOR PALETTE & RESET --- */
         :root {
             --primary: #0f172a;
+            --primary-light: #334155;
             --accent: #2563eb;
             --accent-hover: #1d4ed8;
             --bg-body: #f1f5f9;
@@ -16,366 +21,523 @@
             --text-main: #1e293b;
             --text-secondary: #64748b;
             --border: #e2e8f0;
-            --success: #10b981;
+            --success: #10b981; /* Green */
             --success-bg: #ecfdf5;
-            --danger: #ef4444;
+            --danger: #ef4444; /* Red */
             --danger-bg: #fef2f2;
             --sidebar-width: 260px;
             --header-height: 64px;
             --radius: 8px;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
-            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1);
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg-body); color: var(--text-main);
-            display: flex; min-height: 100vh; overflow-x: hidden;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
-        /* ── SIDEBAR ── */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex; 
+            min-height: 100vh; 
+            overflow-x: hidden;
+        }
+
+        /* --- 2. SIDEBAR --- */
         .sidebar {
-            width: var(--sidebar-width); background: var(--primary); color: #94a3b8;
-            display: flex; flex-direction: column;
-            position: fixed; top: 0; bottom: 0; left: 0;
-            z-index: 1000; transition: transform .3s ease;
-            border-right: 1px solid rgba(255,255,255,.08);
+            width: var(--sidebar-width);
+            background-color: var(--primary);
+            color: #94a3b8;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; bottom: 0; left: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            border-right: 1px solid rgba(255,255,255,0.1);
         }
+
         .sidebar-header {
-            height: var(--header-height); display: flex; align-items: center;
-            padding: 0 1.5rem; border-bottom: 1px solid rgba(255,255,255,.08);
-            color: #fff; font-weight: 600; font-size: 1.05rem; gap: 12px;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
         }
-        .logo-icon { width: 22px; height: 22px; fill: white; flex-shrink: 0; }
-        .nav-section { padding: 1.25rem .75rem; flex: 1; overflow-y: auto; }
+        .logo-icon { width: 24px; height: 24px; margin-right: 12px; fill: white; }
+
+        .nav-section { padding: 1.5rem 0.75rem; flex: 1; overflow-y: auto; }
+        
         .nav-group-title {
-            font-size: .68rem; text-transform: uppercase; letter-spacing: 1px;
-            padding-left: 12px; margin-bottom: 6px; color: #475569; font-weight: 700;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding-left: 12px;
+            margin-bottom: 8px;
+            color: #475569;
+            font-weight: 700;
         }
+
         .sidebar a {
-            display: flex; align-items: center; padding: 9px 12px;
-            color: #cbd5e1; text-decoration: none; border-radius: 4px;
-            margin-bottom: 1px; font-size: .88rem; transition: all .15s; gap: 12px;
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            color: #cbd5e1;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 2px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
         }
-        .sidebar a svg { width: 17px; height: 17px; stroke-width: 2; flex-shrink: 0; }
-        .sidebar a:hover { background: rgba(255,255,255,.06); color: #fff; }
-        .sidebar a.active { background: var(--accent); color: #fff; font-weight: 500; }
+        
+        .sidebar a svg { width: 18px; height: 18px; margin-right: 12px; stroke-width: 2; }
+
+        .sidebar a:hover { background-color: rgba(255,255,255,0.05); color: white; }
+        
+        .sidebar a.active {
+            background-color: var(--accent);
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
         .sidebar-footer {
-            padding: 1rem; border-top: 1px solid rgba(255,255,255,.08);
+            padding: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
             display: flex; align-items: center; gap: 10px;
         }
         .user-avatar {
             width: 32px; height: 32px; background: var(--accent); border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            color: #fff; font-weight: 700; font-size: .8rem; flex-shrink: 0;
+            color: white; font-weight: bold; font-size: 0.8rem;
         }
-        .user-info div:first-child { color: #fff; font-size: .88rem; font-weight: 500; }
-        .user-info div:last-child { font-size: .73rem; color: #64748b; }
+        .user-info div:first-child { color: white; font-size: 0.9rem; font-weight: 500; }
+        .user-info div:last-child { font-size: 0.75rem; color: #64748b; }
 
-        /* ── MAIN ── */
-        .main-content { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            width: calc(100% - var(--sidebar-width));
+            display: flex; flex-direction: column;
+        }
+
+        /* --- 3. HEADER --- */
         header {
-            height: var(--header-height); background: var(--surface);
+            height: var(--header-height);
+            background: var(--surface);
             border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; padding: 0 2rem;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 2rem;
             position: sticky; top: 0; z-index: 50;
         }
-        .header-title { font-size: 1.15rem; font-weight: 700; }
-        .menu-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--text-main); margin-right: 1rem; padding: 0; }
-        .overlay-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 999; backdrop-filter: blur(2px); }
-        .overlay-bg.show { display: block; }
+
+        .header-title { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
+        .menu-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--text-main); }
+        
+        .overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999;
+            backdrop-filter: blur(2px);
+        }
+        .overlay.show { display: block; }
+
+        /* --- 4. MAIN CONTENT & CARDS --- */
         main { padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
 
-        /* ── CARD / TABS ── */
-        .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.5rem; }
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Tabs */
         .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
-        .tab { padding: .9rem 1.4rem; cursor: pointer; color: var(--text-secondary); font-weight: 500; font-size: .92rem; border-bottom: 2px solid transparent; transition: color .15s; }
+        .tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.95rem;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s;
+        }
+        .tab:hover { color: var(--text-main); }
         .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 
-        /* ── ACTION BAR ── */
-        .action-bar { display: flex; gap: .75rem; align-items: stretch; flex-wrap: wrap; }
-        .input-group { flex: 1; position: relative; min-width: 220px; }
-        .input-group svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); width: 18px; height: 18px; }
-        input[type="text"] { width: 100%; padding: .72rem 1rem .72rem 2.4rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: .92rem; transition: border-color .15s; }
+        /* Inputs & Actions */
+        .action-bar { display: flex; gap: 1rem; align-items: stretch; flex-wrap: wrap; }
+
+        .input-group { flex: 1; position: relative; min-width: 250px; }
+        .input-group svg {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            color: var(--text-secondary); width: 20px; height: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
         input[type="text"]:focus { border-color: var(--accent); }
-        button { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 0 1.25rem; border: 1px solid transparent; border-radius: var(--radius); font-weight: 500; cursor: pointer; font-size: .88rem; transition: all .15s; background: var(--surface); color: var(--text-main); height: 40px; white-space: nowrap; }
-        .btn-scan { background: #fff; border-color: var(--border); }
+
+        button {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 0 1.5rem;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            background: var(--surface);
+            color: var(--text-main);
+            height: 42px;
+            white-space: nowrap;
+        }
+
+        .btn-scan { background: white; border-color: var(--border); color: var(--text-main); }
         .btn-scan:hover { background: #f8fafc; }
-        .btn-scan.active { background: var(--danger); color: #fff; border-color: var(--danger); }
-        .btn-search { background: var(--accent); color: #fff; }
-        .btn-search:hover { background: var(--accent-hover); }
-        .checkbox-wrapper { display: flex; align-items: center; gap: 8px; padding-left: .85rem; border-left: 1px solid var(--border); height: 40px; user-select: none; }
-        .checkbox-wrapper input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
-        .checkbox-wrapper label { cursor: pointer; font-size: .88rem; font-weight: 500; }
+        .btn-scan.active { background: var(--danger); color: white; border-color: var(--danger); }
 
-        /* ── FILTER BAR ── */
-        .filter-bar { display: none; gap: 1rem; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1.5rem; align-items: center; }
-        .filter-select { padding: .45rem .7rem; border: 1px solid var(--border); border-radius: 4px; min-width: 140px; background: #fff; font-size: .88rem; }
+        .btn-search { background: var(--accent); color: white; }
+        .btn-search:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
 
-        /* ── RESULTS ── */
+        /* Checkbox Styling */
+        .checkbox-wrapper {
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            padding-left: 1rem; 
+            border-left: 1px solid var(--border);
+            height: 42px;
+            user-select: none;
+        }
+        .checkbox-wrapper input {
+            width: 18px; 
+            height: 18px; 
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+        .checkbox-wrapper label {
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        /* --- 5. SCANNER UI (UPDATED) --- */
+        #reader-wrapper {
+            margin-top: 1.5rem;
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: none;
+            background: #000;
+            position: relative;
+            border: 4px solid var(--surface);
+            box-shadow: var(--shadow-md);
+            transform: translateZ(0); 
+            -webkit-transform: translateZ(0);
+        }
+        
+        /* Hide the default 'link' provided by html5-qrcode */
+        #reader a { display: none !important; }
+
+        /* Custom Scanning Overlay */
+        .scanner-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px; height: 200px;
+            pointer-events: none;
+            border: 2px solid rgba(37, 99, 235, 0.6);
+            border-radius: 8px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            z-index: 5;
+        }
+
+        /* Animated Laser Line */
+        .scan-laser {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+            top: 0;
+            left: 0;
+            animation: scanMove 2s infinite linear;
+            opacity: 0.8;
+        }
+
+        @keyframes scanMove {
+            0% { top: 10px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 190px; opacity: 0; }
+        }
+
+        .scan-text-hint {
+            position: absolute;
+            bottom: 10px; width: 100%; text-align: center;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-shadow: 0 1px 2px black;
+            z-index: 6;
+        }
+
+        /* Scanner Control Buttons */
+        .scanner-controls {
+            position: absolute; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 15px;
+            z-index: 10; width: 100%; justify-content: center;
+        }
+
+        .btn-ctrl {
+            background: rgba(255,255,255,0.9);
+            width: 48px; height: 48px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            cursor: pointer; z-index: 10; border: none;
+            transition: transform 0.1s;
+        }
+        .btn-ctrl:active { transform: scale(0.95); }
+        .btn-ctrl.on { background: #fbbf24; color: white; }
+
+        /* Hidden file input for scanning image */
+        #qr-input-file { display: none; }
+
+        /* --- 6. FILTERS --- */
+        .filter-bar { 
+            display: none; gap: 1rem; padding: 1rem; 
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); margin-bottom: 1.5rem;
+            align-items: center; box-shadow: var(--shadow-sm);
+        }
+        .filter-select { padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; min-width: 150px; background: white; }
+
+        /* --- 7. RESULTS --- */
         .results-list { display: flex; flex-direction: column; gap: 1rem; }
-        .product-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-        .p-header { padding: 1.1rem 1.25rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; }
-        .p-title { font-size: 1.05rem; font-weight: 700; }
-        .p-meta { font-size: .82rem; color: var(--text-secondary); margin-top: 3px; }
-        .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; font-size: .78rem; font-weight: 600; background: var(--success-bg); color: var(--success); border: 1px solid transparent; white-space: nowrap; }
-        .status-badge.black { background: #f8fafc; color: #000; border-color: #e2e8f0; }
+
+        .product-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .p-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .p-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+        .p-meta { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
+        
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 99px;
+            font-size: 0.8rem; font-weight: 600;
+            background: var(--success-bg); 
+            color: var(--success);
+            border: 1px solid transparent;
+        }
+        .status-badge.black { background: #f8fafc; color: #000000; border-color: #e2e8f0; }
         .status-badge.red { background: var(--danger-bg); color: var(--danger); }
-        .p-body { padding: 1.1rem 1.25rem; }
-        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; margin-bottom: .85rem; }
-        .pg-item { background: #f8fafc; padding: .65rem .85rem; border-radius: 4px; border: 1px solid #e2e8f0; }
-        .pg-label { font-size: .72rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .4px; }
-        .pg-value { font-size: 1.05rem; font-weight: 700; margin-top: 3px; }
-        .pg-total .pg-value { color: var(--accent); font-size: 1.18rem; }
-        .btn-expand { width: 100%; background: none; border: 1px dashed var(--border); color: var(--accent); font-size: .83rem; padding: .65rem; border-radius: var(--radius); margin-top: .4rem; }
+
+        .p-body { padding: 1.25rem; }
+
+        .price-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 1rem; margin-bottom: 1rem;
+        }
+        .pg-item { background: #f8fafc; padding: 0.75rem; border-radius: 4px; border: 1px solid #e2e8f0; }
+        .pg-label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .pg-value { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-top: 4px; }
+        .pg-total .pg-value { color: var(--accent); font-size: 1.25rem; }
+
+        .btn-expand {
+            width: 100%; background: none; border: 1px dashed var(--border);
+            color: var(--accent); font-size: 0.85rem; padding: 0.75rem;
+            border-radius: var(--radius); margin-top: 0.5rem;
+        }
         .btn-expand:hover { background: #f0f9ff; border-color: var(--accent); }
-        .p-details { display: none; padding: 1.1rem 1.25rem; background: #f8fafc; border-top: 1px solid var(--border); font-size: .88rem; }
-        .detail-row { display: flex; justify-content: space-between; margin-bottom: .45rem; }
+
+        .p-details {
+            display: none; padding: 1.25rem;
+            background: #f8fafc; border-top: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
         .link { color: var(--accent); text-decoration: none; font-weight: 500; }
-        .variant-box { margin-top: .85rem; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-        .mini-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
-        .mini-table th { background: #e2e8f0; text-align: left; padding: 7px 9px; font-weight: 600; color: var(--text-secondary); }
-        .mini-table td { padding: 7px 9px; border-bottom: 1px solid #e2e8f0; }
+        .link:hover { text-decoration: underline; }
+
+        .variant-box { margin-top: 1rem; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+        .mini-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .mini-table th { background: #e2e8f0; text-align: left; padding: 8px; font-weight: 600; color: var(--text-secondary); }
+        .mini-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
         .mini-table tr:last-child td { border-bottom: none; }
         .text-right { text-align: right; }
         .subtotal-row-mini { background: #cbd5e1; font-weight: 700; }
-        .table-container { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; }
-        .results-table { width: 100%; border-collapse: collapse; min-width: 640px; }
-        .results-table th { background: #f8fafc; padding: 11px 15px; text-align: left; font-size: .78rem; text-transform: uppercase; color: var(--text-secondary); border-bottom: 2px solid var(--border); font-weight: 600; }
-        .results-table td { padding: 11px 15px; border-bottom: 1px solid #f1f5f9; font-size: .88rem; }
-        .results-table tr:hover { background: #f8fafc; }
-        .subtotal-row { background: #f1f5f9; font-weight: 700; border-top: 2px solid var(--border); }
-        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
 
-        /* ── TOAST ── */
+        .table-container { 
+            background: var(--surface); border: 1px solid var(--border); 
+            border-radius: var(--radius); overflow-x: auto; box-shadow: var(--shadow-sm);
+        }
+        .results-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        .results-table th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary);
+            border-bottom: 2px solid var(--border); font-weight: 600;
+        }
+        .results-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+        .results-table tr:hover { background: #f8fafc; }
+        .subtotal-row { background: #f1f5f9; font-weight: 700; color: var(--text-main); border-top: 2px solid var(--border); }
+
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
         #toast {
-            position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(16px);
-            background: #1e293b; color: #fff; padding: 10px 20px;
-            border-radius: 6px; font-size: .88rem; display: flex; align-items: center; gap: 9px;
-            opacity: 0; pointer-events: none; transition: .25s; z-index: 99999;
-            max-width: 88%; text-align: center;
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: #1e293b; color: white; padding: 12px 24px;
+            border-radius: 6px; box-shadow: var(--shadow-lg);
+            font-size: 0.9rem; display: flex; align-items: center; gap: 10px;
+            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 2000;
+            max-width: 90%; text-align: center;
         }
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        svg { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* ════════════════════════════════════════════
-           FULL-SCREEN SCANNER  (Gamma Scan style)
-        ════════════════════════════════════════════ */
-
-        /* The entire scanner takes over 100vw × 100vh */
-        #scanner-screen {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            z-index: 10000;
-            background: #000;
-            overflow: hidden;
-        }
-        #scanner-screen.open { display: block; }
-
-        /* Camera feed fills the whole screen */
-        #cam-video {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        /* ── Dark vignette: 4 opaque strips around the scan cutout ── */
-        /* All four are absolutely positioned by JS */
-        .vm { position: absolute; background: rgba(0,0,0,.65); z-index: 2; }
-
-        /* ── Scan window ── */
-        #scan-window {
-            position: absolute;
-            z-index: 3;
-            /* JS sets left/top/width/height */
-        }
-
-        /* White corner brackets */
-        .sw-c { position: absolute; width: 26px; height: 26px; }
-        .sw-c.tl { top: 0; left: 0;  border-top:  3px solid #fff; border-left:  3px solid #fff; border-radius: 4px 0 0 0; }
-        .sw-c.tr { top: 0; right: 0; border-top:  3px solid #fff; border-right: 3px solid #fff; border-radius: 0 4px 0 0; }
-        .sw-c.bl { bottom: 0; left: 0;  border-bottom: 3px solid #fff; border-left:  3px solid #fff; border-radius: 0 0 0 4px; }
-        .sw-c.br { bottom: 0; right: 0; border-bottom: 3px solid #fff; border-right: 3px solid #fff; border-radius: 0 0 4px 0; }
-
-        /* Red scanning laser line */
-        .laser {
-            position: absolute;
-            left: 4px; right: 4px;
-            height: 3px;
-            background: linear-gradient(90deg,
-                transparent 0%,
-                rgba(255,40,40,.5) 10%,
-                #ff2828 40%,
-                #ff2828 60%,
-                rgba(255,40,40,.5) 90%,
-                transparent 100%
-            );
-            box-shadow: 0 0 12px 3px rgba(255,40,40,.65);
-            border-radius: 2px;
-            animation: laser 2s ease-in-out infinite;
-        }
-        @keyframes laser {
-            0%   { top: 6%;  }
-            50%  { top: 90%; }
-            100% { top: 6%;  }
-        }
-
-        /* Hint text below box */
-        .scan-hint {
-            position: absolute;
-            top: calc(100% + 16px);
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255,255,255,.82);
-            font-size: .8rem;
-            font-weight: 500;
-            white-space: nowrap;
-            letter-spacing: .25px;
-        }
-
-        /* ── Top bar (close + title + torch) ── */
-        #sc-topbar {
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            z-index: 10;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: max(env(safe-area-inset-top,0px), 16px) 18px 18px;
-            background: linear-gradient(180deg, rgba(0,0,0,.75) 0%, transparent 100%);
-        }
-        .sc-topbar-title {
-            color: #fff;
-            font-size: 1rem;
-            font-weight: 600;
-            letter-spacing: .3px;
-            pointer-events: none;
-        }
-        .sc-icon-btn {
-            width: 44px; height: 44px;
-            border-radius: 50%;
-            background: rgba(255,255,255,.15);
-            border: 1.5px solid rgba(255,255,255,.3);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            padding: 0;
-            color: #fff;
-            transition: background .18s;
-            flex-shrink: 0;
-        }
-        .sc-icon-btn:active { background: rgba(255,255,255,.3); }
-        .sc-icon-btn.torch-on { background: #fbbf24; border-color: #f59e0b; }
-        .sc-icon-btn.torch-on svg { stroke: #292524; }
-
-        /* ── Bottom result strip ── */
-        #sc-strip {
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            padding: 22px 24px max(env(safe-area-inset-bottom,0px), 22px);
-            background: linear-gradient(0deg, rgba(0,0,0,.85) 0%, transparent 100%);
-            min-height: 90px;
-        }
-        #sc-strip-label {
-            color: rgba(255,255,255,.55);
-            font-size: .72rem;
-            font-weight: 600;
-            letter-spacing: .8px;
-            text-transform: uppercase;
-        }
-        #sc-strip-value {
-            color: rgba(255,255,255,.7);
-            font-size: 1.05rem;
-            font-weight: 700;
-            letter-spacing: .5px;
-            text-align: center;
-            transition: color .2s;
-        }
-        #sc-strip-value.found { color: #4ade80; }
-
-        /* ── Mobile ── */
+        /* Mobile */
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); width: 280px; }
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; width: 100%; }
-            .menu-toggle { display: block; }
+            .menu-toggle { display: block; margin-right: 1rem; }
             header { padding: 0 1rem; }
             main { padding: 1rem; }
             .price-grid { grid-template-columns: 1fr; }
-            .checkbox-wrapper { border-left: none; padding-left: 0; width: 100%; margin-top: .5rem; }
+            #reader { min-height: 300px; }
+            .checkbox-wrapper { 
+                border-left: none; 
+                padding-left: 0; 
+                width: 100%; 
+                margin-top: 0.5rem; 
+                justify-content: flex-start;
+            }
+            .scanner-overlay { width: 260px; height: 160px; }
+            @keyframes scanMove {
+                0% { top: 10px; opacity: 0; }
+                10% { opacity: 1; }
+                90% { opacity: 1; }
+                100% { top: 150px; opacity: 0; }
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="overlay-bg" id="overlay-bg" onclick="toggleSidebar()"></div>
+<!-- Mobile Overlay -->
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-<!-- ══ SIDEBAR ══ -->
+<!-- Sidebar -->
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <svg class="logo-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        STOCK MANAGER
+        <svg class="logo-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        <span>STOCK MANAGER</span>
     </div>
+    
     <div class="nav-section">
         <div class="nav-group-title">Main</div>
         <a href="index.html" class="active">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search Stock
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Search Stock
         </a>
         <a href="Audit.html">
-            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Inventory Audit
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Inventory Audit
         </a>
         <a href="dis.html">
-            <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>Discontinued
+            <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+            Discontinued
         </a>
-        <div class="nav-group-title" style="margin-top:.9rem">Operations</div>
+
+        <div class="nav-group-title" style="margin-top: 1rem;">Operations</div>
         <a href="cstock.html">
-            <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Requisition
+            <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+            Requisition
         </a>
         <a href="vat.html">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>VAT Report
+            <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            VAT Report
         </a>
         <a href="admin.html">
-            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Authority
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Authority
         </a>
         <a href="tag.html">
-            <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>Tag Print
+            <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+            Tag Print
         </a>
         <a href="bokking.html">
-            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Booking
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Booking
         </a>
         <a href="display.html">
-            <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Display Check
+            <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            Display Check
         </a>
         <a href="img.html">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Images
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            Images
         </a>
         <a href="attendance.html">
-            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 14 11 16 15 12"/></svg>Attendance Report
-        </a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
+         stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+        <polyline points="9 14 11 16 15 12"></polyline>
+    </svg>
+    Attendance Report
+</a>
         <a href="sar.html">
-            <svg viewBox="0 0 24 24"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="8"/><line x1="16" y1="20" x2="16" y2="14"/><polyline points="3 15 9 9 15 12 21 6"/></svg>Sales Analysis
-        </a>
+    <svg viewBox="0 0 24 24">
+        <line x1="4" y1="20" x2="4" y2="12"></line>
+        <line x1="10" y1="20" x2="10" y2="8"></line>
+        <line x1="16" y1="20" x2="16" y2="14"></line>
+        <polyline points="3 15 9 9 15 12 21 6"></polyline>
+    </svg>
+    Sales Analysis
+</a>
     </div>
+
     <div class="sidebar-footer">
         <div class="user-avatar">A</div>
-        <div class="user-info"><div>Admin User</div><div>Manager</div></div>
+        <div class="user-info">
+            <div>Admin User</div>
+            <div>Manager</div>
+        </div>
     </div>
 </aside>
 
-<!-- ══ CONTENT ══ -->
+<!-- Content -->
 <div class="main-content">
     <header>
-        <div style="display:flex;align-items:center">
+        <div style="display:flex; align-items:center;">
             <button class="menu-toggle" onclick="toggleSidebar()">
-                <svg width="22" height="22" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div class="header-title">Stock Lookup</div>
         </div>
@@ -384,533 +546,575 @@
     <main>
         <section class="card">
             <div class="tabs">
-                <div class="tab active" id="tab-barcode" onclick="switchMode('barcode')">Barcode</div>
-                <div class="tab" id="tab-style" onclick="switchMode('style')">Style Code</div>
+                <div class="tab active" onclick="switchMode('barcode')" id="tab-barcode">Barcode</div>
+                <div class="tab" onclick="switchMode('style')" id="tab-style">Style Code</div>
             </div>
+
             <div class="action-bar">
                 <div class="input-group">
-                    <svg width="18" height="18" viewBox="0 0 24 24"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
-                    <input type="text" id="searchInput" placeholder="Enter Barcode or Scan..." autocomplete="off">
+                    <svg viewBox="0 0 24 24"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                    <input type="text" id="searchInput" placeholder="Search by Barcode..." autocomplete="off">
                 </div>
                 <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">
-                    <svg id="scan-icon-off" width="18" height="18" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
-                    <svg id="scan-icon-on" width="18" height="18" style="display:none" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <svg id="scan-icon-off" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg>
+                    <svg id="scan-icon-on" style="display:none;" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     <span id="scan-text">Scan</span>
                 </button>
+                <button class="btn-scan" id="fileScanBtn" onclick="document.getElementById('qr-input-file').click()" title="Scan from Image">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    Image
+                </button>
                 <button class="btn-search" onclick="performSearch()">
-                    <svg width="17" height="17" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     Search
                 </button>
+                
+                <!-- Checkbox Wrapper -->
                 <div class="checkbox-wrapper">
                     <input type="checkbox" id="checkZeroStock" onchange="handleZeroStockToggle()">
                     <label for="checkZeroStock">Show Zero Stock</label>
                 </div>
             </div>
+
+            <!-- Hidden File Input -->
+            <input type="file" id="qr-input-file" accept="image/*">
+
+            <div id="reader-wrapper">
+                <div id="reader"></div>
+                <div class="scanner-overlay">
+                    <div class="scan-laser"></div>
+                    <div class="scan-text-hint">Align Barcode in frame</div>
+                </div>
+                <div class="scanner-controls">
+                    <!-- Flashlight -->
+                    <button class="btn-ctrl" id="flashBtn" onclick="toggleFlashlight()" title="Toggle Flashlight">
+                        <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-2.26C4.19 13.47 3 11.38 3 9a7 7 0 0 1 9-7Z"></path></svg>
+                    </button>
+                    <!-- Camera Switch -->
+                    <button class="btn-ctrl" id="camSwitchBtn" onclick="switchCamera()" title="Switch Camera">
+                        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    </button>
+                </div>
+            </div>
         </section>
 
         <div id="filter-section" class="filter-bar">
-            <svg width="18" height="18" style="color:var(--text-secondary)" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <svg style="color:var(--text-secondary)" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
             <select id="filter-color" class="filter-select" onchange="applyFilters()"><option value="all">All Colors</option></select>
             <select id="filter-size" class="filter-select" onchange="applyFilters()"><option value="all">All Sizes</option></select>
-            <button onclick="clearFilters()" style="border:1px solid var(--border);background:none;color:var(--accent);font-size:.85rem;padding:.4rem .9rem;height:auto;border-radius:4px">Reset</button>
+            <button class="btn-scan" style="border:none; font-size:0.85rem; height:auto; padding: 0.5rem 1rem;" onclick="clearFilters()">Reset Filters</button>
         </div>
 
         <div id="resultsArea" class="results-list"></div>
     </main>
 </div>
 
-<!-- ══════════════════════════════════════════
-     FULL-SCREEN SCANNER
-══════════════════════════════════════════ -->
-<div id="scanner-screen">
-
-    <!-- Live camera — fills 100% of the screen -->
-    <video id="cam-video" playsinline muted autoplay></video>
-
-    <!-- 4-piece vignette mask (JS positions these) -->
-    <div class="vm" id="vm-t"></div>
-    <div class="vm" id="vm-b"></div>
-    <div class="vm" id="vm-l"></div>
-    <div class="vm" id="vm-r"></div>
-
-    <!-- Scan window: corner brackets + laser + hint -->
-    <div id="scan-window">
-        <div class="sw-c tl"></div>
-        <div class="sw-c tr"></div>
-        <div class="sw-c bl"></div>
-        <div class="sw-c br"></div>
-        <div class="laser"></div>
-        <div class="scan-hint">Hold steady — align barcode in frame</div>
-    </div>
-
-    <!-- Top bar -->
-    <div id="sc-topbar">
-        <button class="sc-icon-btn" onclick="closeScanner()">
-            <svg width="20" height="20" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        <span class="sc-topbar-title">Scan Barcode</span>
-        <button class="sc-icon-btn" id="torchBtn" onclick="toggleTorch()">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-        </button>
-    </div>
-
-    <!-- Bottom result strip -->
-    <div id="sc-strip">
-        <div id="sc-strip-label">LAST SCANNED</div>
-        <div id="sc-strip-value">—</div>
-    </div>
-
-</div>
-
-<!-- Toast -->
 <div id="toast">
-    <svg width="15" height="15" style="color:var(--success);flex-shrink:0" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-    <span id="toast-msg"></span>
+    <svg style="color:var(--success); width:18px; height:18px;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toast-msg">Notification</span>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════
-   CONFIG
-═══════════════════════════════════════════ */
-const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-var sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+    // --- 1. CONFIGURATION ---
+    const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+    
+    if (window.supabase) {
+        var sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else { console.error("Supabase library failed to load."); }
 
-/* ═══════════════════════════════════════════
-   SCANNER STATE
-═══════════════════════════════════════════ */
-var S = {
-    active:    false,
-    torch:     false,
-    stream:    null,
-    raf:       null,
-    reader:    null,
-    canvas:    null,
-    ctx:       null,
-    lastFire:  0,
-    debounce:  2000,
-    box:       null   /* { x,y,w,h } on-screen coords */
-};
+    var html5QrCode = null; 
+    var isScanning = false; 
+    var isFlashOn = false; 
+    var currentMode = 'barcode'; 
+    var originalStyleData = []; 
+    var lastBarcodeData = []; 
+    var currentCameraId = 0; // 0 = environment (back), 1 = user (front)
+    var cameraIds = []; 
 
-/* ═══════════════════════════════════════════
-   LAYOUT SCAN WINDOW & VIGNETTE
-═══════════════════════════════════════════ */
-function layoutScanner() {
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
+    // --- 2. LOGIC ---
 
-    /* Scan box: 80% wide, 32% tall, centred and shifted slightly upward */
-    var bw = Math.round(vw * 0.80);
-    var bh = Math.round(Math.min(vh * 0.32, bw * 0.42)); /* keep reasonable aspect */
-    var bx = Math.round((vw - bw) / 2);
-    var by = Math.round(vh * 0.27);  /* ~27% from top — upper-centre like Gamma Scan */
-
-    S.box = { x: bx, y: by, w: bw, h: bh };
-
-    var sw = document.getElementById('scan-window');
-    sw.style.left   = bx + 'px';
-    sw.style.top    = by + 'px';
-    sw.style.width  = bw + 'px';
-    sw.style.height = bh + 'px';
-
-    /* Vignette panels */
-    css('vm-t', 'top:0;left:0;right:0;height:' + by + 'px;');
-    css('vm-b', 'top:' + (by+bh) + 'px;left:0;right:0;bottom:0;');
-    css('vm-l', 'top:' + by + 'px;left:0;width:' + bx + 'px;height:' + bh + 'px;');
-    css('vm-r', 'top:' + by + 'px;left:' + (bx+bw) + 'px;right:0;height:' + bh + 'px;');
-}
-function css(id, s) {
-    document.getElementById(id).style.cssText =
-        'position:absolute;background:rgba(0,0,0,.65);z-index:2;' + s;
-}
-
-/* ═══════════════════════════════════════════
-   OPEN SCANNER
-═══════════════════════════════════════════ */
-async function openScanner() {
-    if (S.active) return;
-
-    /* Show overlay first so user sees something */
-    var screen = document.getElementById('scanner-screen');
-    screen.classList.add('open');
-    layoutScanner();
-    window.addEventListener('resize', layoutScanner);
-    setScanResult('—', false);
-
-    /* Request camera */
-    try {
-        S.stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: { ideal: 'environment' },
-                width:      { ideal: 1920, min: 640 },
-                height:     { ideal: 1080, min: 480 }
-            },
-            audio: false
-        });
-    } catch(err) {
-        screen.classList.remove('open');
-        window.removeEventListener('resize', layoutScanner);
-        showToast(
-            err.name === 'NotAllowedError' ? 'Camera permission denied — please allow in browser settings' :
-            err.name === 'NotFoundError'   ? 'No camera found on this device' :
-            'Camera error: ' + (err.message || err)
-        );
-        updateScanBtn(false);
-        return;
+    function getBalanceColor(bal) {
+        bal = parseInt(bal) || 0;
+        if (bal > 5) return 'var(--success)';
+        if (bal > 0) return '#000000';
+        return 'var(--danger)';
     }
 
-    /* Attach stream to video element */
-    var v = document.getElementById('cam-video');
-    v.srcObject = S.stream;
+    function getBalanceClass(bal) {
+        bal = parseInt(bal) || 0;
+        if (bal > 5) return 'status-badge';
+        if (bal > 0) return 'status-badge black';
+        return 'status-badge red';
+    }
 
-    /* Wait until video has real pixel dimensions */
-    await new Promise(function(resolve) {
-        var t = setInterval(function() {
-            if (v.readyState >= 2 && v.videoWidth > 0) { clearInterval(t); resolve(); }
-        }, 40);
-    });
-    v.play().catch(function(){});
+    function calculateVAT(item) {
+        var name = (item.name || "").toLowerCase(); 
+        var mrp = parseFloat(item.mrp) || 0;
+        var accessories = ["tie", "belt", "cufflink", "poket square", "pocket square", "wallet", "bag", "cap", "shocks", "accessories", "bracelet", "eyewear", "finger ring", "locket", "earring", "key ring"];
+        var isAccessory = accessories.some(function(k) { return name.includes(k); });
+        var rate = isAccessory ? 0.075 : 0.10; 
+        var vatAmount = mrp * rate; 
+        var totalAmount = mrp + vatAmount;
+        return { rate: rate * 100, amount: vatAmount.toFixed(2), total: totalAmount.toFixed(2) };
+    }
 
-    /* Initialise ZXing multi-format reader */
-    var hints = new Map();
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.UPC_E,
-        ZXing.BarcodeFormat.QR_CODE,
-        ZXing.BarcodeFormat.DATA_MATRIX,
-        ZXing.BarcodeFormat.ITF
-    ]);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    S.reader = new ZXing.BrowserMultiFormatReader(hints, 150); /* 150 ms timeBetweenScans */
-
-    /* Persistent offscreen canvas */
-    S.canvas = document.createElement('canvas');
-    S.ctx    = S.canvas.getContext('2d', { willReadFrequently: true });
-
-    S.active = true;
-    updateScanBtn(true);
-    tick();
-}
-
-/* ═══════════════════════════════════════════
-   DECODE LOOP
-═══════════════════════════════════════════ */
-function tick() {
-    if (!S.active) return;
-    S.raf = requestAnimationFrame(tick);
-
-    var v = document.getElementById('cam-video');
-    if (!v || v.readyState < 2 || !v.videoWidth || !S.box) return;
-
-    /* Map on-screen scan-box coords → camera pixel coords */
-    var scX = v.videoWidth  / window.innerWidth;
-    var scY = v.videoHeight / window.innerHeight;
-
-    var cx = S.box.x * scX,  cy = S.box.y * scY;
-    var cw = S.box.w * scX,  ch = S.box.h * scY;
-
-    /* Safety clamp */
-    cx = Math.max(0, cx); cy = Math.max(0, cy);
-    cw = Math.min(cw, v.videoWidth  - cx);
-    ch = Math.min(ch, v.videoHeight - cy);
-    if (cw < 2 || ch < 2) return;
-
-    S.canvas.width  = Math.round(cw);
-    S.canvas.height = Math.round(ch);
-    S.ctx.drawImage(v, cx, cy, cw, ch, 0, 0, S.canvas.width, S.canvas.height);
-
-    try {
-        var result = S.reader.decodeFromCanvas(S.canvas);
-        if (result) {
-            var now = Date.now(), text = result.getText();
-            if (now - S.lastFire > S.debounce) {
-                S.lastFire = now;
-                onFound(text);
-            }
+    function filterZeroStock(items) {
+        var showZero = document.getElementById('checkZeroStock').checked;
+        if (!showZero) {
+            return items.filter(function(i) { return (i.balance || 0) > 0; });
         }
-    } catch(e) { /* NotFoundException — normal when no barcode visible */ }
-}
-
-/* ═══════════════════════════════════════════
-   BARCODE FOUND
-═══════════════════════════════════════════ */
-function onFound(text) {
-    setScanResult(text, true);
-    playBeep();
-    if (navigator.vibrate) navigator.vibrate([60, 25, 60]);
-
-    cancelAnimationFrame(S.raf);
-
-    setTimeout(function() {
-        closeScanner();
-        document.getElementById('searchInput').value = text;
-        performSearch();
-    }, 700);
-}
-
-/* ═══════════════════════════════════════════
-   CLOSE SCANNER
-═══════════════════════════════════════════ */
-function closeScanner() {
-    S.active = false;
-    S.torch  = false;
-
-    cancelAnimationFrame(S.raf);
-
-    if (S.stream) {
-        S.stream.getTracks().forEach(function(t) { t.stop(); });
-        S.stream = null;
+        return items;
     }
 
-    var v = document.getElementById('cam-video');
-    if (v) v.srcObject = null;
+    function toggleSidebar() { 
+        document.getElementById('sidebar').classList.toggle('open'); 
+        document.getElementById('overlay').classList.toggle('show'); 
+    }
 
-    document.getElementById('scanner-screen').classList.remove('open');
-    document.getElementById('torchBtn').classList.remove('torch-on');
-    window.removeEventListener('resize', layoutScanner);
-    updateScanBtn(false);
-}
+    function playBeep() { 
+        const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+        const osc = ctx.createOscillator(); 
+        const gain = ctx.createGain(); 
+        osc.connect(gain); 
+        gain.connect(ctx.destination); 
+        osc.type = 'sine'; 
+        osc.frequency.setValueAtTime(1200, ctx.currentTime); 
+        gain.gain.setValueAtTime(0.1, ctx.currentTime); 
+        osc.start(); 
+        osc.stop(ctx.currentTime + 0.1); 
+    }
 
-function toggleScanner() {
-    if (S.active) closeScanner(); else openScanner();
-}
+    function switchMode(mode) {
+        currentMode = mode; 
+        document.getElementById('sidebar').classList.remove('open'); 
+        document.getElementById('overlay').classList.remove('show');
+        if (isScanning) stopScanner();
+        document.getElementById('tab-barcode').classList.toggle('active', mode === 'barcode');
+        document.getElementById('tab-style').classList.toggle('active', mode === 'style');
+        var input = document.getElementById('searchInput'); 
+        var scanBtn = document.getElementById('scanBtn');
+        var fileScanBtn = document.getElementById('fileScanBtn'); 
+        var filterSection = document.getElementById('filter-section');
+        if (mode === 'barcode') { 
+            input.placeholder = "Enter Barcode or Scan..."; 
+            scanBtn.style.display = 'flex'; 
+            fileScanBtn.style.display = 'flex';
+            filterSection.style.display = 'none'; 
+        } else { 
+            input.placeholder = "Enter Style Code..."; 
+            scanBtn.style.display = 'none'; 
+            fileScanBtn.style.display = 'none';
+            filterSection.style.display = 'none'; 
+        }
+        document.getElementById('resultsArea').innerHTML = ''; 
+        input.value = ''; 
+        input.focus();
+    }
 
-/* ═══════════════════════════════════════════
-   TORCH
-═══════════════════════════════════════════ */
-function toggleTorch() {
-    if (!S.stream) return;
-    var track = S.stream.getVideoTracks()[0];
-    if (!track) return;
-    S.torch = !S.torch;
-    track.applyConstraints({ advanced: [{ torch: S.torch }] })
-        .then(function() {
-            document.getElementById('torchBtn').classList.toggle('torch-on', S.torch);
+    function showToast(msg) { 
+        var t = document.getElementById('toast'); 
+        document.getElementById('toast-msg').innerText = msg; 
+        t.classList.add('show'); 
+        setTimeout(function() { t.classList.remove('show'); }, 4000); 
+    }
+
+    // --- SCANNER LOGIC ---
+
+    // 1. Handle File Scanning
+    document.getElementById('qr-input-file').addEventListener('change', e => {
+        if (e.target.files.length == 0) return;
+        const imageFile = e.target.files[0];
+        
+        // Use Html5Qrcode static method to scan file
+        const html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.scanFile(imageFile, true)
+        .then(decodedText => {
+            playBeep();
+            document.getElementById('searchInput').value = decodedText;
+            performSearch();
+            // Clear input so same file can be selected again if needed
+            e.target.value = '';
         })
-        .catch(function() {
-            S.torch = false;
-            showToast('Torch not supported on this device');
+        .catch(err => {
+            showToast(`Error scanning file: ${err}`);
         });
-}
-
-/* ═══════════════════════════════════════════
-   HELPERS
-═══════════════════════════════════════════ */
-function setScanResult(text, found) {
-    var el = document.getElementById('sc-strip-value');
-    el.textContent = text;
-    el.className   = found ? 'found' : '';
-}
-function updateScanBtn(on) {
-    document.getElementById('scanBtn').classList.toggle('active', on);
-    document.getElementById('scan-icon-off').style.display = on ? 'none' : 'inline-block';
-    document.getElementById('scan-icon-on').style.display  = on ? 'inline-block' : 'none';
-    document.getElementById('scan-text').textContent = on ? 'Stop' : 'Scan';
-}
-function playBeep() {
-    try {
-        var a = new (window.AudioContext || window.webkitAudioContext)();
-        var o = a.createOscillator(), g = a.createGain();
-        o.connect(g); g.connect(a.destination);
-        o.type = 'sine'; o.frequency.value = 1350;
-        g.gain.setValueAtTime(0.12, a.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.14);
-        o.start(); o.stop(a.currentTime + 0.14);
-    } catch(e) {}
-}
-function showToast(msg) {
-    var t = document.getElementById('toast');
-    document.getElementById('toast-msg').textContent = msg;
-    t.classList.add('show');
-    setTimeout(function() { t.classList.remove('show'); }, 3800);
-}
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('overlay-bg').classList.toggle('show');
-}
-
-/* ═══════════════════════════════════════════
-   APP DATA / MODE
-═══════════════════════════════════════════ */
-var currentMode = 'barcode', styleData = [], barcodeData = [];
-
-function getBalColor(bal) {
-    bal = parseInt(bal)||0;
-    return bal > 5 ? 'var(--success)' : bal > 0 ? '#000' : 'var(--danger)';
-}
-function getBalClass(bal) {
-    bal = parseInt(bal)||0;
-    return bal > 5 ? 'status-badge' : bal > 0 ? 'status-badge black' : 'status-badge red';
-}
-function calcVAT(item) {
-    var mrp = parseFloat(item.mrp)||0, name = (item.name||'').toLowerCase();
-    var acc = ['tie','belt','cufflink','poket square','pocket square','wallet','bag','cap','shocks','accessories','bracelet','eyewear','finger ring','locket','earring','key ring'];
-    var r = acc.some(function(k){return name.includes(k);}) ? 0.075 : 0.10;
-    return { rate: r*100, amount: (mrp*r).toFixed(2), total: (mrp+mrp*r).toFixed(2) };
-}
-function filterZero(items) {
-    return document.getElementById('checkZeroStock').checked
-        ? items
-        : items.filter(function(i){return (i.balance||0)>0;});
-}
-
-function switchMode(mode) {
-    currentMode = mode;
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('overlay-bg').classList.remove('show');
-    if (S.active) closeScanner();
-    document.getElementById('tab-barcode').classList.toggle('active', mode==='barcode');
-    document.getElementById('tab-style').classList.toggle('active', mode==='style');
-    var inp=document.getElementById('searchInput');
-    document.getElementById('scanBtn').style.display = mode==='barcode' ? 'flex' : 'none';
-    document.getElementById('filter-section').style.display = 'none';
-    document.getElementById('resultsArea').innerHTML = '';
-    inp.placeholder = mode==='barcode' ? 'Enter Barcode or Scan...' : 'Enter Style Code...';
-    inp.value = ''; inp.focus();
-}
-
-/* ═══════════════════════════════════════════
-   SEARCH
-═══════════════════════════════════════════ */
-async function performSearch() {
-    if (!sbClient) return showToast('Database not connected');
-    var q = document.getElementById('searchInput').value.trim();
-    if (!q) return showToast('Enter a value to search');
-    document.getElementById('resultsArea').innerHTML = '<div class="empty-state">Searching…</div>';
-    try {
-        var res = currentMode === 'barcode'
-            ? await sbClient.from('inventory').select('*').eq('barcode', q)
-            : await sbClient.from('inventory').select('*').ilike('style_code','%'+q+'%');
-        if (res.error) throw res.error;
-        if (currentMode==='barcode') barcodeData=res.data||[]; else styleData=res.data||[];
-        renderResults(res.data);
-    } catch(err) {
-        document.getElementById('resultsArea').innerHTML =
-            '<div class="empty-state" style="color:var(--danger)">Error: ' + err.message + '</div>';
-    }
-}
-function handleZeroStockToggle() {
-    if (currentMode==='style') applyFilters(); else renderResults(barcodeData);
-}
-function renderResults(items) {
-    items = filterZero(items||[]);
-    var area=document.getElementById('resultsArea'), fs=document.getElementById('filter-section');
-    if (!items.length) {
-        area.innerHTML='<div class="empty-state">No results found.</div>';
-        fs.style.display='none'; return;
-    }
-    if (currentMode==='style') {
-        populateFilters(styleData); fs.style.display='flex';
-        renderTable(items); showToast('Found '+items.length+' items');
-    } else {
-        fs.style.display='none'; area.innerHTML='';
-        items.forEach(function(item) {
-            var v=calcVAT(item), bal=item.balance||0, img=item.image_url||('https://picsum.photos/seed/'+item.id+'/200/200');
-            var c=document.createElement('div'); c.className='product-card';
-            c.innerHTML=
-              '<div class="p-header">'+
-                '<div><h3 class="p-title">'+item.name+'</h3>'+
-                '<div class="p-meta">Style: <strong>'+(item.style_code||'-')+'</strong> &bull; '+(item.color||'-')+' / '+(item.size||'-')+'</div></div>'+
-                '<div class="'+getBalClass(bal)+'">'+
-                  '<svg width="13" height="13" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>'+
-                  bal+' Units</div>'+
-              '</div>'+
-              '<div class="p-body">'+
-                '<div class="price-grid">'+
-                  '<div class="pg-item"><div class="pg-label">Retail Price</div><div class="pg-value">'+(item.mrp||'0.00')+'</div></div>'+
-                  '<div class="pg-item"><div class="pg-label">VAT ('+v.rate+'%)</div><div class="pg-value">+ '+v.amount+'</div></div>'+
-                  '<div class="pg-item pg-total" style="grid-column:span 2"><div class="pg-label">Total Payable</div><div class="pg-value">'+v.total+'</div></div>'+
-                '</div>'+
-                '<button class="btn-expand" data-style="'+(item.style_code||'')+'" onclick="toggleDetails(this)">View Variant Details</button>'+
-                '<div class="p-details">'+
-                  '<div class="detail-row"><span style="color:var(--text-secondary)">Barcode:</span><span style="font-family:monospace;font-weight:600">'+item.barcode+'</span></div>'+
-                  '<div class="detail-row"><span style="color:var(--text-secondary)">Image:</span><a href="'+img+'" target="_blank" class="link">Open Image</a></div>'+
-                  '<div class="related-table-area"></div>'+
-                '</div>'+
-              '</div>';
-            area.appendChild(c);
-        });
-        showToast('Found '+items.length+' item(s)');
-    }
-}
-async function toggleDetails(btn) {
-    var d=btn.nextElementSibling, ta=d.querySelector('.related-table-area'), sc=btn.getAttribute('data-style');
-    if (!d.style.display||d.style.display==='none') {
-        d.style.display='block'; btn.textContent='Hide Variant Details';
-        if (sc&&!d.classList.contains('loaded')) { await loadVariants(sc,ta); d.classList.add('loaded'); }
-    } else { d.style.display='none'; btn.textContent='View Variant Details'; }
-}
-async function loadVariants(sc, ct) {
-    if (!sc){ct.innerHTML='<div style="padding:8px">No style code.</div>';return;}
-    try {
-        var res=await sbClient.from('inventory').select('*').ilike('style_code','%'+sc+'%');
-        if(res.error) throw res.error;
-        var rows=filterZero(res.data);
-        if(!rows.length){ct.innerHTML='<div style="padding:8px">No variants with current filter.</div>';return;}
-        rows.sort(function(a,b){return(a.color||'').localeCompare(b.color||'');});
-        var html='<div class="variant-box"><table class="mini-table"><thead><tr><th>Barcode</th><th>Color</th><th>Size</th><th class="text-right">Bal</th></tr></thead><tbody>';
-        var cc='',ct2=0;
-        rows.forEach(function(r){
-            var bal=r.balance||0;
-            if(r.color!==cc){if(cc)html+='<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total '+cc+':</td><td class="text-right">'+ct2+'</td></tr>';cc=r.color;ct2=0;}
-            html+='<tr><td style="font-family:monospace;color:#64748b">'+r.barcode+'</td><td>'+(r.color||'-')+'</td><td>'+(r.size||'-')+'</td><td class="text-right" style="font-weight:700;color:'+getBalColor(bal)+'">'+bal+'</td></tr>';
-            ct2+=bal;
-        });
-        if(cc)html+='<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total '+cc+':</td><td class="text-right">'+ct2+'</td></tr>';
-        html+='</tbody></table></div>';
-        ct.innerHTML=html;
-    } catch(e){ct.innerHTML='<div style="color:red;padding:8px">Error loading variants</div>';}
-}
-function populateFilters(items) {
-    var cs=document.getElementById('filter-color'), ss=document.getElementById('filter-size');
-    cs.innerHTML='<option value="all">All Colors</option>';
-    ss.innerHTML='<option value="all">All Sizes</option>';
-    [...new Set(items.map(function(i){return i.color;}).filter(Boolean))].sort().forEach(function(c){cs.innerHTML+='<option value="'+c+'">'+c+'</option>';});
-    [...new Set(items.map(function(i){return i.size;}).filter(Boolean))].sort().forEach(function(s){ss.innerHTML+='<option value="'+s+'">'+s+'</option>';});
-}
-function applyFilters() {
-    var c=document.getElementById('filter-color').value, s=document.getElementById('filter-size').value;
-    renderTable(filterZero(styleData.filter(function(i){return(c==='all'||i.color===c)&&(s==='all'||i.size===s);})));
-}
-function clearFilters(){document.getElementById('filter-color').value='all';document.getElementById('filter-size').value='all';applyFilters();}
-function renderTable(items) {
-    var area=document.getElementById('resultsArea'); area.innerHTML='';
-    if(!items.length){area.innerHTML='<div class="empty-state">No matches.</div>';return;}
-    items.sort(function(a,b){return(a.color||'').localeCompare(b.color||'');});
-    var wrap=document.createElement('div'); wrap.className='table-container';
-    var html='<table class="results-table"><thead><tr><th>Product</th><th>Barcode</th><th>Color / Size</th><th>MRP</th><th class="text-right">Balance</th></tr></thead><tbody>';
-    var cc='',ct=0;
-    items.forEach(function(item){
-        var bal=item.balance||0;
-        if(item.color!==cc){if(cc)html+='<tr class="subtotal-row"><td colspan="4" class="text-right">Total '+cc+':</td><td class="text-right">'+ct+'</td></tr>';cc=item.color;ct=0;}
-        html+='<tr><td><strong>'+item.name+'</strong></td><td style="font-family:monospace;color:#64748b">'+item.barcode+'</td>'+
-              '<td><span style="background:#f1f5f9;padding:2px 6px;border-radius:3px;font-size:.78rem;margin-right:3px">'+(item.color||'-')+'</span>'+
-              '<span style="background:#f1f5f9;padding:2px 6px;border-radius:3px;font-size:.78rem">'+(item.size||'-')+'</span></td>'+
-              '<td>'+(item.mrp||'0.00')+'</td><td class="text-right" style="font-weight:700;color:'+getBalColor(bal)+'">'+bal+'</td></tr>';
-        ct+=bal;
     });
-    if(cc)html+='<tr class="subtotal-row"><td colspan="4" class="text-right">Total '+cc+':</td><td class="text-right">'+ct+'</td></tr>';
-    html+='</tbody></table>';
-    wrap.innerHTML=html; area.appendChild(wrap);
-}
 
-/* ═══════════════════════════════════════════
-   KEYBOARD & BACK BUTTON
-═══════════════════════════════════════════ */
-document.getElementById('searchInput').addEventListener('keypress', function(e){
-    if(e.key==='Enter') performSearch();
-});
-/* Android hardware back button closes scanner */
-window.addEventListener('popstate', function(){
-    if(S.active){ closeScanner(); history.pushState(null,'',location.href); }
-});
-history.pushState(null, '', location.href);
+    async function toggleFlashlight() {
+        if (!html5QrCode || !isScanning) return; 
+        isFlashOn = !isFlashOn; 
+        var btn = document.getElementById('flashBtn');
+        html5QrCode.applyVideoConstraints({ advanced: [{ torch: isFlashOn }] }).then(() => {
+            if(isFlashOn) { btn.classList.add('on'); showToast("Flashlight ON"); } else { btn.classList.remove('on'); showToast("Flashlight OFF"); }
+        }).catch(err => { 
+            console.error(err); 
+            isFlashOn = false; 
+            showToast("Flashlight not supported"); 
+        });
+    }
+
+    async function switchCamera() {
+        if (!html5QrCode || !isScanning) return;
+        
+        // Stop current
+        try {
+            await html5QrCode.stop();
+            // Clear is optional but helps reset state
+            // await html5QrCode.clear(); 
+        } catch(e) { console.log(e); }
+
+        // Toggle index
+        currentCameraId = (currentCameraId + 1) % cameraIds.length;
+        
+        // Restart with new camera
+        startScanner(cameraIds[currentCameraId]);
+    }
+
+    async function toggleScanner() { 
+        if (isScanning) stopScanner(); 
+        else startScanner(); 
+    }
+    
+    async function startScanner(cameraId = null) {
+        var wrapper = document.getElementById('reader-wrapper'); 
+        var btn = document.getElementById('scanBtn');
+        var iconOff = document.getElementById('scan-icon-off'); 
+        var iconOn = document.getElementById('scan-icon-on'); 
+        var text = document.getElementById('scan-text');
+        
+        if (isScanning) return; 
+        
+        wrapper.style.display = 'block'; 
+        btn.classList.add('active'); 
+        iconOff.style.display = 'none'; 
+        iconOn.style.display = 'block'; 
+        text.textContent = "Stop";
+
+        try {
+            // Clean up previous instance
+            if (html5QrCode) {
+                try { 
+                    if (isScanning) await html5QrCode.stop(); 
+                    await html5QrCode.clear(); 
+                } catch (e) { console.log("Cleanup ignored"); }
+                html5QrCode = null;
+            }
+
+            html5QrCode = new Html5Qrcode("reader");
+            
+            // Powerful Config: Higher FPS, wide range of formats
+            var config = {
+                fps: 20, // Increased for faster detection
+                qrbox: { width: 300, height: 200 }, 
+                aspectRatio: 1.0,
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ]
+            };
+
+            // If we don't have camera IDs yet, get them
+            if (cameraIds.length === 0) {
+                const devices = await Html5Qrcode.getCameras();
+                if (devices && devices.length) {
+                    cameraIds = devices.map(d => d.id);
+                    // Prefer back camera initially
+                    currentCameraId = 0;
+                    // Try to find environment facing
+                    const envCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
+                    if(envCam) currentCameraId = cameraIds.indexOf(envCam.id);
+                }
+            }
+
+            var cameraConfig = cameraId ? { deviceId: { exact: cameraId } } : { facingMode: "environment" };
+
+            await html5QrCode.start(
+                cameraConfig, 
+                config, 
+                onScanSuccess, 
+                (errorMessage) => { /* Silent fail for speed */ }
+            );
+            
+            isScanning = true;
+
+        } catch (err) {
+            console.error("Camera Start Error:", err);
+            var errMsg = err.message || err || "Unknown Camera Error";
+            if(errMsg.includes("NotAllowed")) showToast("Camera Permission Denied");
+            else if (errMsg.includes("NotFound")) showToast("No Camera Found");
+            else showToast("Error: " + errMsg);
+            stopScanner(); 
+        }
+    }
+
+    async function stopScanner() {
+        if (html5QrCode) {
+            try { 
+                if (isScanning) await html5QrCode.stop(); 
+                await html5QrCode.clear(); 
+            } catch (err) { /* Ignore cleanup errors */ }
+        }
+        isScanning = false; 
+        isFlashOn = false; 
+        document.getElementById('flashBtn').classList.remove('on'); 
+        document.getElementById('reader-wrapper').style.display = 'none';
+        
+        var btn = document.getElementById('scanBtn'); 
+        btn.classList.remove('active'); 
+        document.getElementById('scan-icon-off').style.display = 'block'; 
+        document.getElementById('scan-icon-on').style.display = 'none'; 
+        document.getElementById('scan-text').textContent = "Scan";
+    }
+
+    function onScanSuccess(decodedText) { 
+        playBeep(); 
+        if (navigator.vibrate) navigator.vibrate(200); 
+        stopScanner(); 
+        document.getElementById('searchInput').value = decodedText; 
+        performSearch(); 
+    }
+
+    // --- 4. SEARCH & RENDER ---
+    async function performSearch() {
+        if (!sbClient) return showToast("Database not connected");
+        var query = document.getElementById('searchInput').value.trim(); 
+        if (!query) return showToast("Enter a value");
+        
+        var resultsArea = document.getElementById('resultsArea'); 
+        resultsArea.innerHTML = '<div class="empty-state">Searching...</div>';
+        
+        var data, error;
+        try {
+            if (currentMode === 'barcode') { 
+                var res = await sbClient.from('inventory').select('*').eq('barcode', query); 
+                data = res.data; 
+                error = res.error; 
+            } else { 
+                var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${query}%`); 
+                data = res.data; 
+                error = res.error; 
+            }
+            if (error) throw error; 
+            
+            if(currentMode === 'barcode') {
+                lastBarcodeData = data || [];
+            } else {
+                originalStyleData = data || [];
+            }
+            
+            renderResults(data);
+        } catch (err) { 
+            console.error(err); 
+            resultsArea.innerHTML = `<div class="empty-state" style="color:var(--danger)">Error: ${err.message}</div>`; 
+        }
+    }
+
+    function handleZeroStockToggle() {
+        if (currentMode === 'style') {
+            applyFilters();
+        } else if (currentMode === 'barcode') {
+            renderResults(lastBarcodeData);
+        }
+    }
+
+    function renderResults(items) {
+        items = filterZeroStock(items || []);
+
+        var area = document.getElementById('resultsArea'); 
+        var filterSection = document.getElementById('filter-section');
+        
+        if (!items || items.length === 0) { 
+            area.innerHTML = '<div class="empty-state">No results found.</div>'; 
+            filterSection.style.display = 'none'; 
+            return; 
+        }
+        
+        if (currentMode === 'style') { 
+            populateFilters(originalStyleData);
+            filterSection.style.display = 'flex'; 
+            renderTable(items); 
+            showToast(`Found ${items.length}`); 
+        } else {
+            filterSection.style.display = 'none';
+            items.forEach(function(item) {
+                var imgUrl = item.image_url || `https://picsum.photos/seed/${item.id}/200/200`; 
+                var vatDetails = calculateVAT(item);
+                var bal = item.balance || 0;
+                var badgeClass = getBalanceClass(bal);
+
+                var card = document.createElement('div'); 
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <div class="p-header">
+                        <div>
+                            <h3 class="p-title">${item.name}</h3>
+                            <div class="p-meta">Style: <strong>${item.style_code || '-'}</strong> &bull; ${item.color || '-'} / ${item.size || '-'}</div>
+                        </div>
+                        <div class="${badgeClass}">
+                            <svg style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                            ${bal} Units
+                        </div>
+                    </div>
+                    <div class="p-body">
+                        <div class="price-grid">
+                            <div class="pg-item">
+                                <div class="pg-label">Retail Price</div>
+                                <div class="pg-value">${item.mrp || '0.00'}</div>
+                            </div>
+                            <div class="pg-item">
+                                <div class="pg-label">VAT (${vatDetails.rate}%)</div>
+                                <div class="pg-value">+ ${vatDetails.amount}</div>
+                            </div>
+                            <div class="pg-item pg-total" style="grid-column: span 2">
+                                <div class="pg-label">Total Payable</div>
+                                <div class="pg-value">${vatDetails.total}</div>
+                            </div>
+                        </div>
+                        <button class="btn-expand" data-style="${item.style_code || ''}" onclick="toggleDetails(this)">View Variant Details</button>
+                        <div class="p-details">
+                            <div class="detail-row"><span style="color:var(--text-secondary)">Barcode:</span> <span style="font-family:monospace; font-weight:600">${item.barcode}</span></div>
+                            <div class="detail-row"><span style="color:var(--text-secondary)">Image:</span> <a href="${imgUrl}" target="_blank" class="link">Open Image</a></div>
+                            <div class="related-table-area"></div>
+                        </div>
+                    </div>
+                `; 
+                area.appendChild(card);
+            });
+            showToast(`Found ${items.length}`);
+        }
+    }
+
+    async function toggleDetails(btn) {
+        var details = btn.nextElementSibling; 
+        var tableArea = details.querySelector('.related-table-area'); 
+        var styleCode = btn.getAttribute('data-style');
+        if (details.style.display === "none" || details.style.display === "") { 
+            details.style.display = "block"; 
+            btn.innerHTML = "Hide Variant Details"; 
+            if (styleCode && !details.classList.contains('loaded')) { 
+                await loadRelatedVariants(styleCode, tableArea); 
+                details.classList.add('loaded'); 
+            } 
+        } else { 
+            details.style.display = "none"; 
+            btn.innerHTML = "View Variant Details"; 
+        }
+    }
+
+    async function loadRelatedVariants(styleCode, container) {
+        if (!styleCode) { 
+            container.innerHTML = '<div style="padding:10px">No Style Code.</div>'; 
+            return; 
+        }
+        try {
+            var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${styleCode}%`); 
+            if (res.error) throw res.error; 
+            var variants = res.data;
+            variants = filterZeroStock(variants);
+
+            if (!variants || variants.length === 0) { 
+                container.innerHTML = '<div style="padding:10px">No variants found with current filter.</div>'; 
+                return; 
+            }
+            variants.sort(function(a, b) { return (a.color || "").localeCompare(b.color || ""); });
+            var html = `<div class="variant-box"><table class="mini-table"><thead><tr><th>Barcode</th><th>Color</th><th>Size</th><th class="text-right">Bal</th></tr></thead><tbody>`;
+            var currentColor = ''; 
+            var currentTotal = 0;
+            variants.forEach(function(v) {
+                var bal = v.balance || 0;
+                var balColor = getBalanceColor(bal);
+                if (v.color !== currentColor) { 
+                    if (currentColor !== '') { 
+                        html += `<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
+                    } 
+                    currentColor = v.color; 
+                    currentTotal = 0; 
+                }
+                html += `<tr><td style="font-family:monospace; color:#64748b">${v.barcode}</td><td>${v.color||'-'}</td><td>${v.size||'-'}</td><td class="text-right" style="color:${balColor}; font-weight:bold;">${bal}</td></tr>`; 
+                currentTotal += bal;
+            });
+            if (currentColor !== '') { 
+                html += `<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
+            }
+            html += `</tbody></table></div>`; 
+            container.innerHTML = html;
+        } catch (err) { 
+            console.error(err); 
+            container.innerHTML = '<div style="color:red; padding:10px">Error loading variants</div>'; 
+        }
+    }
+
+    function populateFilters(items) {
+        var colorSelect = document.getElementById('filter-color'); 
+        var sizeSelect = document.getElementById('filter-size');
+        colorSelect.innerHTML = '<option value="all">All Colors</option>'; 
+        sizeSelect.innerHTML = '<option value="all">All Sizes</option>';
+        var colors = [...new Set(items.map(i => i.color).filter(c => c))]; 
+        var sizes = [...new Set(items.map(i => i.size).filter(s => s))];
+        colors.sort(); 
+        sizes.sort(); 
+        colors.forEach(function(c) { colorSelect.innerHTML += `<option value="${c}">${c}</option>`; }); 
+        sizes.forEach(function(s) { sizeSelect.innerHTML += `<option value="${s}">${s}</option>`; });
+    }
+    
+    function applyFilters() {
+        var c = document.getElementById('filter-color').value; 
+        var s = document.getElementById('filter-size').value;
+        var filtered = originalStyleData.filter(function(item) { 
+            return (c === 'all' || item.color === c) && (s === 'all' || item.size === s); 
+        });
+        filtered = filterZeroStock(filtered);
+        renderTable(filtered);
+    }
+    
+    function clearFilters() { 
+        document.getElementById('filter-color').value = 'all'; 
+        document.getElementById('filter-size').value = 'all'; 
+        applyFilters(); 
+    }
+
+    function renderTable(items) {
+        var area = document.getElementById('resultsArea'); 
+        area.innerHTML = ''; 
+        if (items.length === 0) { 
+            area.innerHTML = '<div class="empty-state">No matches.</div>'; 
+            return; 
+        }
+        items.sort(function(a, b) { return (a.color || "").localeCompare(b.color || ""); });
+        var tableContainer = document.createElement('div'); 
+        tableContainer.className = 'table-container';
+        var tableHTML = `<table class="results-table"><thead><tr><th>Product</th><th>Barcode</th><th>Color / Size</th><th>MRP</th><th class="text-right">Balance</th></tr></thead><tbody>`;
+        var currentColor = ''; 
+        var currentTotal = 0;
+        items.forEach(function(item) {
+            var bal = item.balance || 0;
+            var balColor = getBalanceColor(bal);
+
+            if (item.color !== currentColor) {
+                if (currentColor !== '') { 
+                    tableHTML += `<tr class="subtotal-row"><td colspan="4" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
+                }
+                currentColor = item.color; 
+                currentTotal = 0;
+            }
+            tableHTML += `<tr><td><strong>${item.name}</strong></td><td style="font-family:monospace; color:#64748b">${item.barcode}</td><td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.8rem; margin-right:4px;">${item.color||'-'}</span><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.8rem;">${item.size||'-'}</span></td><td>${item.mrp||'0.00'}</td><td class="text-right" style="font-weight:700; color:${balColor}">${bal}</td></tr>`; 
+            currentTotal += bal;
+        });
+        if (currentColor !== '') { 
+            tableHTML += `<tr class="subtotal-row"><td colspan="4" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
+        }
+        tableHTML += `</tbody></table>`; 
+        tableContainer.innerHTML = tableHTML; 
+        area.appendChild(tableContainer);
+    }
+
+    document.getElementById('searchInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') performSearch(); });
 </script>
 </body>
 </html>
