@@ -469,7 +469,10 @@
     // State
     let employeesCache = [];
     let isManualMonthlyMode = false; // Default FALSE (Calculated Mode)
-    const todayStr = new Date().toISOString().slice(0, 10); 
+    
+    // USE LOCAL DATE STRING (YYYY-MM-DD) based on browser timezone
+    const getLocalDateStr = () => new Date().toLocaleDateString('en-CA'); 
+    const todayStr = getLocalDateStr(); 
     const currentMonthStr = todayStr.slice(0, 7); 
 
     // --- 2. UTILITY FUNCTIONS ---
@@ -544,63 +547,56 @@
     });
 
     // --- 3. CORE: GET MONTHLY TARGET (Calculated or Manual) ---
-    // This function fetches all daily targets for the month and sums them, 
-    // UNLESS manual mode is on, in which case it fetches from the table.
+    // Returns arrays of raw DB data for direct summation
     async function getMonthlyTargetData(monthStr) {
-        // 1. Fetch Daily Targets for the month
         const start = monthStr + '-01';
-        const end = monthStr + '-31';
-        const { data: dTargets } = await sbClient.from('daily_targets').select('*').gte('date', start).lte('date', end);
+        // Safe end date: first day of next month
+        const nextMonthDate = new Date(monthStr.slice(0,4), parseInt(monthStr.slice(5,7)), 1);
+        const end = nextMonthDate.toISOString().slice(0, 10); 
+
+        // 1. Fetch Daily Targets for the month
+        const { data: dTargets } = await sbClient.from('daily_targets').select('*').gte('date', start).lt('date', end);
         
-        // Map Daily Sum: { empId: totalDailyTarget }
-        const dailyMap = {};
-        if(dTargets) {
-            dTargets.forEach(t => {
-                if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
-                dailyMap[t.employee_id] += parseFloat(t.target_amount);
-            });
-        }
-
         // 2. If Manual Mode, Fetch Manual Overrides
-        let manualMap = {};
+        let mTargets = [];
         if(isManualMonthlyMode) {
-            const { data: mTargets } = await sbClient.from('monthly_targets').select('*').eq('month', monthStr);
-            if(mTargets) {
-                mTargets.forEach(t => {
-                    manualMap[t.employee_id] = parseFloat(t.target_amount);
-                });
-            }
+            const { data: mData } = await sbClient.from('monthly_targets').select('*').eq('month', monthStr);
+            if(mData) mTargets = mData;
         }
 
-        return { dailyMap, manualMap };
+        return { dTargets, mTargets };
     }
 
-    // --- 4. DASHBOARD LOGIC (REVISED) ---
+    // --- 4. DASHBOARD LOGIC (REVISED FOR ACCURATE SUMMATION) ---
     async function loadDashboard() {
-        // Get Target Maps
-        const { dailyMap, manualMap } = await getMonthlyTargetData(currentMonthStr);
+        // Get Raw Data Arrays
+        const { dTargets, mTargets } = await getMonthlyTargetData(currentMonthStr);
 
-        // 1. Calculate Totals for Cards
-        let totalDayTarget = 0;
-        let totalMonthTarget = 0;
+        // --- CALCULATE TOTALS DIRECTLY FROM DATA ---
         
-        // Fetch Daily Targets for Today specifically
+        // 1. Today's Target (Sum of daily_targets where date == today)
         const { data: todayTargets } = await sbClient.from('daily_targets').select('*').eq('date', todayStr);
-        if(todayTargets) totalDayTarget = todayTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0);
+        const totalDayTarget = todayTargets ? todayTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0) : 0;
 
-        // Calculate Month Total based on mode
-        employeesCache.forEach(emp => {
-            const finalTarget = isManualMonthlyMode && manualMap[emp.employee_id] 
-                                ? manualMap[emp.employee_id] 
-                                : (dailyMap[emp.employee_id] || 0);
-            totalMonthTarget += finalTarget;
-        });
+        // 2. Month's Target
+        let totalMonthTarget = 0;
+        if(isManualMonthlyMode) {
+            // Sum all manual targets for the month
+            if(mTargets) totalMonthTarget = mTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0);
+        } else {
+            // Sum all daily targets for the month
+            if(dTargets) totalMonthTarget = dTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0);
+        }
 
-        // Fetch Sales
+        // 3. Today's Achievement (Sum of sales where date == today)
         const { data: daySales } = await sbClient.from('sales').select('amount').eq('date', todayStr);
         const totalDaySales = daySales ? daySales.reduce((a,b) => a + parseFloat(b.amount), 0) : 0;
         
-        const { data: monthSales } = await sbClient.from('sales').select('amount').gte('date', currentMonthStr + '-01').lte('date', currentMonthStr + '-31');
+        // 4. Month's Achievement (Sum of sales where date is in month)
+        const nextMonthDate = new Date(currentMonthStr.slice(0,4), parseInt(currentMonthStr.slice(5,7)), 1);
+        const monthEnd = nextMonthDate.toISOString().slice(0, 10);
+
+        const { data: monthSales } = await sbClient.from('sales').select('amount').gte('date', currentMonthStr + '-01').lt('date', monthEnd);
         const totalMonthSales = monthSales ? monthSales.reduce((a,b) => a + parseFloat(b.amount), 0) : 0;
 
         // Update Cards
@@ -615,17 +611,32 @@
         // Ranking Table
         const tbody = document.querySelector('#ranking-table tbody');
         tbody.innerHTML = '';
-
-        // Get all sales for month for ranking
-        const { data: allMonthSales } = await sbClient.from('sales').select('*').gte('date', currentMonthStr+'-01').lte('date', currentMonthStr+'-31');
+        
+        // Fetch all sales for month for ranking
+        const { data: allMonthSales } = await sbClient.from('sales').select('*').gte('date', currentMonthStr+'-01').lt('date', monthEnd);
         
         let rankings = [];
 
+        // Map Targets for quick lookup
+        const dailyMap = {};
+        if(dTargets) dTargets.forEach(t => {
+            if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
+            dailyMap[t.employee_id] += parseFloat(t.target_amount);
+        });
+        
+        const manualMap = {};
+        if(mTargets) mTargets.forEach(t => {
+            manualMap[t.employee_id] = parseFloat(t.target_amount);
+        });
+
         employeesCache.forEach(emp => {
-            // Determine Target
-            const finalTarget = isManualMonthlyMode && manualMap[emp.employee_id] 
-                                ? manualMap[emp.employee_id] 
-                                : (dailyMap[emp.employee_id] || 0);
+            // Determine Target (Prioritize Manual if ON)
+            let finalTarget = 0;
+            if(isManualMonthlyMode && manualMap[emp.employee_id]) {
+                finalTarget = manualMap[emp.employee_id];
+            } else if(dailyMap[emp.employee_id]) {
+                finalTarget = dailyMap[emp.employee_id];
+            }
 
             // Determine Sales
             const mSales = allMonthSales?.filter(s => s.employee_id === emp.employee_id).reduce((sum, s) => sum + parseFloat(s.amount), 0) || 0;
@@ -670,8 +681,6 @@
     }
 
     // --- 5. OTHER MODULES (Standard Logic) ---
-    // Keeping Employee, Sales, Daily Target logic largely same, but ensuring they load properly
-    
     async function loadEmployees() {
         const { data, error } = await sbClient.from('employees').select('*').order('id', { ascending: true });
         if (error) return console.error(error);
@@ -740,18 +749,31 @@
         document.getElementById('total-day-target-display').innerText = formatNumber(tt);
     }
 
-    // MONTHLY TARGET LIST (Uses Calculated Logic)
+    // MONTHLY TARGET LIST
     async function loadMonthlyTargets() {
         const month = document.getElementById('summary-month-monthly').value || currentMonthStr;
-        const { dailyMap, manualMap } = await getMonthlyTargetData(month);
+        const { dTargets, mTargets } = await getMonthlyTargetData(month);
         
         const tbody = document.querySelector('#monthly-table tbody'); tbody.innerHTML = '';
         
+        // Create maps
+        const dailyMap = {};
+        if(dTargets) dTargets.forEach(t => {
+            if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
+            dailyMap[t.employee_id] += parseFloat(t.target_amount);
+        });
+
+        const manualMap = {};
+        if(mTargets) mTargets.forEach(t => manualMap[t.employee_id] = parseFloat(t.target_amount));
+
         for(const emp of employeesCache) {
             const finalTarget = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0);
             
             // Get Achievement
-            const { data: sData } = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lte('date', month+'-31');
+            const nextMonthDate = new Date(month.slice(0,4), parseInt(month.slice(5,7)), 1);
+            const monthEnd = nextMonthDate.toISOString().slice(0, 10);
+
+            const { data: sData } = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd);
             const ach = sData ? sData.reduce((sum,x) => sum + parseFloat(x.amount), 0) : 0;
             const pct = finalTarget > 0 ? ((ach/finalTarget)*100).toFixed(1) : 0;
 
@@ -759,7 +781,6 @@
         }
     }
     
-    // Manual Monthly Target Input
     async function handleMonthlyTarget(e) {
         e.preventDefault();
         const m = document.getElementById('month-selector').value, eid = document.getElementById('month-emp-id').value, t = parseFloat(document.getElementById('month-target').value);
@@ -771,14 +792,26 @@
     async function renderSummaryReport() {
         const month = document.getElementById('summary-month').value || currentMonthStr;
         const search = document.getElementById('summary-search').value.toLowerCase();
-        const { dailyMap, manualMap } = await getMonthlyTargetData(month);
+        const { dTargets, mTargets } = await getMonthlyTargetData(month);
         
+        const dailyMap = {};
+        if(dTargets) dTargets.forEach(t => {
+            if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
+            dailyMap[t.employee_id] += parseFloat(t.target_amount);
+        });
+        
+        const manualMap = {};
+        if(mTargets) mTargets.forEach(t => manualMap[t.employee_id] = parseFloat(t.target_amount));
+
         let emps = employeesCache; if(search) emps = emps.filter(e => e.name.toLowerCase().includes(search));
         const tbody = document.querySelector('#summary-table tbody'); tbody.innerHTML = '';
 
+        const nextMonthDate = new Date(month.slice(0,4), parseInt(month.slice(5,7)), 1);
+        const monthEnd = nextMonthDate.toISOString().slice(0, 10);
+
         for(const emp of emps) {
             const target = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0);
-            const { data: sData } = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lte('date', month+'-31');
+            const { data: sData } = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd);
             const ach = sData ? sData.reduce((sum,x) => sum + parseFloat(x.amount), 0) : 0;
             const pct = target > 0 ? ((ach/target)*100).toFixed(1) : 0;
             tbody.innerHTML += `<tr><td></td><td>${emp.name}</td><td>${emp.phone}</td><td>${emp.employee_id}</td><td>${emp.designation}</td><td class="text-right">${formatNumber(target)}</td><td class="text-right font-bold">${formatNumber(ach)}</td><td class="text-right">${pct}%</td></tr>`;
@@ -789,20 +822,25 @@
         const empId = document.getElementById('det-emp').value, fromDate = document.getElementById('det-from').value, toDate = document.getElementById('det-to').value;
         const tbody = document.querySelector('#detailed-table tbody'); tbody.innerHTML = '';
         
-        // Fetch Monthly Data (for MTD columns)
         const startM = fromDate.slice(0, 7); 
-        const { dailyMap, manualMap } = await getMonthlyTargetData(startM); // simplified: uses start month
+        const { dTargets, mTargets } = await getMonthlyTargetData(startM); 
 
         let dQuery = sbClient.from('daily_targets').select('*');
         if(fromDate) dQuery = dQuery.gte('date', fromDate); if(toDate) dQuery = dQuery.lte('date', toDate);
-        const { data: dTargets } = await dQuery;
+        const { data: dTargetsList } = await dQuery;
 
         let sQuery = sbClient.from('sales').select('*');
         if(fromDate) sQuery = sQuery.gte('date', fromDate); if(toDate) sQuery = sQuery.lte('date', toDate);
         const { data: allSales } = await sQuery;
 
+        const dailyMap = {};
+        if(dTargets) dTargets.forEach(t => {
+            if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
+            dailyMap[t.employee_id] += parseFloat(t.target_amount);
+        });
+
         let rows = [];
-        dTargets.forEach(t => {
+        dTargetsList.forEach(t => {
             if(empId && t.employee_id !== empId) return;
             const emp = employeesCache.find(e => e.employee_id === t.employee_id);
             const empName = emp ? emp.name : t.employee_id;
@@ -810,15 +848,8 @@
             const dPct = t.target_amount > 0 ? ((dSales/t.target_amount)*100).toFixed(1) : 0;
             const diff = dSales - t.target_amount;
             
-            // MTD Calculation (Simplified to sum of daily targets for that month up to that date)
             const mStr = t.date.slice(0, 7);
-            // Re-calc specific MTD for this row's date
-            const mTarget = (dailyMap[t.employee_id] || 0); // Using full month sum of daily targets
-            if(isManualMonthlyMode && manualMap[t.employee_id]) {
-                // If manual, use manual
-                // But detailed report usually needs cumulative. 
-                // For simplicity in this request, we use the Total Month Target (Cumulative)
-            }
+            const mTarget = (dailyMap[t.employee_id] || 0); 
             
             const mtdSales = allSales.filter(s => s.employee_id === t.employee_id && s.date <= t.date && s.date.startsWith(mStr)).reduce((sum, s) => sum + parseFloat(s.amount), 0);
             const mtdPct = mTarget > 0 ? ((mtdSales/mTarget)*100).toFixed(1) : 0;
@@ -832,7 +863,6 @@
         });
     }
 
-    // Helpers
     function populateMonthSelector(elId) { const el = document.getElementById(elId); if(el) el.value = currentMonthStr; }
     function populateEmployeeDropdowns() {
         const ids = ['month-emp-select', 'day-emp-select', 'sale-emp-select', 'det-emp', 'sales-list-emp'];
