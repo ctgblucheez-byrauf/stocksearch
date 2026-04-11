@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blucheez ERP | Performance & Sales</title>
+    <!-- Supabase JS Library -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --bg: #f3f4f6;
+            --white: #ffffff;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gold: #fbbf24;
+            --silver: #9ca3af;
+            --bronze: #b45309;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar */
+        aside { width: 260px; background: var(--white); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; }
+        .brand { padding: 20px; font-size: 1.5rem; font-weight: bold; color: var(--primary); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+        .nav-menu { flex: 1; padding: 20px 0; overflow-y: auto; }
+        .nav-item { padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--text-light); transition: 0.2s; font-weight: 500; }
+        .nav-item:hover, .nav-item.active { background-color: #eff6ff; color: var(--primary); border-right: 3px solid var(--primary); }
+        
+        /* Main Content */
+        main { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        h1 { font-size: 1.5rem; font-weight: 600; }
+        
+        /* Sections */
+        section { display: none; animation: fadeIn 0.3s ease; }
+        section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards & Dashboard */
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-value { font-size: 1.8rem; font-weight: bold; margin-top: 5px; color: var(--text); }
+        
+        /* Forms */
+        .form-container { background: var(--white); padding: 25px; border-radius: 8px; margin-bottom: 30px; border: 1px solid var(--border); }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-light); font-weight: 500; }
+        input, select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; outline: none; transition: border 0.2s; }
+        input:focus, select:focus { border-color: var(--primary); ring: 2px solid #bfdbfe; }
+        
+        button { background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        button:hover { background: var(--secondary); }
+        button.secondary { background: var(--white); color: var(--text); border: 1px solid var(--border); }
+        button.secondary:hover { background: #f9fafb; }
+        button.danger { background: var(--danger); }
+
+        /* Tables */
+        .table-container { background: var(--white); border-radius: 8px; border: 1px solid var(--border); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        th { background: #f9fafb; font-weight: 600; color: var(--text-light); }
+        tr:hover { background: #f9fafb; }
+        
+        /* Status Badges */
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+        .bg-good { background: #d1fae5; color: #065f46; }
+        .bg-avg { background: #fef3c7; color: #92400e; }
+        .bg-low { background: #fee2e2; color: #991b1b; }
+
+        /* Ranking Styles */
+        .rank-1 { border-left: 4px solid var(--gold); background: #fffbeb; }
+        .rank-2 { border-left: 4px solid var(--silver); background: #f3f4f6; }
+        .rank-3 { border-left: 4px solid var(--bronze); background: #fff7ed; }
+
+        /* Toast Notification */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 16px; position: fixed; z-index: 100; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 17px; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            aside { position: fixed; height: 100%; left: -260px; transition: 0.3s; }
+            aside.open { left: 0; }
+            .mobile-toggle { display: block; margin-right: 15px; cursor: pointer; }
+        }
+        @media (min-width: 769px) {
+            .mobile-toggle { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside id="sidebar">
+    <div class="brand">
+        <span>👕</span> Blucheez ERP
+    </div>
+    <nav class="nav-menu">
+        <div class="nav-item active" onclick="showSection('dashboard', this)">📊 Dashboard</div>
+        <div class="nav-item" onclick="showSection('employees', this)">👨‍💼 Employees</div>
+        <div class="nav-item" onclick="showSection('monthly', this)">📅 Monthly Target</div>
+        <div class="nav-item" onclick="showSection('daily', this)">📆 Daily Target</div>
+        <div class="nav-item" onclick="showSection('sales', this)">💰 Sales Entry</div>
+        <div class="nav-item" onclick="showSection('summary', this)">🧾 Summary Report</div>
+        <div class="nav-item" onclick="showSection('detailed', this)">📈 Detailed Report</div>
+    </nav>
+</aside>
+
+<!-- Main Content -->
+<main>
+    <header>
+        <div style="display:flex; align-items:center">
+            <span class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</span>
+            <h1 id="page-title">Dashboard</h1>
+        </div>
+        <div id="current-date" style="color:var(--text-light); font-weight:500;"></div>
+    </header>
+
+    <!-- 1. DASHBOARD -->
+    <section id="dashboard" class="active">
+        <div class="card-grid">
+            <div class="card">
+                <h3>Total Employees</h3>
+                <div class="stat-value" id="dash-total-emp">0</div>
+            </div>
+            <div class="card">
+                <h3>Today's Sales</h3>
+                <div class="stat-value" id="dash-today-sales">$0</div>
+            </div>
+            <div class="card">
+                <h3>Month's Sales</h3>
+                <div class="stat-value" id="dash-month-sales">$0</div>
+            </div>
+        </div>
+
+        <h3 style="margin-bottom:15px;">🏆 Live Performance Ranking</h3>
+        <div class="table-container">
+            <table id="ranking-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Employee Name</th>
+                        <th>Designation</th>
+                        <th>Target</th>
+                        <th>Achievement</th>
+                        <th>Achievement %</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody><!-- JS Populated --></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 2. ADD EMPLOYEE -->
+    <section id="employees">
+        <div class="form-container">
+            <h3>Add New Employee</h3>
+            <form id="add-emp-form" class="form-grid" onsubmit="handleAddEmployee(event)">
+                <div class="form-group"><label>Employee Name</label><input type="text" id="emp-name" required></div>
+                <div class="form-group"><label>Phone Number</label><input type="tel" id="emp-phone" required></div>
+                <div class="form-group"><label>ID No (Unique)</label><input type="text" id="emp-id-no" required></div>
+                <div class="form-group"><label>Designation</label><input type="text" id="emp-designation" required></div>
+                <div class="form-group"><label>Joining Date</label><input type="date" id="emp-join-date" required></div>
+                <div class="form-group" style="display:flex; align-items:flex-end"><button type="submit">Save Employee</button></div>
+            </form>
+        </div>
+
+        <h3>Employee List</h3>
+        <div class="table-container">
+            <table id="employee-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>ID No</th>
+                        <th>Designation</th>
+                        <th>Joining Date</th>
+                        <th>Days Worked</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 3. MONTHLY TARGET -->
+    <section id="monthly">
+        <div class="form-container">
+            <h3>Set Monthly Target</h3>
+            <form id="monthly-form" class="form-grid" onsubmit="handleMonthlyTarget(event)">
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="month-emp-select" onchange="autoFillEmpData('month-emp-select', 'month-emp-id', 'month-emp-desig')" required>
+                        <option value="">Select Employee</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>ID No</label><input type="text" id="month-emp-id" readonly></div>
+                <div class="form-group"><label>Designation</label><input type="text" id="month-emp-desig" readonly></div>
+                <div class="form-group">
+                    <label>Month</label>
+                    <input type="month" id="month-selector" required>
+                </div>
+                <div class="form-group"><label>Target Amount ($)</label><input type="number" id="month-target" min="0" required></div>
+                <div class="form-group" style="display:flex; align-items:flex-end"><button type="submit">Set Target</button></div>
+            </form>
+        </div>
+        <div class="table-container">
+            <table id="monthly-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>ID</th>
+                        <th>Month</th>
+                        <th>Target</th>
+                        <th>Achievement</th>
+                        <th>Achievement %</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 4. DAILY TARGET -->
+    <section id="daily">
+        <div class="form-container">
+            <h3>Set Daily Target</h3>
+            <form id="daily-form" class="form-grid" onsubmit="handleDailyTarget(event)">
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="day-emp-select" onchange="autoFillEmpData('day-emp-select', 'day-emp-id', 'day-emp-desig')" required>
+                        <option value="">Select Employee</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>ID No</label><input type="text" id="day-emp-id" readonly></div>
+                <div class="form-group"><label>Designation</label><input type="text" id="day-emp-desig" readonly></div>
+                <div class="form-group"><label>Date</label><input type="date" id="day-date" onchange="updateMonthFromDay()" required></div>
+                <div class="form-group"><label>Month</label><input type="text" id="day-month" readonly></div>
+                <div class="form-group"><label>Daily Target ($)</label><input type="number" id="day-target" min="0" required></div>
+                <div class="form-group" style="display:flex; align-items:flex-end"><button type="submit">Set Target</button></div>
+            </form>
+        </div>
+    </section>
+
+    <!-- 5. SALES ENTRY -->
+    <section id="sales">
+        <div class="form-container" style="border-left: 5px solid var(--primary);">
+            <h3>💰 Live Sales / Billing</h3>
+            <form id="sales-form" class="form-grid" onsubmit="handleSaleSubmit(event)">
+                <div class="form-group"><label>Date</label><input type="date" id="sale-date" required></div>
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="sale-emp-select" onchange="autoFillEmpData('sale-emp-select', 'sale-emp-id', null)" required>
+                        <option value="">Select Employee</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>ID No (Auto)</label><input type="text" id="sale-emp-id" readonly></div>
+                <div class="form-group"><label>Customer Name</label><input type="text" id="sale-cust-name" required></div>
+                <div class="form-group"><label>Customer Phone</label><input type="tel" id="sale-cust-phone"></div>
+                <div class="form-group"><label>Invoice No (Auto)</label><input type="text" id="sale-invoice" readonly style="background:#f3f4f6; font-weight:bold;"></div>
+                <div class="form-group"><label>Amount ($)</label><input type="number" id="sale-amount" min="0" step="0.01" required></div>
+                <div class="form-group" style="display:flex; align-items:flex-end"><button type="submit" class="success">Post Sale</button></div>
+            </form>
+        </div>
+    </section>
+
+    <!-- 6. SUMMARY REPORT -->
+    <section id="summary">
+        <div style="margin-bottom:20px; display:flex; gap:10px; align-items:center;">
+            <input type="text" id="summary-search" placeholder="Search employee..." onkeyup="renderSummaryReport()">
+            <select id="summary-month" onchange="renderSummaryReport()" style="width:200px;"></select>
+        </div>
+        <div class="table-container">
+            <table id="summary-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Staff Name</th>
+                        <th>Phone</th>
+                        <th>ID</th>
+                        <th>Designation</th>
+                        <th>Target</th>
+                        <th>Achievement</th>
+                        <th>Achievement %</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 7. DETAILED REPORT -->
+    <section id="detailed">
+        <div class="card" style="margin-bottom:20px;">
+            <div class="form-grid">
+                <div class="form-group"><label>Employee</label><select id="det-emp"><option value="">All Employees</option></select></div>
+                <div class="form-group"><label>From Date</label><input type="date" id="det-from"></div>
+                <div class="form-group"><label>To Date</label><input type="date" id="det-to"></div>
+                <div class="form-group" style="display:flex; align-items:flex-end"><button onclick="renderDetailedReport()">Generate Report</button></div>
+            </div>
+        </div>
+        <div class="table-container">
+            <table id="detailed-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Target</th>
+                        <th>Sales</th>
+                        <th>Achievement %</th>
+                        <th>Short / Excess</th>
+                        <th>Employee</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<div id="toast">Message</div>
+
+<script>
+    // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+    const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+    
+    let sbClient;
+    if (window.supabase) {
+        sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        alert("Supabase library failed to load. Check internet connection.");
+    }
+
+    // State
+    let employeesCache = [];
+    const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+    // --- 2. UTILITY FUNCTIONS ---
+    function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg;
+        t.className = "show";
+        setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+    }
+
+    function showSection(sectionId, navEl) {
+        document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+        document.getElementById(sectionId).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        navEl.classList.add('active');
+        
+        document.getElementById('page-title').innerText = navEl.innerText;
+
+        // Refresh data based on section
+        if(sectionId === 'dashboard') loadDashboard();
+        if(sectionId === 'employees') loadEmployees();
+        if(sectionId === 'monthly') { populateMonthSelector(); loadMonthlyTargets(); }
+        if(sectionId === 'daily') { document.getElementById('day-date').valueAsDate = new Date(); updateMonthFromDay(); }
+        if(sectionId === 'sales') { initSalesForm(); }
+        if(sectionId === 'summary') { populateMonthSelector('summary-month'); renderSummaryReport(); }
+        if(sectionId === 'detailed') populateEmployeeDropdowns();
+        
+        // Close sidebar on mobile
+        document.getElementById('sidebar').classList.remove('open');
+    }
+
+    function formatMoney(amount) {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+    }
+
+    function calculateDaysWorked(joinDate) {
+        const oneDay = 24 * 60 * 60 * 1000;
+        const today = new Date();
+        const join = new Date(joinDate);
+        return Math.round(Math.abs((today - join) / oneDay));
+    }
+
+    function getDayName(dateStr) {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return days[new Date(dateStr).getDay()];
+    }
+
+    // --- 3. INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('current-date').innerText = new Date().toDateString();
+        await loadEmployees(); // Cache employees
+        loadDashboard(); // Load initial view
+    });
+
+    // --- 4. EMPLOYEE MODULE ---
+    async function loadEmployees() {
+        const { data, error } = await sbClient.from('employees').select('*').order('id', { ascending: true });
+        if (error) return console.error(error);
+        
+        employeesCache = data;
+        const tbody = document.querySelector('#employee-table tbody');
+        tbody.innerHTML = '';
+        
+        data.forEach(emp => {
+            const row = `
+                <tr>
+                    <td>${emp.name}</td>
+                    <td>${emp.phone}</td>
+                    <td>${emp.employee_id}</td>
+                    <td>${emp.designation}</td>
+                    <td>${emp.joining_date}</td>
+                    <td><b>${calculateDaysWorked(emp.joining_date)}</b></td>
+                    <td><button class="danger" style="padding:5px 10px; font-size:0.8rem" onclick="deleteEmployee(${emp.id})">Delete</button></td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+        
+        populateEmployeeDropdowns();
+    }
+
+    async function handleAddEmployee(e) {
+        e.preventDefault();
+        const newEmp = {
+            name: document.getElementById('emp-name').value,
+            phone: document.getElementById('emp-phone').value,
+            employee_id: document.getElementById('emp-id-no').value,
+            designation: document.getElementById('emp-designation').value,
+            joining_date: document.getElementById('emp-join-date').value
+        };
+
+        const { error } = await sbClient.from('employees').insert([newEmp]);
+        if (error) {
+            showToast("Error adding employee. ID might exist.");
+        } else {
+            showToast("Employee Added Successfully!");
+            e.target.reset();
+            loadEmployees();
+        }
+    }
+
+    async function deleteEmployee(id) {
+        if(!confirm("Are you sure?")) return;
+        const { error } = await sbClient.from('employees').delete().eq('id', id);
+        if(!error) {
+            showToast("Employee deleted");
+            loadEmployees();
+        }
+    }
+
+    // --- 5. SALES MODULE ---
+    async function initSalesForm() {
+        document.getElementById('sale-date').valueAsDate = new Date();
+        populateEmployeeDropdowns();
+        
+        // Generate next invoice
+        const { data } = await sbClient.from('sales').select('invoice_no').order('id', { ascending: false }).limit(1);
+        let nextNum = 1;
+        if (data && data.length > 0) {
+            const lastInv = data[0].invoice_no; // BLU-0001
+            const numPart = parseInt(lastInv.split('-')[1]);
+            if (!isNaN(numPart)) nextNum = numPart + 1;
+        }
+        document.getElementById('sale-invoice').value = `BLU-${String(nextNum).padStart(4, '0')}`;
+    }
+
+    async function handleSaleSubmit(e) {
+        e.preventDefault();
+        const saleData = {
+            invoice_no: document.getElementById('sale-invoice').value,
+            date: document.getElementById('sale-date').value,
+            employee_id: document.getElementById('sale-emp-id').value,
+            customer_name: document.getElementById('sale-cust-name').value,
+            phone: document.getElementById('sale-cust-phone').value,
+            amount: parseFloat(document.getElementById('sale-amount').value)
+        };
+
+        const { error } = await sbClient.from('sales').insert([saleData]);
+        if (error) {
+            showToast("Error saving sale: " + error.message);
+        } else {
+            showToast("Sale Posted Successfully!");
+            e.target.reset();
+            initSalesForm(); // Reset and new invoice
+        }
+    }
+
+    // --- 6. MONTHLY TARGETS MODULE ---
+    function populateMonthSelector(elementId = 'month-selector') {
+        const el = document.getElementById(elementId);
+        el.value = currentMonthStr;
+    }
+
+    async function loadMonthlyTargets() {
+        const month = document.getElementById('month-selector').value;
+        if(!month) return;
+
+        // We need to join employees with monthly_targets manually or fetch both
+        const { data: targets, error } = await sbClient.from('monthly_targets').select('*').eq('month', month);
+        if (error) return console.error(error);
+
+        const tbody = document.querySelector('#monthly-table tbody');
+        tbody.innerHTML = '';
+
+        for (const t of targets) {
+            const emp = employeesCache.find(e => e.employee_id === t.employee_id);
+            const empName = emp ? emp.name : 'Unknown';
+            
+            // Calc actual achievement from sales
+            const { data: salesData } = await sbClient.from('sales').select('amount').eq('employee_id', t.employee_id).gte('date', month + '-01').lte('date', month + '-31');
+            const achievement = salesData ? salesData.reduce((sum, s) => sum + parseFloat(s.amount), 0) : 0;
+            const percent = t.target_amount > 0 ? ((achievement / t.target_amount) * 100).toFixed(1) : 0;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${empName}</td>
+                    <td>${t.employee_id}</td>
+                    <td>${t.month}</td>
+                    <td>${formatMoney(t.target_amount)}</td>
+                    <td>${formatMoney(achievement)}</td>
+                    <td style="font-weight:bold; color:${percent>=100?'var(--success)':'var(--danger)'}">${percent}%</td>
+                </tr>
+            `;
+        }
+    }
+
+    async function handleMonthlyTarget(e) {
+        e.preventDefault();
+        const month = document.getElementById('month-selector').value;
+        const empId = document.getElementById('month-emp-id').value;
+        const target = parseFloat(document.getElementById('month-target').value);
+
+        // Upsert logic
+        const { error } = await sbClient.from('monthly_targets').upsert({ 
+            employee_id: empId, 
+            month: month, 
+            target_amount: target 
+        }, { onConflict: 'employee_id,month' });
+
+        if (error) showToast("Error saving target.");
+        else {
+            showToast("Monthly Target Saved!");
+            loadMonthlyTargets();
+        }
+    }
+
+    // --- 7. DAILY TARGETS MODULE ---
+    function updateMonthFromDay() {
+        const dateVal = document.getElementById('day-date').value;
+        if(dateVal) document.getElementById('day-month').value = dateVal.slice(0, 7);
+    }
+
+    async function handleDailyTarget(e) {
+        e.preventDefault();
+        const targetData = {
+            employee_id: document.getElementById('day-emp-id').value,
+            date: document.getElementById('day-date').value,
+            month: document.getElementById('day-month').value,
+            target_amount: parseFloat(document.getElementById('day-target').value)
+        };
+        
+        const { error } = await sbClient.from('daily_targets').upsert(targetData, { onConflict: 'employee_id,date' });
+        if (error) showToast("Error saving daily target.");
+        else {
+            showToast("Daily Target Saved!");
+            e.target.reset();
+            document.getElementById('day-date').valueAsDate = new Date();
+            updateMonthFromDay();
+        }
+    }
+
+    // --- 8. DASHBOARD LOGIC ---
+    async function loadDashboard() {
+        // Top Cards
+        const { count: empCount } = await sbClient.from('employees').select('*', { count: 'exact', head: true });
+        const today = new Date().toISOString().slice(0, 10);
+        
+        const { data: todaySales } = await sbClient.from('sales').select('amount').eq('date', today);
+        const totalToday = todaySales ? todaySales.reduce((a,b) => a + parseFloat(b.amount), 0) : 0;
+
+        const { data: monthSales } = await sbClient.from('sales').select('amount').gte('date', currentMonthStr + '-01').lte('date', currentMonthStr + '-31');
+        const totalMonth = monthSales ? monthSales.reduce((a,b) => a + parseFloat(b.amount), 0) : 0;
+
+        document.getElementById('dash-total-emp').innerText = empCount || 0;
+        document.getElementById('dash-today-sales').innerText = formatMoney(totalToday);
+        document.getElementById('dash-month-sales').innerText = formatMoney(totalMonth);
+
+        // Ranking Table
+        const tbody = document.querySelector('#ranking-table tbody');
+        tbody.innerHTML = '';
+
+        // Get all monthly targets for current month
+        const { data: targets } = await sbClient.from('monthly_targets').select('*').eq('month', currentMonthStr);
+        let rankings = [];
+
+        for(const t of targets) {
+            const emp = employeesCache.find(e => e.employee_id === t.employee_id);
+            if(!emp) continue;
+
+            // Calc Achievement
+            const { data: sData } = await sbClient.from('sales').select('amount').eq('employee_id', t.employee_id).gte('date', currentMonthStr+'-01').lte('date', currentMonthStr+'-31');
+            const achieve = sData ? sData.reduce((sum, x) => sum + parseFloat(x.amount), 0) : 0;
+            const pct = t.target_amount > 0 ? (achieve / t.target_amount) * 100 : 0;
+
+            rankings.push({
+                name: emp.name,
+                desig: emp.designation,
+                target: t.target_amount,
+                achieve: achieve,
+                pct: pct
+            });
+        }
+
+        // Sort by %
+        rankings.sort((a,b) => b.pct - a.pct);
+
+        rankings.forEach((r, index) => {
+            let rankClass = '';
+            let rankIcon = index + 1;
+            if(index === 0) { rankClass = 'rank-1'; rankIcon = '🥇'; }
+            if(index === 1) { rankClass = 'rank-2'; rankIcon = '🥈'; }
+            if(index === 2) { rankClass = 'rank-3'; rankIcon = '🥉'; }
+
+            let status = '<span class="badge bg-low">Low</span>';
+            if(r.pct >= 100) status = '<span class="badge bg-good">Good</span>';
+            else if(r.pct >= 70) status = '<span class="badge bg-avg">Avg</span>';
+
+            tbody.innerHTML += `
+                <tr class="${rankClass}">
+                    <td style="font-size:1.2rem">${rankIcon}</td>
+                    <td><b>${r.name}</b></td>
+                    <td>${r.desig}</td>
+                    <td>${formatMoney(r.target)}</td>
+                    <td>${formatMoney(r.achieve)}</td>
+                    <td><b>${r.pct.toFixed(1)}%</b></td>
+                    <td>${status}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // --- 9. REPORTS ---
+    async function renderSummaryReport() {
+        const month = document.getElementById('summary-month').value || currentMonthStr;
+        const search = document.getElementById('summary-search').value.toLowerCase();
+        const tbody = document.querySelector('#summary-table tbody');
+        tbody.innerHTML = '';
+
+        // Fetch all employees first
+        let emps = employeesCache;
+        if(search) emps = emps.filter(e => e.name.toLowerCase().includes(search));
+
+        for(const emp of emps) {
+            // Get Target
+            const { data: tData } = await sbClient.from('monthly_targets').select('*').eq('employee_id', emp.employee_id).eq('month', month).single();
+            const target = tData ? tData.target_amount : 0;
+
+            // Get Sales
+            const { data: sData } = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lte('date', month+'-31');
+            const achieve = sData ? sData.reduce((sum,x) => sum + parseFloat(x.amount), 0) : 0;
+            const pct = target > 0 ? ((achieve/target)*100).toFixed(1) : 0;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td></td>
+                    <td>${emp.name}</td>
+                    <td>${emp.phone}</td>
+                    <td>${emp.employee_id}</td>
+                    <td>${emp.designation}</td>
+                    <td>${formatMoney(target)}</td>
+                    <td>${formatMoney(achieve)}</td>
+                    <td>${pct}%</td>
+                </tr>
+            `;
+        }
+    }
+
+    async function renderDetailedReport() {
+        const empId = document.getElementById('det-emp').value;
+        const fromDate = document.getElementById('det-from').value;
+        const toDate = document.getElementById('det-to').value;
+        const tbody = document.querySelector('#detailed-table tbody');
+        tbody.innerHTML = '';
+
+        let query = sbClient.from('daily_targets').select('*');
+        if(fromDate) query = query.gte('date', fromDate);
+        if(toDate) query = query.lte('date', toDate);
+        // Note: Filtering by employee in SQL query is cleaner but we'll do it in JS loop for simplicity with joins
+
+        const { data: dTargets, error } = await query;
+        if(error) return console.error(error);
+
+        // Fetch all sales to map them (Optimization: In prod, use a DB view)
+        // For this demo, we will fetch sales filtered by date range
+        let sQuery = sbClient.from('sales').select('*');
+        if(fromDate) sQuery = sQuery.gte('date', fromDate);
+        if(toDate) sQuery = sQuery.lte('date', toDate);
+        const { data: allSales } = await sQuery;
+
+        for(const t of dTargets) {
+            if(empId && t.employee_id !== empId) continue;
+
+            const emp = employeesCache.find(e => e.employee_id === t.employee_id);
+            const empName = emp ? emp.name : 'Unknown';
+            
+            // Calculate sales for this employee on this day
+            const daySales = allSales
+                .filter(s => s.employee_id === t.employee_id && s.date === t.date)
+                .reduce((sum, s) => sum + parseFloat(s.amount), 0);
+            
+            const pct = t.target_amount > 0 ? ((daySales / t.target_amount) * 100).toFixed(1) : 0;
+            const diff = daySales - t.target_amount;
+            const diffClass = diff >= 0 ? 'var(--success)' : 'var(--danger)';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${t.month}</td>
+                    <td>${t.date}</td>
+                    <td>${getDayName(t.date)}</td>
+                    <td>${formatMoney(t.target_amount)}</td>
+                    <td>${formatMoney(daySales)}</td>
+                    <td>${pct}%</td>
+                    <td style="color:${diffClass}; font-weight:bold">${formatMoney(diff)}</td>
+                    <td>${empName}</td>
+                </tr>
+            `;
+        }
+    }
+
+    // --- 10. HELPER: DROPDOWNS & AUTO FILL ---
+    function populateEmployeeDropdowns() {
+        const ids = ['month-emp-select', 'day-emp-select', 'sale-emp-select', 'det-emp'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if(!el) return;
+            const currentVal = el.value;
+            
+            // Keep first option if it's a placeholder
+            el.innerHTML = el.options[0].outerHTML; 
+            
+            employeesCache.forEach(emp => {
+                const opt = document.createElement('option');
+                opt.value = emp.employee_id;
+                opt.innerText = `${emp.name} (${emp.employee_id})`;
+                el.appendChild(opt);
+            });
+            el.value = currentVal;
+        });
+    }
+
+    function autoFillEmpData(selectId, idInputId, desigInputId) {
+        const select = document.getElementById(selectId);
+        const empId = select.value;
+        const emp = employeesCache.find(e => e.employee_id === empId);
+        
+        if(emp) {
+            if(idInputId) document.getElementById(idInputId).value = emp.employee_id;
+            if(desigInputId) document.getElementById(desigInputId).value = emp.designation;
+        }
+    }
+</script>
+
+</body>
+</html>
