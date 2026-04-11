@@ -2,1299 +2,630 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock Manager Pro</title>
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- HTML5-QRCode Library -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluecheez Chattogram - Petty Cash System</title>
     
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
-        /* --- 1. PROFESSIONAL COLOR PALETTE & RESET --- */
         :root {
             --primary: #0f172a;
-            --primary-light: #334155;
-            --accent: #2563eb; /* Bright Blue */
-            --accent-hover: #1d4ed8;
+            --accent: #2563eb;
             --bg-body: #f1f5f9;
-            --surface: #ffffff;
+            --bg-card: #ffffff;
             --text-main: #1e293b;
-            --text-secondary: #64748b;
-            --border: #e2e8f0;
-            --success: #10b981;
-            --success-bg: #ecfdf5;
-            --danger: #ef4444;
-            --danger-bg: #fef2f2;
-            --sidebar-width: 260px;
-            --header-height: 64px;
-            --radius: 8px;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --border: #cbd5e1;
+            --success: #059669;
+            --danger: #dc2626;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         
-        body { 
-            margin: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            display: flex; 
-            min-height: 100vh; 
-            overflow-x: hidden;
+        body { background-color: var(--bg-body); color: var(--text-main); padding: 20px; min-height: 100vh; }
+        .container { max-width: 1280px; margin: 0 auto; }
+
+        /* --- Header Section (Screen Only) --- */
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--primary);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
 
-        /* --- 2. SIDEBAR --- */
-        .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--primary);
-            color: #94a3b8;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            top: 0; bottom: 0; left: 0;
-            z-index: 1000;
-            transition: transform 0.3s ease;
-            border-right: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .sidebar-header {
-            height: var(--header-height);
-            display: flex;
-            align-items: center;
-            padding: 0 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            font-weight: 600;
-            font-size: 1.1rem;
+        h1.company-name { 
+            font-family: 'Merriweather', serif; 
+            font-size: 2rem; 
+            font-weight: 700; 
+            color: var(--primary); 
+            margin-bottom: 5px;
             letter-spacing: 0.5px;
         }
-        .logo-icon { width: 24px; height: 24px; margin-right: 12px; fill: white; }
 
-        .nav-section { padding: 1.5rem 0.75rem; flex: 1; overflow-y: auto; }
-        
-        .nav-group-title {
-            font-size: 0.7rem;
+        .report-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 1px;
-            padding-left: 12px;
-            margin-bottom: 8px;
-            color: #475569;
-            font-weight: 700;
         }
 
-        .sidebar a {
-            display: flex;
-            align-items: center;
-            padding: 10px 12px;
-            color: #cbd5e1;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-bottom: 2px;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }
-        
-        .sidebar a svg { width: 18px; height: 18px; margin-right: 12px; stroke-width: 2; }
-
-        .sidebar a:hover { background-color: rgba(255,255,255,0.05); color: white; }
-        
-        .sidebar a.active {
-            background-color: var(--accent);
-            color: white;
-            font-weight: 500;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        }
-
-        .sidebar-footer {
-            padding: 1rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            display: flex; align-items: center; gap: 10px;
-        }
-        .user-avatar {
-            width: 32px; height: 32px; background: var(--accent); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: bold; font-size: 0.8rem;
-        }
-        .user-info div:first-child { color: white; font-size: 0.9rem; font-weight: 500; }
-        .user-info div:last-child { font-size: 0.75rem; color: #64748b; }
-
-        .main-content {
-            margin-left: var(--sidebar-width);
-            flex: 1;
-            width: calc(100% - var(--sidebar-width));
-            display: flex; flex-direction: column;
-        }
-
-        /* --- 3. HEADER --- */
-        header {
-            height: var(--header-height);
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 2rem;
-            position: sticky; top: 0; z-index: 50;
-        }
-
-        .header-title { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
-        .menu-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--text-main); }
-        
-        .overlay {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999;
-            backdrop-filter: blur(2px);
-        }
-        .overlay.show { display: block; }
-
-        /* --- 4. MAIN CONTENT & CARDS --- */
-        main { padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
-
-        .card {
-            background: var(--surface);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        /* Tabs */
-        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
-        .tab {
-            padding: 1rem 1.5rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-weight: 500;
-            font-size: 0.95rem;
-            border-bottom: 2px solid transparent;
-            transition: color 0.2s;
-        }
-        .tab:hover { color: var(--text-main); }
-        .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-
-        /* Inputs & Actions */
-        .action-bar { display: flex; gap: 1rem; align-items: stretch; flex-wrap: wrap; }
-
-        .input-group { flex: 1; position: relative; min-width: 250px; }
-        .input-group svg {
-            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-            color: var(--text-secondary); width: 20px; height: 20px;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 0.75rem 1rem 0.75rem 2.5rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            font-size: 0.95rem;
-            transition: border-color 0.2s;
-        }
-        input[type="text"]:focus { border-color: var(--accent); }
-
-        button {
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 0 1.5rem;
-            border: 1px solid transparent;
-            border-radius: var(--radius);
-            font-weight: 500;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            background: var(--surface);
-            color: var(--text-main);
-            height: 42px;
-            white-space: nowrap;
-        }
-
-        .btn-scan { background: white; border-color: var(--border); color: var(--text-main); }
-        .btn-scan:hover { background: #f8fafc; }
-        .btn-scan.active { background: var(--danger); color: white; border-color: var(--danger); }
-
-        .btn-search { background: var(--accent); color: white; }
-        .btn-search:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
-
-        /* Checkbox Styling */
-        .checkbox-wrapper {
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            padding-left: 1rem; 
-            border-left: 1px solid var(--border);
-            height: 42px;
-            user-select: none;
-        }
-        .checkbox-wrapper input {
-            width: 18px; 
-            height: 18px; 
-            cursor: pointer;
-            accent-color: var(--accent);
-        }
-        .checkbox-wrapper label {
-            cursor: pointer;
-            font-size: 0.9rem;
-            color: var(--text-main);
-            font-weight: 500;
-        }
-
-        /* --- 5. SCANNER UI (HD & AUTO-CAPTURE) --- */
-        #reader-wrapper {
-            margin-top: 1.5rem;
-            border-radius: var(--radius);
-            overflow: hidden;
-            display: none;
-            background: #000;
-            position: relative;
-            border: 4px solid var(--surface);
-            box-shadow: var(--shadow-md);
-            transform: translateZ(0); 
-            -webkit-transform: translateZ(0);
-            width: 100%;
-            min-height: 350px;
-        }
-
-        /* --- FULL SCREEN SCANNER CLASS --- */
-        .scanner-fullscreen {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 9999 !important;
-            border: none !important;
-            border-radius: 0 !important;
-            margin: 0 !important;
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            background: #000 !important;
-        }
-        
-        /* Force reader to fill container in fullscreen */
-        .scanner-fullscreen #reader {
-            width: 100% !important;
-            height: 100% !important;
-            min-height: unset !important;
-            object-fit: cover;
-        }
-        .scanner-fullscreen #reader video {
-            object-fit: cover; /* Fills screen like native camera */
-            width: 100%;
-            height: 100%;
-            /* FIX: Sharpen the video rendering to reduce "haze" */
-            image-rendering: -webkit-optimize-contrast; 
-        }
-
-        /* Hide default html5-qrcode links */
-        #reader a { display: none !important; }
-
-        /* Close Button for Full Screen */
-        .btn-close-fullscreen {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-            border-radius: 50%;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            border: 1px solid rgba(255,255,255,0.2);
-            cursor: pointer;
-            z-index: 10010;
-        }
-        .scanner-fullscreen .btn-close-fullscreen {
-            display: flex;
-        }
-        .btn-close-fullscreen:hover { background: rgba(255, 255, 255, 0.2); }
-
-        /* Flash Effect Overlay */
-        .shutter-flash {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+        /* --- Filter Bar --- */
+        .filter-bar {
             background: white;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 10020;
-            transition: opacity 0.1s ease-out;
-        }
-
-        /* --- THE BIG FRAME (NO BLACK OUTSIDE) --- */
-        .scanner-overlay {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            /* BIG FRAME DIMENSIONS */
-            width: 85%; 
-            height: 60%; 
+            padding: 15px 25px;
             border-radius: 12px;
-            pointer-events: none;
-            z-index: 5;
-            /* NO SHADOW */
-            background: transparent;
-            box-shadow: none; 
-            border: 1px solid rgba(37, 99, 235, 0.2); /* Very faint border */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
         }
 
-        /* Corner Brackets */
-        .corner-bracket {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            border-color: var(--accent);
-            border-style: solid;
-            transition: all 0.3s ease;
-        }
-        .cb-tl { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-radius: 8px 0 0 0; }
-        .cb-tr { top: -2px; right: -2px; border-width: 4px 4px 0 0; border-radius: 0 8px 0 0; }
-        .cb-bl { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; border-radius: 0 0 0 8px; }
-        .cb-br { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-radius: 0 0 8px 0; }
+        .date-filter-group { display: flex; align-items: center; gap: 10px; }
+        .date-filter-group label { font-weight: 600; color: var(--primary); font-size: 0.9rem; }
 
-        /* Animated Laser Line */
-        .scan-laser {
-            position: absolute;
-            width: 100%;
-            height: 3px;
-            background: var(--accent);
-            box-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent);
-            top: 0;
-            left: 0;
-            animation: scanMove 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
-            opacity: 0.9;
-            border-radius: 2px;
+        .form-control {
+            padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 0.95rem; outline: none; color: var(--text-main);
+        }
+        .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+
+        select.month-select {
+            padding: 8px 30px 8px 12px; font-weight: 600; cursor: pointer;
+            background-color: #f8fafc; border: 1px solid var(--primary);
+            color: var(--primary); appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%230f172a%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat; background-position: right 10px top 50%; background-size: 10px auto;
         }
 
-        @keyframes scanMove {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            50% { top: 100%; opacity: 1; }
-            60% { opacity: 0; }
-            100% { top: 0%; opacity: 0; }
+        /* --- Buttons --- */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer;
+            font-weight: 600; font-size: 0.9rem; transition: all 0.2s; text-decoration: none;
         }
+        .btn-primary { background-color: var(--accent); color: white; }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .btn-secondary { background-color: white; color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover { background-color: #f1f5f9; }
+        .btn-danger { background-color: #fee2e2; color: var(--danger); padding: 6px 12px; }
+        .btn-warning { background-color: #fef3c7; color: #d97706; padding: 6px 12px; }
 
-        .scan-text-hint {
-            position: absolute;
-            bottom: 10%; width: 100%; text-align: center;
-            color: rgba(255,255,255,1);
-            font-size: 1rem;
-            font-weight: 600;
-            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-            z-index: 6;
-            letter-spacing: 0.5px;
+        /* --- Table Styling --- */
+        .table-card {
+            background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: hidden;
         }
-
-        /* Scanner Control Buttons */
-        .scanner-controls {
-            position: absolute; bottom: 30px; left: 50%;
-            transform: translateX(-50%);
-            display: flex; gap: 40px;
-            z-index: 10010; width: 100%; justify-content: center;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-
-        .btn-ctrl {
-            background: rgba(30, 41, 59, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            width: 64px; height: 64px; 
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            cursor: pointer; z-index: 10; border: 1px solid rgba(255,255,255,0.15);
-            transition: transform 0.1s, background 0.2s;
-            color: white;
-        }
-        .btn-ctrl:active { transform: scale(0.9); background: rgba(30, 41, 59, 0.8); }
-        .btn-ctrl svg { width: 28px; height: 28px; }
-        .btn-ctrl.on { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 20px rgba(37, 99, 235, 0.4); }
-
-        /* Hidden file input */
-        #qr-input-file { display: none; }
-
-        /* --- 6. FILTERS --- */
-        .filter-bar { 
-            display: none; gap: 1rem; padding: 1rem; 
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius); margin-bottom: 1.5rem;
-            align-items: center; box-shadow: var(--shadow-sm);
-        }
-        .filter-select { padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; min-width: 150px; background: white; }
-
-        /* --- 7. RESULTS --- */
-        .results-list { display: flex; flex-direction: column; gap: 1rem; }
-
-        .product-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow-sm);
-        }
-        .p-header {
-            padding: 1.25rem;
-            border-bottom: 1px solid #f1f5f9;
-            display: flex; justify-content: space-between; align-items: flex-start;
-        }
-        .p-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
-        .p-meta { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
         
-        .status-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 99px;
-            font-size: 0.8rem; font-weight: 600;
-            background: var(--success-bg); 
-            color: var(--success);
-            border: 1px solid transparent;
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        
+        thead { background-color: #f8fafc; border-bottom: 2px solid var(--border); }
+        
+        th, td { 
+            padding: 14px 16px; text-align: left; font-size: 0.95rem; vertical-align: middle; 
         }
-        .status-badge.black { background: #f8fafc; color: #000000; border-color: #e2e8f0; }
-        .status-badge.red { background: var(--danger-bg); color: var(--danger); }
-
-        .p-body { padding: 1.25rem; }
-
-        /* Captured Image Preview */
-        .captured-preview {
-            width: 100%;
-            height: 200px;
-            background: #000;
-            margin-bottom: 1rem;
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-            border: 2px solid var(--accent);
-        }
-        .captured-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .captured-badge {
-            position: absolute;
-            top: 8px; right: 8px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
+        
+        th { 
+            font-weight: 700; color: var(--primary); text-transform: uppercase; 
+            font-size: 0.8rem; letter-spacing: 0.5px; 
         }
 
-        .price-grid {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 1rem; margin-bottom: 1rem;
-        }
-        .pg-item { background: #f8fafc; padding: 0.75rem; border-radius: 4px; border: 1px solid #e2e8f0; }
-        .pg-label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-        .pg-value { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-top: 4px; }
-        .pg-total .pg-value { color: var(--accent); font-size: 1.25rem; }
+        tr:not(:last-child) { border-bottom: 1px solid #e2e8f0; }
+        tr:hover { background-color: #f8fafc; }
 
-        .btn-expand {
-            width: 100%; background: none; border: 1px dashed var(--border);
-            color: var(--accent); font-size: 0.85rem; padding: 0.75rem;
-            border-radius: var(--radius); margin-top: 0.5rem;
-        }
-        .btn-expand:hover { background: #f0f9ff; border-color: var(--accent); }
+        .amount-col { font-family: 'Courier Prime', monospace; font-weight: 700; text-align: right !important; }
+        .total-row { background-color: #f1f5f9; font-weight: 800; font-size: 1.1rem; color: var(--primary); border-top: 2px solid var(--border); }
+        .total-label { text-align: right !important; }
 
-        .p-details {
-            display: none; padding: 1.25rem;
-            background: #f8fafc; border-top: 1px solid var(--border);
-            font-size: 0.9rem;
+        /* --- Modal --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
         }
-        .detail-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
-        .link { color: var(--accent); text-decoration: none; font-weight: 500; }
-        .link:hover { text-decoration: underline; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: white; width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; }
+        .modal-header { padding: 20px 25px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+        .modal-body { padding: 25px; }
+        .modal-footer { padding: 15px 25px; background: #f8fafc; display: flex; justify-content: flex-end; gap: 10px; }
 
-        .variant-box { margin-top: 1rem; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-        .mini-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        .mini-table th { background: #e2e8f0; text-align: left; padding: 8px; font-weight: 600; color: var(--text-secondary); }
-        .mini-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
-        .mini-table tr:last-child td { border-bottom: none; }
-        .text-right { text-align: right; }
-        .subtotal-row-mini { background: #cbd5e1; font-weight: 700; }
+        /* --- Toast --- */
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 24px; border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 2000;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
 
-        .table-container { 
-            background: var(--surface); border: 1px solid var(--border); 
-            border-radius: var(--radius); overflow-x: auto; box-shadow: var(--shadow-sm);
+        /* =========================================
+           PDF PRINT MODE (Optimized)
+           ========================================= */
+        .pdf-mode {
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
         }
-        .results-table { width: 100%; border-collapse: collapse; min-width: 700px; }
-        .results-table th {
-            background: #f8fafc; padding: 12px 16px; text-align: left;
-            font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary);
-            border-bottom: 2px solid var(--border); font-weight: 600;
-        }
-        .results-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
-        .results-table tr:hover { background: #f8fafc; }
-        .subtotal-row { background: #f1f5f9; font-weight: 700; color: var(--text-main); border-top: 2px solid var(--border); }
 
-        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
-        #toast {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
-            background: #1e293b; color: white; padding: 12px 24px;
-            border-radius: 6px; box-shadow: var(--shadow-lg);
-            font-size: 0.9rem; display: flex; align-items: center; gap: 10px;
-            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 20000;
-            max-width: 90%; text-align: center;
+        /* Hide Screen Elements */
+        .pdf-mode .no-print, 
+        .pdf-mode .filter-bar,
+        .pdf-mode .modal-overlay,
+        .pdf-mode .action-col { 
+            display: none !important; 
         }
-        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* Mobile */
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); width: 280px; }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; width: 100%; }
-            .menu-toggle { display: block; margin-right: 1rem; }
-            header { padding: 0 1rem; }
-            main { padding: 1rem; }
-            .price-grid { grid-template-columns: 1fr; }
-            .checkbox-wrapper { 
-                border-left: none; 
-                padding-left: 0; 
-                width: 100%; 
-                margin-top: 0.5rem; 
-                justify-content: flex-start;
-            }
-            .scanner-overlay { height: 50%; }
+        /* Hide HTML Header to prevent duplication (JS will draw it) */
+        .pdf-mode .report-header {
+            display: none !important; 
+            margin-bottom: 0 !important;
+            padding: 0 !important;
         }
+
+        /* Table Layout Fixes */
+        .pdf-mode table {
+            width: 100% !important;
+            table-layout: fixed !important; /* Ensures columns stay within width */
+            border: 1px solid #ddd !important;
+            border-collapse: collapse !important;
+            font-family: 'Helvetica', 'Arial', sans-serif !important;
+            font-size: 9pt !important; /* Smaller font for clean look */
+            color: #333 !important;
+        }
+
+        /* Light, Elegant Borders */
+        .pdf-mode th, .pdf-mode td {
+            border: 1px solid #ddd !important; /* Light gray instead of bold black */
+            padding: 5px 8px !important; /* Tighter padding */
+            color: #000 !important;
+            word-wrap: break-word;
+        }
+
+        /* Column Widths (Prevents Overflow) */
+        .pdf-mode th:nth-child(1), .pdf-mode td:nth-child(1) { width: 5%; } /* Sl */
+        .pdf-mode th:nth-child(2), .pdf-mode td:nth-child(2) { width: 12%; } /* Date */
+        .pdf-mode th:nth-child(3), .pdf-mode td:nth-child(3) { width: 15%; } /* Category */
+        .pdf-mode th:nth-child(4), .pdf-mode td:nth-child(4) { width: 33%; } /* Description */
+        .pdf-mode th:nth-child(5), .pdf-mode td:nth-child(5) { width: 15%; text-align: right; } /* Amount */
+        .pdf-mode th:nth-child(6), .pdf-mode td:nth-child(6) { width: 20%; } /* Remarks */
+
+        .pdf-mode th {
+            background-color: #f9f9f9 !important; /* Very subtle gray header */
+            color: #000 !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            font-size: 8pt !important;
+        }
+
+        .pdf-mode .amount-col {
+            font-family: 'Courier New', monospace !important;
+            text-align: right !important;
+        }
+
+        /* Prevent Row Breaking */
+        .pdf-mode tr { page-break-inside: avoid !important; }
+
+        .pdf-mode .total-row {
+            background-color: #f2f2f2 !important;
+            font-weight: 800 !important;
+            border-top: 2px solid #bbb !important;
+        }
+
     </style>
 </head>
 <body>
 
-<!-- Mobile Overlay -->
-<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-
-<!-- Sidebar -->
-<aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <svg class="logo-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-        <span>STOCK MANAGER</span>
-    </div>
-    
-    <div class="nav-section">
-        <div class="nav-group-title">Main</div>
-        <a href="index.html" class="active">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            Search Stock
-        </a>
-        <a href="Audit.html">
-            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            Inventory Audit
-        </a>
-        <a href="dis.html">
-            <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-            Discontinued
-        </a>
-
-        <div class="nav-group-title" style="margin-top: 1rem;">Operations</div>
-        <a href="cstock.html">
-            <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-            Requisition
-        </a>
-        <a href="vat.html">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            VAT Report
-        </a>
-        <a href="admin.html">
-            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            Authority
-        </a>
-        <a href="tag.html">
-            <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-            Tag Print
-        </a>
-        <a href="bokking.html">
-            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            Booking
-        </a>
-        <a href="display.html">
-            <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            Display Check
-        </a>
-        <a href="img.html">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-            Images
-        </a>
-        <a href="attendance.html">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
-         stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="16" y1="2" x2="16" y2="6"></line>
-        <line x1="8" y1="2" x2="8" y2="6"></line>
-        <line x1="3" y1="10" x2="21" y2="10"></line>
-        <polyline points="9 14 11 16 15 12"></polyline>
-    </svg>
-    Attendance Report
-</a>
-        <a href="sar.html">
-    <svg viewBox="0 0 24 24">
-        <line x1="4" y1="20" x2="4" y2="12"></line>
-        <line x1="10" y1="20" x2="10" y2="8"></line>
-        <line x1="16" y1="20" x2="16" y2="14"></line>
-        <polyline points="3 15 9 9 15 12 21 6"></polyline>
-    </svg>
-    Sales Analysis
-</a>
-    </div>
-
-    <div class="sidebar-footer">
-        <div class="user-avatar">A</div>
-        <div class="user-info">
-            <div>Admin User</div>
-            <div>Manager</div>
-        </div>
-    </div>
-</aside>
-
-<!-- Content -->
-<div class="main-content">
-    <header>
-        <div style="display:flex; align-items:center;">
-            <button class="menu-toggle" onclick="toggleSidebar()">
-                <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-            </button>
-            <div class="header-title">Stock Lookup</div>
-        </div>
-    </header>
-
-    <main>
-        <section class="card">
-            <div class="tabs">
-                <div class="tab active" onclick="switchMode('barcode')" id="tab-barcode">Barcode</div>
-                <div class="tab" onclick="switchMode('style')" id="tab-style">Style Code</div>
-            </div>
-
-            <div class="action-bar">
-                <div class="input-group">
-                    <svg viewBox="0 0 24 24"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-                    <input type="text" id="searchInput" placeholder="Search by Barcode..." autocomplete="off">
-                </div>
-                <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">
-                    <svg id="scan-icon-off" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg>
-                    <svg id="scan-icon-on" style="display:none;" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    <span id="scan-text">Scan</span>
-                </button>
-                <button class="btn-scan" id="fileScanBtn" onclick="document.getElementById('qr-input-file').click()" title="Scan from Image">
-                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                    Image
-                </button>
-                <button class="btn-search" onclick="performSearch()">
-                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    Search
-                </button>
-                
-                <!-- Checkbox Wrapper -->
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" id="checkZeroStock" onchange="handleZeroStockToggle()">
-                    <label for="checkZeroStock">Show Zero Stock</label>
-                </div>
-            </div>
-
-            <!-- Hidden File Input -->
-            <input type="file" id="qr-input-file" accept="image/*">
-
-            <!-- FULL SCREEN SCANNER WRAPPER -->
-            <div id="reader-wrapper">
-                <!-- Flash Overlay for Shutter Effect -->
-                <div id="shutterFlash" class="shutter-flash"></div>
-
-                <!-- Close Button (Visible only in Full Screen) -->
-                <button class="btn-close-fullscreen" onclick="stopScanner()">
-                    <svg viewBox="0 0 24 24" style="width:24px; height:24px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-
-                <div id="reader"></div>
-                
-                <div class="scanner-overlay">
-                    <!-- Corner Brackets -->
-                    <div class="corner-bracket cb-tl"></div>
-                    <div class="corner-bracket cb-tr"></div>
-                    <div class="corner-bracket cb-bl"></div>
-                    <div class="corner-bracket cb-br"></div>
-                    
-                    <!-- Laser -->
-                    <div class="scan-laser"></div>
-                    
-                    <div class="scan-text-hint">Align Barcode Here</div>
-                </div>
-
-                <div class="scanner-controls">
-                    <!-- Flashlight -->
-                    <button class="btn-ctrl" id="flashBtn" onclick="toggleFlashlight()" title="Toggle Flashlight">
-                        <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-2.26C4.19 13.47 3 11.38 3 9a7 7 0 0 1 9-7Z"></path></svg>
-                    </button>
-                    <!-- Camera Switch -->
-                    <button class="btn-ctrl" id="camSwitchBtn" onclick="switchCamera()" title="Switch Camera">
-                        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <div id="filter-section" class="filter-bar">
-            <svg style="color:var(--text-secondary)" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-            <select id="filter-color" class="filter-select" onchange="applyFilters()"><option value="all">All Colors</option></select>
-            <select id="filter-size" class="filter-select" onchange="applyFilters()"><option value="all">All Sizes</option></select>
-            <button class="btn-scan" style="border:none; font-size:0.85rem; height:auto; padding: 0.5rem 1rem;" onclick="clearFilters()">Reset Filters</button>
+    <div class="container" id="printable-area">
+        <!-- Header (Visible on Screen, Hidden in PDF) -->
+        <div class="report-header">
+            <h1 class="company-name">Bluecheez Chattogram</h1>
+            <p class="report-subtitle">Petty Cash Report for the Month of <span id="display-month-name">...</span></p>
         </div>
 
-        <div id="resultsArea" class="results-list"></div>
-    </main>
-</div>
+        <!-- Filter & Controls -->
+        <div class="filter-bar no-print">
+            <div class="date-filter-group">
+                <label>Report Period:</label>
+                <select id="month-select" class="month-select form-control" onchange="updateDateRangeFromMonth()">
+                    <!-- Populated by JS -->
+                </select>
+            </div>
 
-<div id="toast">
-    <svg style="color:var(--success); width:18px; height:18px;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-    <span id="toast-msg">Notification</span>
-</div>
+            <div class="date-filter-group">
+                <label>From:</label>
+                <input type="date" id="date-from" class="form-control" onchange="fetchEntries()">
+                <label>To:</label>
+                <input type="date" id="date-to" class="form-control" onchange="fetchEntries()">
+            </div>
 
-<script>
-    // --- 1. CONFIGURATION ---
-    const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-    
-    if (window.supabase) {
-        var sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } else { console.error("Supabase library failed to load."); }
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="openModal()">
+                    <i class="fas fa-plus"></i> New Entry
+                </button>
+                <button class="btn btn-secondary" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel" style="color: #107c41;"></i> Excel
+                </button>
+                <button class="btn btn-secondary" onclick="exportToPDF()">
+                    <i class="fas fa-file-pdf" style="color: #dc2626;"></i> PDF
+                </button>
+            </div>
+        </div>
 
-    var html5QrCode = null; 
-    var isScanning = false; 
-    var isFlashOn = false; 
-    var currentMode = 'barcode'; 
-    var originalStyleData = []; 
-    var lastBarcodeData = []; 
-    var currentCameraId = 0; 
-    var cameraIds = []; 
-    var capturedImage = null; // Store the snapshot here
-
-    // --- 2. LOGIC ---
-
-    function getBalanceColor(bal) {
-        bal = parseInt(bal) || 0;
-        if (bal > 5) return 'var(--success)';
-        if (bal > 0) return '#000000';
-        return 'var(--danger)';
-    }
-
-    function getBalanceClass(bal) {
-        bal = parseInt(bal) || 0;
-        if (bal > 5) return 'status-badge';
-        if (bal > 0) return 'status-badge black';
-        return 'status-badge red';
-    }
-
-    function calculateVAT(item) {
-        var name = (item.name || "").toLowerCase(); 
-        var mrp = parseFloat(item.mrp) || 0;
-        var accessories = ["tie", "belt", "cufflink", "poket square", "pocket square", "wallet", "bag", "cap", "shocks", "accessories", "bracelet", "eyewear", "finger ring", "locket", "earring", "key ring"];
-        var isAccessory = accessories.some(function(k) { return name.includes(k); });
-        var rate = isAccessory ? 0.075 : 0.10; 
-        var vatAmount = mrp * rate; 
-        var totalAmount = mrp + vatAmount;
-        return { rate: rate * 100, amount: vatAmount.toFixed(2), total: totalAmount.toFixed(2) };
-    }
-
-    function filterZeroStock(items) {
-        var showZero = document.getElementById('checkZeroStock').checked;
-        if (!showZero) {
-            return items.filter(function(i) { return (i.balance || 0) > 0; });
-        }
-        return items;
-    }
-
-    function toggleSidebar() { 
-        document.getElementById('sidebar').classList.toggle('open'); 
-        document.getElementById('overlay').classList.toggle('show'); 
-    }
-
-    function playBeep() { 
-        const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-        const osc = ctx.createOscillator(); 
-        const gain = ctx.createGain(); 
-        osc.connect(gain); 
-        gain.connect(ctx.destination); 
-        osc.type = 'sine'; 
-        osc.frequency.setValueAtTime(1200, ctx.currentTime); 
-        gain.gain.setValueAtTime(0.1, ctx.currentTime); 
-        osc.start(); 
-        osc.stop(ctx.currentTime + 0.1); 
-    }
-
-    function switchMode(mode) {
-        currentMode = mode; 
-        document.getElementById('sidebar').classList.remove('open'); 
-        document.getElementById('overlay').classList.remove('show');
-        if (isScanning) stopScanner();
-        document.getElementById('tab-barcode').classList.toggle('active', mode === 'barcode');
-        document.getElementById('tab-style').classList.toggle('active', mode === 'style');
-        var input = document.getElementById('searchInput'); 
-        var scanBtn = document.getElementById('scanBtn');
-        var fileScanBtn = document.getElementById('fileScanBtn'); 
-        var filterSection = document.getElementById('filter-section');
-        if (mode === 'barcode') { 
-            input.placeholder = "Enter Barcode or Scan..."; 
-            scanBtn.style.display = 'flex'; 
-            fileScanBtn.style.display = 'flex';
-            filterSection.style.display = 'none'; 
-        } else { 
-            input.placeholder = "Enter Style Code..."; 
-            scanBtn.style.display = 'none'; 
-            fileScanBtn.style.display = 'none';
-            filterSection.style.display = 'none'; 
-        }
-        document.getElementById('resultsArea').innerHTML = ''; 
-        input.value = ''; 
-        input.focus();
-    }
-
-    function showToast(msg) { 
-        var t = document.getElementById('toast'); 
-        document.getElementById('toast-msg').innerText = msg; 
-        t.classList.add('show'); 
-        setTimeout(function() { t.classList.remove('show'); }, 4000); 
-    }
-
-    // --- SCANNER LOGIC ---
-
-    document.getElementById('qr-input-file').addEventListener('change', e => {
-        if (e.target.files.length == 0) return;
-        const imageFile = e.target.files[0];
-        const html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.scanFile(imageFile, true)
-        .then(decodedText => {
-            playBeep();
-            document.getElementById('searchInput').value = decodedText;
-            performSearch();
-            e.target.value = '';
-        })
-        .catch(err => {
-            showToast(`Error scanning file: ${err}`);
-        });
-    });
-
-    async function toggleFlashlight() {
-        if (!html5QrCode || !isScanning) return; 
-        isFlashOn = !isFlashOn; 
-        var btn = document.getElementById('flashBtn');
-        html5QrCode.applyVideoConstraints({ advanced: [{ torch: isFlashOn }] }).then(() => {
-            if(isFlashOn) { btn.classList.add('on'); showToast("Flashlight ON"); } else { btn.classList.remove('on'); showToast("Flashlight OFF"); }
-        }).catch(err => { 
-            console.error(err); 
-            isFlashOn = false; 
-            showToast("Flashlight not supported"); 
-        });
-    }
-
-    async function switchCamera() {
-        if (!html5QrCode || !isScanning) return;
-        try {
-            await html5QrCode.stop();
-        } catch(e) { console.log(e); }
-        currentCameraId = (currentCameraId + 1) % cameraIds.length;
-        startScanner(cameraIds[currentCameraId]);
-    }
-
-    async function toggleScanner() { 
-        if (isScanning) stopScanner(); 
-        else startScanner(); 
-    }
-    
-    // --- NEW: AUTO CAPTURE FUNCTION ---
-    function captureCurrentFrame() {
-        // 1. Find the video element created by the library
-        const videoElement = document.querySelector("#reader video");
-        if (!videoElement) return null;
-
-        // 2. Create a temporary canvas
-        const canvas = document.createElement("canvas");
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
-        const ctx = canvas.getContext("2d");
-
-        // 3. Draw the current video frame onto the canvas
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-        // 4. Convert to Base64 image string
-        return canvas.toDataURL("image/jpeg");
-    }
-
-    function showFlashEffect() {
-        const flash = document.getElementById('shutterFlash');
-        flash.style.opacity = '1';
-        setTimeout(() => {
-            flash.style.opacity = '0';
-        }, 100);
-    }
-
-    async function startScanner(cameraId = null) {
-        var wrapper = document.getElementById('reader-wrapper'); 
-        var btn = document.getElementById('scanBtn');
-        var iconOff = document.getElementById('scan-icon-off'); 
-        var iconOn = document.getElementById('scan-icon-on'); 
-        var text = document.getElementById('scan-text');
-        
-        if (isScanning) return; 
-        
-        // ADD FULLSCREEN CLASS
-        wrapper.classList.add('scanner-fullscreen');
-        
-        btn.classList.add('active'); 
-        iconOff.style.display = 'none'; 
-        iconOn.style.display = 'block'; 
-        text.textContent = "Stop";
-
-        try {
-            if (html5QrCode) {
-                try { 
-                    if (isScanning) await html5QrCode.stop(); 
-                    await html5QrCode.clear(); 
-                } catch (e) { console.log("Cleanup ignored"); }
-                html5QrCode = null;
-            }
-
-            html5QrCode = new Html5Qrcode("reader");
+        <!-- Table -->
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sl</th>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Remarks</th>
+                        <th class="action-col no-print" style="width: 130px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Data rows -->
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4" class="total-label">Total:</td>
+                        <td class="amount-col" id="grand-total">0.00</td>
+                        <td></td>
+                        <td class="action-col no-print"></td>
+                    </tr>
+                </tfoot>
+            </table>
             
-            // --- FIX FOR BLURRY CAMERA + HIGH RES ---
-            var cameraConfig = cameraId 
-                ? { deviceId: { exact: cameraId } } 
-                : {
-                    facingMode: { exact: "environment" }, 
-                    width: { min: 1280, ideal: 1920 },     // Force HD
-                    height: { min: 720, ideal: 1080 },
-                    advanced: [{ focusMode: "continuous" }] 
-                  };
+            <div id="empty-state" style="padding: 40px; text-align: center; color: var(--text-muted); display: none;">
+                <i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                <p>No records found for selected date range.</p>
+            </div>
+        </div>
+    </div>
 
-            var config = {
-                fps: 20, 
-                aspectRatio: 1.0,
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.QR_CODE
-                ]
+    <!-- Modal Form -->
+    <div class="modal-overlay" id="entry-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 style="font-weight: 700;">Add Petty Cash Entry</h3>
+                <button onclick="closeModal()" style="background:none; border:none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+            </div>
+            <form id="entry-form" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="inp-id">
+                <div class="modal-body">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Date</label>
+                        <input type="date" id="inp-date" class="form-control" style="width:100%;" required>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Category</label>
+                        <select id="inp-category" class="form-control" style="width:100%;" required>
+                            <option value="" disabled selected>Select Category</option>
+                            <option value="Conveyance">Conveyance</option>
+                            <option value="Others">Others</option>
+                            <option value="Stationary">Stationary</option>
+                            <option value="Official Receipt">Official Receipt</option>
+                            <option value="Courier">Courier</option>
+                            <option value="Mobile Bill">Mobile Bill</option>
+                            <option value="Alter">Alter</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Description</label>
+                        <input type="text" id="inp-desc" class="form-control" style="width:100%;" placeholder="Details..." required>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Amount</label>
+                        <input type="number" id="inp-amount" class="form-control" style="width:100%;" placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+
+                    <div style="margin-bottom: 0;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Remarks</label>
+                        <textarea id="inp-remarks" class="form-control" style="width:100%;" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">Action Successful</div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+        
+        let sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let entriesData = [];
+
+        // --- 2. INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            populateMonthDropdown();
+            const now = new Date();
+            const currentMonthVal = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
+            document.getElementById('month-select').value = currentMonthVal;
+            updateDateRangeFromMonth();
+            document.getElementById('inp-date').valueAsDate = new Date();
+        });
+
+        function populateMonthDropdown() {
+            const select = document.getElementById('month-select');
+            const now = new Date();
+            const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            
+            select.innerHTML = "";
+            years.forEach(year => {
+                months.forEach((m, idx) => {
+                    const opt = document.createElement('option');
+                    const val = `${year}-${String(idx + 1).padStart(2, '0')}`;
+                    opt.value = val;
+                    opt.text = `${m} ${year}`;
+                    select.appendChild(opt);
+                });
+            });
+        }
+
+        function updateDateRangeFromMonth() {
+            const val = document.getElementById('month-select').value;
+            if (!val) return;
+
+            const [year, month] = val.split('-').map(Number);
+            const firstDay = new Date(year, month - 1, 1);
+            const lastDay = new Date(year, month, 0);
+
+            document.getElementById('date-from').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('date-to').value = lastDay.toISOString().split('T')[0];
+            
+            fetchEntries();
+        }
+
+        async function fetchEntries() {
+            const fromDate = document.getElementById('date-from').value;
+            const toDate = document.getElementById('date-to').value;
+            const monthSelectText = document.getElementById('month-select').options[document.getElementById('month-select').selectedIndex].text;
+
+            document.getElementById('display-month-name').textContent = monthSelectText;
+
+            if (!fromDate || !toDate) return;
+
+            const { data, error } = await sbClient
+                .from('petty_cash_entries')
+                .select('*')
+                .gte('entry_date', fromDate)
+                .lte('entry_date', toDate)
+                .order('entry_date', { ascending: true });
+
+            if (error) {
+                console.error(error);
+                showToast("Error loading data", "error");
+            } else {
+                entriesData = data;
+                renderTable();
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            const emptyState = document.getElementById('empty-state');
+            const totalEl = document.getElementById('grand-total');
+            
+            tbody.innerHTML = '';
+            let total = 0;
+
+            if (entriesData.length === 0) {
+                emptyState.style.display = 'block';
+                totalEl.textContent = '0.00';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            entriesData.forEach((row, index) => {
+                total += parseFloat(row.amount);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${new Date(row.entry_date).toLocaleDateString()}</td>
+                    <td><span style="font-weight:600; color:var(--primary);">${row.category}</span></td>
+                    <td>${row.description}</td>
+                    <td class="amount-col">${parseFloat(row.amount).toFixed(2)}</td>
+                    <td style="color: #64748b; font-size: 0.9em;">${row.remarks || '-'}</td>
+                    <td class="action-col no-print">
+                        <button class="btn btn-warning" onclick="editEntry(${row.id})" style="padding:4px 8px; font-size:0.8rem;"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-danger" onclick="deleteEntry(${row.id})" style="padding:4px 8px; font-size:0.8rem;"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            totalEl.textContent = total.toFixed(2);
+        }
+
+        function openModal() {
+            document.getElementById('entry-modal').classList.add('active');
+            document.getElementById('entry-form').reset();
+            document.getElementById('inp-id').value = '';
+            document.getElementById('btn-save').innerHTML = '<i class="fas fa-check"></i> Save Entry';
+            document.getElementById('inp-date').valueAsDate = new Date();
+        }
+
+        function closeModal() {
+            document.getElementById('entry-modal').classList.remove('active');
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('inp-id').value;
+            const entry = {
+                entry_date: document.getElementById('inp-date').value,
+                category: document.getElementById('inp-category').value,
+                description: document.getElementById('inp-desc').value,
+                amount: document.getElementById('inp-amount').value,
+                remarks: document.getElementById('inp-remarks').value
             };
 
-            if (cameraIds.length === 0) {
-                const devices = await Html5Qrcode.getCameras();
-                if (devices && devices.length) {
-                    cameraIds = devices.map(d => d.id);
-                    currentCameraId = 0;
-                    const envCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
-                    if(envCam) currentCameraId = cameraIds.indexOf(envCam.id);
-                }
-            }
-
-            if(cameraId) {
-                cameraConfig = { deviceId: { exact: cameraId } };
-            }
-
-            await html5QrCode.start(
-                cameraConfig, 
-                config, 
-                onScanSuccess, 
-                (errorMessage) => { /* Silent fail */ }
-            );
-            
-            isScanning = true;
-
-        } catch (err) {
-            console.error("Camera Start Error:", err);
-            var errMsg = err.message || err || "Unknown Camera Error";
-            if(errMsg.includes("NotAllowed")) showToast("Camera Permission Denied");
-            else if (errMsg.includes("NotFound")) showToast("No Camera Found");
-            else showToast("Error: " + errMsg);
-            stopScanner(); 
-        }
-    }
-
-    async function stopScanner() {
-        if (html5QrCode) {
-            try { 
-                if (isScanning) await html5QrCode.stop(); 
-                await html5QrCode.clear(); 
-            } catch (err) { /* Ignore cleanup errors */ }
-        }
-        isScanning = false; 
-        isFlashOn = false; 
-        document.getElementById('flashBtn').classList.remove('on'); 
-        
-        // REMOVE FULLSCREEN CLASS
-        document.getElementById('reader-wrapper').classList.remove('scanner-fullscreen');
-        document.getElementById('reader-wrapper').style.display = 'none';
-        
-        var btn = document.getElementById('scanBtn'); 
-        btn.classList.remove('active'); 
-        document.getElementById('scan-icon-off').style.display = 'block'; 
-        document.getElementById('scan-icon-on').style.display = 'none'; 
-        document.getElementById('scan-text').textContent = "Scan";
-    }
-
-    // --- UPDATED SUCCESS HANDLER ---
-    function onScanSuccess(decodedText) { 
-        playBeep(); 
-        if (navigator.vibrate) navigator.vibrate(200); 
-        
-        // 1. Capture the image immediately
-        capturedImage = captureCurrentFrame();
-
-        // 2. Visual Flash Effect
-        showFlashEffect();
-
-        // 3. Stop Scanner
-        stopScanner(); 
-        
-        // 4. Perform Search with the captured image
-        document.getElementById('searchInput').value = decodedText; 
-        performSearch(); 
-    }
-
-    // --- 4. SEARCH & RENDER ---
-    async function performSearch() {
-        if (!sbClient) return showToast("Database not connected");
-        var query = document.getElementById('searchInput').value.trim(); 
-        if (!query) return showToast("Enter a value");
-        
-        var resultsArea = document.getElementById('resultsArea'); 
-        resultsArea.innerHTML = '<div class="empty-state">Searching...</div>';
-        
-        var data, error;
-        try {
-            if (currentMode === 'barcode') { 
-                var res = await sbClient.from('inventory').select('*').eq('barcode', query); 
-                data = res.data; 
-                error = res.error; 
-            } else { 
-                var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${query}%`); 
-                data = res.data; 
-                error = res.error; 
-            }
-            if (error) throw error; 
-            
-            if(currentMode === 'barcode') {
-                lastBarcodeData = data || [];
+            let error;
+            if (id) {
+                const res = await sbClient.from('petty_cash_entries').update(entry).eq('id', id);
+                error = res.error;
             } else {
-                originalStyleData = data || [];
+                const res = await sbClient.from('petty_cash_entries').insert([entry]);
+                error = res.error;
             }
-            
-            renderResults(data);
-        } catch (err) { 
-            console.error(err); 
-            resultsArea.innerHTML = `<div class="empty-state" style="color:var(--danger)">Error: ${err.message}</div>`; 
-        }
-    }
 
-    function handleZeroStockToggle() {
-        if (currentMode === 'style') {
-            applyFilters();
-        } else if (currentMode === 'barcode') {
-            renderResults(lastBarcodeData);
+            if (error) {
+                showToast("Operation failed", "error");
+            } else {
+                showToast(id ? "Entry Updated" : "Entry Saved", "success");
+                fetchEntries();
+                if (!id) {
+                    document.getElementById('entry-form').reset();
+                    document.getElementById('inp-date').valueAsDate = new Date();
+                } else {
+                    closeModal();
+                }
+            }
         }
-    }
 
-    function renderResults(items) {
-        items = filterZeroStock(items || []);
-
-        var area = document.getElementById('resultsArea'); 
-        var filterSection = document.getElementById('filter-section');
-        
-        if (!items || items.length === 0) { 
-            area.innerHTML = '<div class="empty-state">No results found.</div>'; 
-            filterSection.style.display = 'none'; 
-            return; 
+        async function editEntry(id) {
+            const row = entriesData.find(r => r.id === id);
+            if(!row) return;
+            document.getElementById('inp-id').value = row.id;
+            document.getElementById('inp-date').value = row.entry_date;
+            document.getElementById('inp-category').value = row.category;
+            document.getElementById('inp-desc').value = row.description;
+            document.getElementById('inp-amount').value = row.amount;
+            document.getElementById('inp-remarks').value = row.remarks || '';
+            document.getElementById('btn-save').innerHTML = '<i class="fas fa-sync"></i> Update';
+            document.getElementById('entry-modal').classList.add('active');
         }
-        
-        if (currentMode === 'style') { 
-            populateFilters(originalStyleData);
-            filterSection.style.display = 'flex'; 
-            renderTable(items); 
-            showToast(`Found ${items.length}`); 
-        } else {
-            filterSection.style.display = 'none';
-            items.forEach(function(item) {
-                // Use the captured image if available, otherwise use placeholder
-                var imgUrl = capturedImage || item.image_url || `https://picsum.photos/seed/${item.id}/200/200`; 
-                var vatDetails = calculateVAT(item);
-                var bal = item.balance || 0;
-                var badgeClass = getBalanceClass(bal);
+
+        async function deleteEntry(id) {
+            if(!confirm("Delete this entry?")) return;
+            const { error } = await sbClient.from('petty_cash_entries').delete().eq('id', id);
+            if(!error) {
+                showToast("Deleted", "success");
+                fetchEntries();
+            }
+        }
+
+        // --- EXPORT EXCEL ---
+        function exportToExcel() {
+            if (entriesData.length === 0) return showToast("No data to export", "error");
+            const monthName = document.getElementById('month-select').options[document.getElementById('month-select').selectedIndex].text;
+            const wb = XLSX.utils.book_new();
+            const headerData = [
+                ["Bluecheez Chattogram"],
+                [`Petty Cash for the Month of ${monthName}`],
+                ["Sl No", "Date", "Category", "Description", "Amount", "Remarks"]
+            ];
+            const dataRows = entriesData.map((row, i) => [i + 1, row.entry_date, row.category, row.description, row.amount, row.remarks]);
+            const total = entriesData.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+            dataRows.push([]);
+            dataRows.push(["", "", "", "Total:", total, ""]);
+
+            const ws = XLSX.utils.aoa_to_sheet([...headerData, ...dataRows]);
+            const merges = [{ s: {r:0, c:0}, e: {r:0, c:5} }, { s: {r:1, c:0}, e: {r:1, c:5} }];
+            ws['!merges'] = merges;
+            XLSX.utils.book_append_sheet(wb, ws, "Petty Cash");
+            XLSX.writeFile(wb, `Bluecheez_PettyCash_${monthName.replace(' ', '_')}.xlsx`);
+        }
+
+        // --- EXPORT PDF (REDESIGNED & FIXED) ---
+        function exportToPDF() {
+            if (entriesData.length === 0) return showToast("No data to export", "error");
+
+            const element = document.getElementById('printable-area');
+            const monthName = document.getElementById('month-select').options[document.getElementById('month-select').selectedIndex].text;
+
+            // 1. Add Class to hide HTML elements and apply PDF styling
+            element.classList.add('pdf-mode');
+
+            // 2. Configuration
+            // Margins: Top=35mm (space for header), Bottom=25mm (space for footer), Left/Right=15mm (safe area)
+            const opt = {
+                margin:       [35, 15, 25, 15], 
+                filename:     `Bluecheez_PettyCash_${monthName.replace(' ', '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } // Prevents row splitting
+            };
+
+            // 3. Generate and Inject Header/Footer
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
+                const totalPages = pdf.internal.getNumberOfPages();
                 
-                // Add a badge if we used a captured image
-                var capturedBadge = capturedImage ? `<div class="captured-badge">Auto Captured</div>` : '';
+                for (let i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    const pageSize = pdf.internal.pageSize;
+                    const pageWidth = pageSize.width;
+                    const pageHeight = pageSize.height;
 
-                var card = document.createElement('div'); 
-                card.className = 'product-card';
-                card.innerHTML = `
-                    <div class="captured-preview">
-                        <img src="${imgUrl}" alt="Scanned Tag">
-                        ${capturedBadge}
-                    </div>
-                    <div class="p-header">
-                        <div>
-                            <h3 class="p-title">${item.name}</h3>
-                            <div class="p-meta">Style: <strong>${item.style_code || '-'}</strong> &bull; ${item.color || '-'} / ${item.size || '-'}</div>
-                        </div>
-                        <div class="${badgeClass}">
-                            <svg style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-                            ${bal} Units
-                        </div>
-                    </div>
-                    <div class="p-body">
-                        <div class="price-grid">
-                            <div class="pg-item">
-                                <div class="pg-label">Retail Price</div>
-                                <div class="pg-value">${item.mrp || '0.00'}</div>
-                            </div>
-                            <div class="pg-item">
-                                <div class="pg-label">VAT (${vatDetails.rate}%)</div>
-                                <div class="pg-value">+ ${vatDetails.amount}</div>
-                            </div>
-                            <div class="pg-item pg-total" style="grid-column: span 2">
-                                <div class="pg-label">Total Payable</div>
-                                <div class="pg-value">${vatDetails.total}</div>
-                            </div>
-                        </div>
-                        <button class="btn-expand" data-style="${item.style_code || ''}" onclick="toggleDetails(this)">View Variant Details</button>
-                        <div class="p-details">
-                            <div class="detail-row"><span style="color:var(--text-secondary)">Barcode:</span> <span style="font-family:monospace; font-weight:600">${item.barcode}</span></div>
-                            <div class="detail-row"><span style="color:var(--text-secondary)">Image:</span> <a href="${imgUrl}" target="_blank" class="link">Open Image</a></div>
-                            <div class="related-table-area"></div>
-                        </div>
-                    </div>
-                `; 
-                area.appendChild(card);
-            });
-            showToast(`Found ${items.length}`);
-        }
-    }
+                    // --- HEADER (Drawn by JS to ensure no duplication) ---
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.rect(0, 0, pageWidth, 35, 'F'); // White background for header area
 
-    async function toggleDetails(btn) {
-        var details = btn.nextElementSibling; 
-        var tableArea = details.querySelector('.related-table-area'); 
-        var styleCode = btn.getAttribute('data-style');
-        if (details.style.display === "none" || details.style.display === "") { 
-            details.style.display = "block"; 
-            btn.innerHTML = "Hide Variant Details"; 
-            if (styleCode && !details.classList.contains('loaded')) { 
-                await loadRelatedVariants(styleCode, tableArea); 
-                details.classList.add('loaded'); 
-            } 
-        } else { 
-            details.style.display = "none"; 
-            btn.innerHTML = "View Variant Details"; 
-        }
-    }
+                    pdf.setFont("helvetica", "bold");
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text("Bluecheez Chattogram", pageWidth / 2, 15, { align: "center" });
 
-    async function loadRelatedVariants(styleCode, container) {
-        if (!styleCode) { 
-            container.innerHTML = '<div style="padding:10px">No Style Code.</div>'; 
-            return; 
-        }
-        try {
-            var res = await sbClient.from('inventory').select('*').ilike('style_code', `%${styleCode}%`); 
-            if (res.error) throw res.error; 
-            var variants = res.data;
-            variants = filterZeroStock(variants);
+                    pdf.setFont("helvetica", "normal");
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(60, 60, 60);
+                    pdf.text(`Petty Cash Report for the Month of ${monthName}`, pageWidth / 2, 23, { align: "center" });
 
-            if (!variants || variants.length === 0) { 
-                container.innerHTML = '<div style="padding:10px">No variants found with current filter.</div>'; 
-                return; 
-            }
-            variants.sort(function(a, b) { return (a.color || "").localeCompare(b.color || ""); });
-            var html = `<div class="variant-box"><table class="mini-table"><thead><tr><th>Barcode</th><th>Color</th><th>Size</th><th class="text-right">Bal</th></tr></thead><tbody>`;
-            var currentColor = ''; 
-            var currentTotal = 0;
-            variants.forEach(function(v) {
-                var bal = v.balance || 0;
-                var balColor = getBalanceColor(bal);
-                if (v.color !== currentColor) { 
-                    if (currentColor !== '') { 
-                        html += `<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
-                    } 
-                    currentColor = v.color; 
-                    currentTotal = 0; 
+                    // Separator line below header
+                    pdf.setDrawColor(200, 200, 200);
+                    pdf.setLineWidth(0.5);
+                    pdf.line(15, 30, pageWidth - 15, 30);
+
+                    // --- FOOTER ---
+                    pdf.setFont("helvetica", "normal");
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(100, 100, 100);
+                    
+                    // Left: Author info
+                    pdf.text("Generated by: Stock Search System | Dev By: Maruf Mohammadi", 15, pageHeight - 10);
+                    
+                    // Right: Page Numbers
+                    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: "right" });
                 }
-                html += `<tr><td style="font-family:monospace; color:#64748b">${v.barcode}</td><td>${v.color||'-'}</td><td>${v.size||'-'}</td><td class="text-right" style="color:${balColor}; font-weight:bold;">${bal}</td></tr>`; 
-                currentTotal += bal;
+            }).save().then(() => {
+                // 4. Cleanup: Remove the class so screen view returns to normal
+                element.classList.remove('pdf-mode');
             });
-            if (currentColor !== '') { 
-                html += `<tr class="subtotal-row-mini"><td colspan="3" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
-            }
-            html += `</tbody></table></div>`; 
-            container.innerHTML = html;
-        } catch (err) { 
-            console.error(err); 
-            container.innerHTML = '<div style="color:red; padding:10px">Error loading variants</div>'; 
         }
-    }
 
-    function populateFilters(items) {
-        var colorSelect = document.getElementById('filter-color'); 
-        var sizeSelect = document.getElementById('filter-size');
-        colorSelect.innerHTML = '<option value="all">All Colors</option>'; 
-        sizeSelect.innerHTML = '<option value="all">All Sizes</option>';
-        var colors = [...new Set(items.map(i => i.color).filter(c => c))]; 
-        var sizes = [...new Set(items.map(i => i.size).filter(s => s))];
-        colors.sort(); 
-        sizes.sort(); 
-        colors.forEach(function(c) { colorSelect.innerHTML += `<option value="${c}">${c}</option>`; }); 
-        sizes.forEach(function(s) { sizeSelect.innerHTML += `<option value="${s}">${s}</option>`; });
-    }
-    
-    function applyFilters() {
-        var c = document.getElementById('filter-color').value; 
-        var s = document.getElementById('filter-size').value;
-        var filtered = originalStyleData.filter(function(item) { 
-            return (c === 'all' || item.color === c) && (s === 'all' || item.size === s); 
-        });
-        filtered = filterZeroStock(filtered);
-        renderTable(filtered);
-    }
-    
-    function clearFilters() { 
-        document.getElementById('filter-color').value = 'all'; 
-        document.getElementById('filter-size').value = 'all'; 
-        applyFilters(); 
-    }
-
-    function renderTable(items) {
-        var area = document.getElementById('resultsArea'); 
-        area.innerHTML = ''; 
-        if (items.length === 0) { 
-            area.innerHTML = '<div class="empty-state">No matches.</div>'; 
-            return; 
+        function showToast(msg, type='success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.borderLeft = type === 'success' ? '4px solid #059669' : '4px solid #dc2626';
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
         }
-        items.sort(function(a, b) { return (a.color || "").localeCompare(b.color || ""); });
-        var tableContainer = document.createElement('div'); 
-        tableContainer.className = 'table-container';
-        var tableHTML = `<table class="results-table"><thead><tr><th>Product</th><th>Barcode</th><th>Color / Size</th><th>MRP</th><th class="text-right">Balance</th></tr></thead><tbody>`;
-        var currentColor = ''; 
-        var currentTotal = 0;
-        items.forEach(function(item) {
-            var bal = item.balance || 0;
-            var balColor = getBalanceColor(bal);
-
-            if (item.color !== currentColor) {
-                if (currentColor !== '') { 
-                    tableHTML += `<tr class="subtotal-row"><td colspan="4" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
-                }
-                currentColor = item.color; 
-                currentTotal = 0;
-            }
-            tableHTML += `<tr><td><strong>${item.name}</strong></td><td style="font-family:monospace; color:#64748b">${item.barcode}</td><td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.8rem; margin-right:4px;">${item.color||'-'}</span><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.8rem;">${item.size||'-'}</span></td><td>${item.mrp||'0.00'}</td><td class="text-right" style="font-weight:700; color:${balColor}">${bal}</td></tr>`; 
-            currentTotal += bal;
-        });
-        if (currentColor !== '') { 
-            tableHTML += `<tr class="subtotal-row"><td colspan="4" class="text-right">Total ${currentColor}:</td><td class="text-right">${currentTotal}</td></tr>`; 
-        }
-        tableHTML += `</tbody></table>`; 
-        tableContainer.innerHTML = tableHTML; 
-        area.appendChild(tableContainer);
-    }
-
-    document.getElementById('searchInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') performSearch(); });
-</script>
+    </script>
 </body>
 </html>
