@@ -67,10 +67,8 @@
           <th>Men</th>
           <th>Women</th>
           <th>Total Footfall</th>
-          <!-- ADDED COLUMNS -->
           <th style="color:#ffeb3b;">Inv QTY</th>
           <th style="color:#ffeb3b;">VAT Amount</th>
-          <!-- END ADDED -->
           <th>Cash</th>
           <th>Manual Cash</th>
           <th>Ttl Cash</th>
@@ -152,12 +150,8 @@
         <td class="text-right">${val(row.visit_men)}</td>
         <td class="text-right">${val(row.visit_women)}</td>
         <td class="text-right">${val(row.total_footfall)}</td>
-        
-        <!-- ADDED CELLS -->
         <td class="text-right" style="background:#fffde7;">${val(row.inv_qty)}</td>
         <td class="text-right" style="background:#fffde7;">${val(row.vat_amount)}</td>
-        <!-- END ADDED -->
-
         <td class="text-right">${val(row.cash_sale)}</td>
         <td class="text-right">${val(row.manual_cash)}</td>
         <td class="text-right" style="background:#e3f2fd;">${val(row.total_cash)}</td>
@@ -192,7 +186,10 @@
     });
   }
 
-  function viewReport(id) { window.location.href = `dailysale.html?id=${id}`; }
+  // VIEW/EDIT FIX: Points to dailysale.html
+  function viewReport(id) {
+    window.location.href = `dailysale.html?id=${id}`;
+  }
 
   async function deleteReport(id) {
     if(!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
@@ -201,7 +198,6 @@
   }
 
   function exportToExcel(tableID, filename = ''){
-    // Simple HTML Table to Excel Export
     let downloadLink;
     const dataType = 'application/vnd.ms-excel';
     const tableSelect = document.getElementById(tableID);
