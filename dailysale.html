@@ -132,7 +132,6 @@
           <tr><td class="td-sl">7</td><td class="td-particulars">Visitors Mens</td><td class="td-sold"><input type="number" id="in_visit_men" class="editable text-center" value="3"></td></tr>
           <tr><td class="td-sl">8</td><td class="td-particulars">Visitors Womens</td><td class="td-sold"><input type="number" id="in_visit_women" class="editable text-center" value="4"></td></tr>
           <tr><td class="td-sl">9</td><td class="td-particulars">Total Footfall</td><td class="td-sold"><input type="number" id="out_footfall" class="editable text-center" readonly value="0"></td></tr>
-          <!-- ADDED FIELDS -->
           <tr><td class="td-sl">10</td><td class="td-particulars">Total Invoice QTY</td><td class="td-sold"><input type="number" id="in_inv_qty" class="editable text-center" value="3"></td></tr>
           <tr><td class="td-sl">11</td><td class="td-particulars">VAT Amount</td><td class="td-sold"><input type="number" id="in_vat_amt" class="editable text-center" value="1090"></td></tr>
           <tr><td colspan="3" class="td-item-wise">Item Wise Sale</td></tr>
@@ -200,8 +199,13 @@
     const dateInput = document.getElementById('report_date');
     if(!dateInput.value) dateInput.value = today;
     document.querySelectorAll('input.editable').forEach(input => input.addEventListener('input', calculateAll));
-    if (editId) loadReportData(editId);
-    else calculateAll();
+    
+    // CHECK FOR EDIT ID AND LOAD DATA
+    if (editId) {
+      loadReportData(editId);
+    } else {
+      calculateAll();
+    }
   });
 
   function getVal(id) { const v = document.getElementById(id).value; return v === '' ? 0 : parseFloat(v); }
@@ -230,14 +234,10 @@
       report_date: document.getElementById('report_date').value,
       opening_time: document.getElementById('open_time').value,
       closing_time: document.getElementById('close_time').value,
-      
       open_stock: getVal('in_open_stock'), recv_qty: getVal('in_recv_qty'), trans_qty: getVal('in_trans_qty'), sold_qty: getVal('in_sold_qty'), exch_qty: getVal('in_exch_qty'), close_stock: getVal('out_close_stock'),
       visit_men: getVal('in_visit_men'), visit_women: getVal('in_visit_women'), total_footfall: getVal('out_footfall'),
-      
-      // ADDED MISSING FIELDS HERE
-      inv_qty: getVal('in_inv_qty'),
+      inv_qty: getVal('in_inv_qty),
       vat_amount: getVal('in_vat_amt'),
-
       cash_sale: getVal('sale_cash'), manual_cash: getVal('sale_manual'), total_cash: getVal('out_total_cash'),
       city_card: getVal('card_city'), dbbl_card: getVal('card_dbbl'), ucb_card: getVal('card_ucb'), ebl_card: getVal('card_ebl'), total_card: getVal('out_total_card'),
       bkash: getVal('mob_bkash'), nagad: getVal('mob_nagad'), ssl: getVal('mob_ssl'), city_pay: getVal('mob_citypay'), total_mobile: getVal('out_total_mob'),
@@ -272,7 +272,8 @@
 
   async function loadReportData(id) {
     const { data, error } = await sbClient.from('daily_reports').select('*').eq('id', id).single();
-    if(error) return alert("Error loading report");
+    if(error) return alert("Error loading report: " + error.message);
+    
     const setS = (id, val) => { const el = document.getElementById(id); if(el) el.value = (val===null)?'':val; };
 
     setS('outlet_name', data.outlet_name);
@@ -289,7 +290,7 @@
     setS('in_visit_women', data.visit_women);
     setS('out_footfall', data.total_footfall);
     
-    // ADDED MISSING FIELDS LOADING
+    // Ensure missing fields are loaded
     setS('in_inv_qty', data.inv_qty);
     setS('in_vat_amt', data.vat_amount);
 
