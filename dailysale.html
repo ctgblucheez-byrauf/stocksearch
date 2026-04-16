@@ -6,65 +6,281 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+  
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a2e; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; font-family: 'Roboto', sans-serif; }
   
-  .report-wrapper { background: #fff; width: 680px; border: 2px solid #000; box-shadow: 0 8px 32px rgba(0,0,0,0.45); position: relative; }
-  
-  /* Input Styling */
-  input.calc-trigger { 
-    width: 100%; border: none; background: transparent; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; padding: 0; margin: 0; text-align: inherit; 
+  body { 
+    background: #1a1a2e; 
+    display: flex; justify-content: center; align-items: flex-start; 
+    min-height: 100vh; padding: 20px; 
+    font-family: 'Roboto', sans-serif; 
   }
-  input.calc-trigger:focus { outline: 2px solid #1a6bb5; background: #eef; }
-  input[readonly] { color: blue; font-weight: bold; pointer-events: none; }
+
+  .report-wrapper { 
+    background: #ffffff; 
+    width: 680px; 
+    border: 2px solid #000000; 
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45); 
+    position: relative; 
+  }
   
-  /* Alignment Helpers */
-  .text-center { text-align: center; } .text-right { text-align: right; } .text-left { text-align: left; }
+  input.calc-trigger { 
+    width: 100%; 
+    border: none; 
+    background: transparent; 
+    font-family: inherit; 
+    font-size: inherit; 
+    font-weight: inherit; 
+    color: inherit; 
+    padding: 0; 
+    margin: 0; 
+    text-align: inherit; 
+  }
+  
+  input.calc-trigger:focus { 
+    outline: 2px solid #1a6bb5; 
+    background: #eef; 
+  }
 
-  /* Header */
-  .brand-header { background: #0a0a1a; color: #fff; text-align: center; padding: 10px 0 6px; border-bottom: 3px solid #c8a84b; }
-  .brand-header h1 { font-family: 'Oswald', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #fff; text-shadow: 0 0 18px rgba(200,168,75,0.5); }
+  input[readonly] { 
+    background: transparent !important; 
+    pointer-events: none; 
+  }
+  
+  .text-center { text-align: center; } 
+  .text-right { text-align: right; } 
+  .text-left { text-align: left; }
 
-  /* Meta & Grid */
-  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 2px solid #000; }
-  .meta-cell { display: flex; align-items: center; border-right: 1px solid #888; padding: 0; }
+  .brand-header { 
+    background: #0a0a1a; 
+    color: #fff; 
+    text-align: center; 
+    padding: 10px 0 6px; 
+    border-bottom: 3px solid #c8a84b; 
+  }
+  .brand-header h1 { 
+    font-family: 'Oswald', sans-serif; 
+    font-size: 32px; 
+    font-weight: 700; 
+    letter-spacing: 6px; 
+    color: #fff; 
+    text-shadow: 0 0 18px rgba(200,168,75,0.5); 
+  }
+
+  .meta-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    border-bottom: 2px solid #000; 
+  }
+  .meta-cell { 
+    display: flex; 
+    align-items: center; 
+    border-right: 1px solid #888; 
+    padding: 0; 
+  }
   .meta-cell:last-child { border-right: none; }
-  .meta-label { background: #1a3a5c; color: #fff; font-size: 10px; font-weight: 700; padding: 6px 8px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; min-width: 105px; text-align: center; border-right: 1px solid #000; height: 100%; display: flex; align-items: center; justify-content: center; }
-  .meta-value { font-size: 13px; font-weight: 700; color: #1a6bb5; padding: 6px 12px; font-family: 'Oswald', sans-serif; letter-spacing: 1px; width: 100%; }
-  .date-row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 2px solid #000; }
-  .date-cell { display: flex; align-items: center; border-right: 1px solid #888; }
+  .meta-label { 
+    background: #1a3a5c; 
+    color: #fff; 
+    font-size: 10px; 
+    font-weight: 700; 
+    padding: 6px 8px; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    white-space: nowrap; 
+    min-width: 105px; 
+    text-align: center; 
+    border-right:1px solid #000; 
+    height: 100%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+  }
+  .meta-value { 
+    font-size: 13px; 
+    font-weight: 700; 
+    color: #1a6bb5; 
+    padding: 6px 12px; 
+    font-family: 'Oswald', sans-serif; 
+    letter-spacing: 1px; 
+    width: 100%; 
+  }
+  .date-row { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    border-bottom: 2px solid #000; 
+  }
+  .date-cell { 
+    display: flex; 
+    align-items: center; 
+    border-right: 1px solid #888; 
+  }
   .date-cell:last-child { border-right: none; }
-  .section-title { background: #1a3a5c; color: #fff; text-align: center; font-size: 13px; font-weight: 700; padding: 5px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 2px solid #000; }
+  .section-title { 
+    background: #1a3a5c; 
+    color: #fff; 
+    text-align: center; 
+    font-size: 13px; 
+    font-weight: 700; 
+    padding: 5px; 
+    letter-spacing: 2px; 
+    text-transform: uppercase; 
+    border-bottom: 2px solid #000; 
+  }
 
-  /* Tables */
-  .table-layout { display: grid; grid-template-columns: 1fr 1fr; border-top: none; }
-  .left-table, .right-table { border-right: 2px solid #000; }
+  .table-layout { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    border-top: none; 
+  }
+  .left-table, .right-table { 
+    border-right: 2px solid #000; 
+  }
   .right-table { border-right: none; }
-  table { width: 100%; border-collapse: collapse; font-size: 11px; }
-  thead tr th { background: #1a3a5c; color: #fff; font-size: 10px; font-weight: 700; padding: 4px 5px; text-align: center; border: 1px solid #000; text-transform: uppercase; letter-spacing: 0.5px; }
-  tbody tr td { padding: 3px 5px; border: 1px solid #bbb; color: #111; font-size: 10.5px; }
+  table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    font-size: 11px; 
+  }
+  thead tr th { 
+    background: #1a3a5c; 
+    color: #fff; 
+    font-size: 10px; 
+    font-weight: 700; 
+    padding: 4px 5px; 
+    text-align: center; 
+    border: 1px solid #000; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+  }
+  tbody tr td { 
+    padding: 3px 5px; 
+    border: 1px solid #bbb; 
+    color: #111; 
+    font-size: 10.5px; 
+  }
   
-  /* Cell Styles */
   .td-sl { text-align: center; width: 24px; font-weight: 600; background: #f5f5f5; }
   .td-particulars { font-weight: 500; }
   .td-sold { text-align: center; font-weight: 600; }
-  .td-label { background: #d0e8f5; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #1a3a5c; }
-  .td-value { text-align: right; font-weight: 700; font-family: 'Oswald', sans-serif; font-size: 11px; }
-  .td-total-label { background: #1a3a5c; color: #fff; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .td-total-value { background: #1a3a5c; color: #fff; text-align: right; font-weight: 700; font-family: 'Oswald', sans-serif; font-size: 12px; }
-  .td-card-label { background: #c8e6c9; font-weight: 700; font-size: 10px; text-transform: uppercase; color: #1b5e20; letter-spacing: 0.5px; }
-  .td-card-value { background: #c8e6c9; text-align: right; font-weight: 700; font-family: 'Oswald', sans-serif; font-size: 11px; color: #1b5e20; }
-  .td-mobile-label { background: #ffe0b2; font-weight: 700; font-size: 10px; text-transform: uppercase; color: #e65100; letter-spacing: 0.5px; }
-  .td-total-sales-label { background: #b71c1c; color: #fff; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-  .td-total-sales-value { background: #b71c1c; color: #fff; text-align: right; font-weight: 700; font-family: 'Oswald', sans-serif; font-size: 13px; }
-  .td-item-wise { background: #e8eaf6; font-weight: 700; font-size: 10px; text-transform: uppercase; color: #283593; letter-spacing: 0.5px; text-align: center; }
+  
+  .td-label { 
+    background: #d0e8f5; 
+    font-weight: 700; font-size: 10px; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    color: #1a3a5c; 
+  }
+  .td-value { 
+    text-align: right; font-weight: 700; font-family: 'Oswald', sans-serif; font-size: 11px; 
+  }
+
+  /* 1. OPENING & CLOSING STOCK - YELLOW HIGHLIGHT */
+  .td-stock-highlight {
+    background: #fffde7; 
+    border:1px solid #fbc02d;
+  }
+  .td-stock-highlight input {
+    color: #0d47a1; 
+    font-weight: bold;
+  }
+
+  /* 2. TOTAL CASH SALE - DEEP BLUE BACKGROUND, WHITE TEXT */
+  .td-cash-total-label {
+    background: #1a3a5c; 
+    color: #fff; 
+    font-weight: 700; font-size: 10px; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+  }
+  .td-cash-total-value { 
+    background: #1a3a5c; /* Deep Blue Background */
+    color: #ffffff; /* White Text */
+    font-family: 'Oswald', sans-serif; 
+    font-size: 13px; 
+    font-weight: bold;
+  }
+  .td-cash-total-value input {
+    color: #ffffff; /* Ensure input text is white */
+  }
+
+  /* 3. TOTAL CARD SALE */
+  .td-card-label { 
+    background: #c8e6c9; 
+    font-weight: 700; font-size: 10px; 
+    text-transform: uppercase; 
+    color: #1b5e20; 
+    letter-spacing: 0.5px; 
+  }
+  .td-card-value { 
+    background: #c8e6c9; 
+    text-align: right; 
+    font-weight: bold; 
+    font-family: 'Oswald', sans-serif; 
+    font-size: 11px; 
+    color: #000000; 
+  }
+
+  /* 4. TOTAL DIGITAL PAYMENT */
+  .td-digital-highlight {
+    background: #dce775; 
+  }
+  .td-digital-highlight input {
+    color: #000000; 
+    font-weight: bold;
+  }
+
+  .td-mobile-label { 
+    background: #ffe0b2; 
+    font-weight: 700; font-size: 10px; 
+    text-transform: uppercase; 
+    color: #e65100; 
+    letter-spacing: 0.5px; 
+  }
+  .td-total-sales-label { 
+    background: #b71c1c; 
+    color: #fff; 
+    font-weight: 700; font-size: 11px; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+  }
+  .td-total-sales-value { 
+    background: #b71c1c; 
+    color: #fff; 
+    text-align: right; 
+    font-weight: 700; 
+    font-family: 'Oswald', sans-serif; 
+    font-size: 13px; 
+  }
+  .td-item-wise { 
+    background: #e8eaf6; 
+    font-weight: 700; font-size: 10px; 
+    text-transform: uppercase; 
+    color: #283593; 
+    letter-spacing: 0.5px; 
+    text-align: center; 
+  }
   .td-dash { text-align: center; color: #888; }
   .td-empty { background: #fafafa; }
 
-  /* Footer */
-  .footer-row { border-top: 2px solid #000; display: grid; grid-template-columns: 1fr 1fr; }
-  .footer-left { border-right: 2px solid #000; padding: 6px 10px; font-size: 10px; }
-  .footer-left .total-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 11px; margin-top: 3px; border-top: 1px solid #aaa; padding-top: 3px; }
+  .footer-row { 
+    border-top: 2px solid #000; 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+  }
+  .footer-left { 
+    border-right: 2px solid #000; 
+    padding: 6px 10px; 
+    font-size: 10px; 
+  }
+  .footer-left .total-row { 
+    display: flex; 
+    justify-content: space-between; 
+    font-weight: 700; font-size: 11px; 
+    margin-top: 3px; 
+    border-top: 1px solid #aaa; 
+    padding-top: 3px; 
+  }
   .footer-right { padding: 6px 10px; text-align: center; }
   .footer-right .regards { font-size: 9px; color: #555; font-style: italic; margin-bottom: 4px; }
   .footer-right .name { font-size: 12px; font-weight: 700; color: #1a3a5c; font-family: 'Oswald', sans-serif; letter-spacing: 1px; }
@@ -72,15 +288,47 @@
   .footer-right .brand { font-size: 11px; font-weight: 700; color: #b71c1c; letter-spacing: 1px; }
   .footer-right .thank { font-size: 9px; color: #777; font-style: italic; margin-top: 2px; }
 
-  /* Buttons */
   .btn-container { margin-top: 20px; display: flex; gap: 15px; justify-content: center; }
-  .btn-generate { background: #c8a84b; color: #000; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 18px; padding: 12px 40px; border: none; cursor: pointer; letter-spacing: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: all 0.3s ease; }
+  .btn-generate { 
+    background: #c8a84b; 
+    color: #000; 
+    font-family: 'Oswald', sans-serif; 
+    font-weight: 700; font-size: 18px; 
+    padding: 12px 40px; 
+    border: none; 
+    cursor: pointer; 
+    letter-spacing: 2px; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+    transition: all 0.3s ease; 
+  }
   .btn-generate:hover { background: #e0c060; transform: translateY(-2px); }
-  .btn-summary { background: #333; color: #fff; padding: 12px 30px; border: none; cursor: pointer; font-weight: 700; text-transform: uppercase; }
+  .btn-summary { 
+    background: #333; 
+    color: #fff; 
+    padding: 12px 30px; 
+    border: none; 
+    cursor: pointer; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+  }
 
-  /* TOAST */
-  .toast-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
-  .toast-box { background: #fff; padding: 30px; border-radius: 8px; width: 400px; text-align: center; border-top: 5px solid #c8a84b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .toast-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.7); 
+    display: none; 
+    justify-content: center; 
+    align-items: center; 
+    z-index: 1000; 
+  }
+  .toast-box { 
+    background: #fff; 
+    padding: 30px; 
+    border-radius: 8px; 
+    width: 400px; 
+    text-align: center; 
+    border-top: 5px solid #c8a84b; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+  }
   .toast-title { font-family: 'Oswald'; font-size: 20px; margin-bottom: 10px; color: #1a1a2e; }
   .toast-msg { font-family: 'Roboto'; font-size: 14px; margin-bottom: 20px; color: #555; }
   .toast-actions { display: flex; gap: 10px; justify-content: center; }
@@ -93,7 +341,7 @@
 <div class="toast-overlay" id="confirmToast">
   <div class="toast-box">
     <div class="toast-title">Confirm Submission</div>
-    <div class="toast-msg">Are you sure you want to generate this report? Data will be saved to the database.</div>
+    <div class="toast-msg">Are you sure you want to generate this report? Data will be saved to database.</div>
     <div class="toast-actions">
       <button class="btn-confirm" onclick="confirmGenerate()">Yes, Generate</button>
       <button class="btn-cancel" onclick="closeToast()">Cancel</button>
@@ -136,12 +384,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td class="td-sl">1</td><td class="td-particulars">Opening Stock</td><td class="td-sold"><input type="number" id="in_open_stock" class="calc-trigger text-center" value="14767"></td></tr>
+          <tr><td class="td-sl">1</td><td class="td-particulars">Opening Stock</td><td class="td-stock-highlight"><input type="number" id="in_open_stock" class="calc-trigger text-center" value="14767"></td></tr>
           <tr><td class="td-sl">2</td><td class="td-particulars">Received QTY</td><td class="td-sold"><input type="number" id="in_recv_qty" class="calc-trigger text-center" value="120"></td></tr>
           <tr><td class="td-sl">3</td><td class="td-particulars">Transfer QTY</td><td class="td-sold"><input type="number" id="in_trans_qty" class="calc-trigger text-center" value="1"></td></tr>
           <tr><td class="td-sl">4</td><td class="td-particulars">Sold QTY</td><td class="td-sold"><input type="number" id="in_sold_qty" class="calc-trigger text-center" value="4"></td></tr>
           <tr><td class="td-sl">5</td><td class="td-particulars">Exchange QTY</td><td class="td-sold"><input type="number" id="in_exch_qty" class="calc-trigger text-center" value="0"></td></tr>
-          <tr><td class="td-sl">6</td><td class="td-particulars">Closing Stock (MIS)</td><td class="td-sold"><input type="number" id="out_close_stock" class="calc-trigger text-center" readonly value="14882"></td></tr>
+          <tr><td class="td-sl">6</td><td class="td-particulars">Closing Stock (MIS)</td><td class="td-stock-highlight"><input type="number" id="out_close_stock" class="calc-trigger text-center" readonly value="14882"></td></tr>
           <tr><td class="td-sl">7</td><td class="td-particulars">Visitors Mens</td><td class="td-sold"><input type="number" id="in_visit_men" class="calc-trigger text-center" value="3"></td></tr>
           <tr><td class="td-sl">8</td><td class="td-particulars">Visitors Womens</td><td class="td-sold"><input type="number" id="in_visit_women" class="calc-trigger text-center" value="4"></td></tr>
           <tr><td class="td-sl">9</td><td class="td-particulars">Total Footfall</td><td class="td-sold"><input type="number" id="out_footfall" class="calc-trigger text-center" readonly value="0"></td></tr>
@@ -166,7 +414,8 @@
         <tbody>
           <tr><td class="td-label">Cash Sale</td><td class="td-value"><input type="number" id="sale_cash" class="calc-trigger text-right" value="11584"></td></tr>
           <tr><td class="td-label">Manual Cash Sale</td><td class="td-value"><input type="number" id="sale_manual" class="calc-trigger text-right" value=""></td></tr>
-          <tr><td class="td-total-label">Total Cash Sale</td><td class="td-total-value"><input type="number" id="out_total_cash" class="calc-trigger text-right" readonly value="11584"></td></tr>
+          <!-- TOTAL CASH SALE: DEEP BLUE, WHITE TEXT -->
+          <tr><td class="td-cash-total-label">Total Cash Sale</td><td class="td-cash-total-value"><input type="number" id="out_total_cash" class="calc-trigger text-right" readonly value="11584"></td></tr>
           <tr><td class="td-label">City</td><td class="td-value"><input type="number" id="card_city" class="calc-trigger text-right" value="532"></td></tr>
           <tr><td class="td-label">DBBL</td><td class="td-value"><input type="number" id="card_dbbl" class="calc-trigger text-right" value=""></td></tr>
           <tr><td class="td-label">UCB</td><td class="td-value"><input type="number" id="card_ucb" class="calc-trigger text-right" value=""></td></tr>
@@ -177,7 +426,7 @@
           <tr><td class="td-label">SSl</td><td class="td-value"><input type="number" id="mob_ssl" class="calc-trigger text-right" value=""></td></tr>
           <tr><td class="td-label">City Pay</td><td class="td-value"><input type="number" id="mob_citypay" class="calc-trigger text-right" value=""></td></tr>
           <tr><td class="td-mobile-label" style="font-weight:700;color:#e65100;">Mobile Banking</td><td class="td-mobile-label" style="text-align:right;"><input type="number" id="out_total_mob" class="calc-trigger text-right" readonly value="0"></td></tr>
-          <tr><td class="td-label">Total Digital Payment</td><td class="td-value"><input type="number" id="out_total_digital" class="calc-trigger text-right" readonly value="0"></td></tr>
+          <tr><td class="td-label">Total Digital Payment</td><td class="td-digital-highlight"><input type="number" id="out_total_digital" class="calc-trigger text-right" readonly value="0"></td></tr>
           <tr><td class="td-label">Q-Coupon</td><td class="td-value"><input type="number" id="pay_coupon" class="calc-trigger text-right" value=""></td></tr>
           <tr><td class="td-empty"></td><td class="td-empty"></td></tr>
           <tr><td class="td-label">Gift Voucher</td><td class="td-value"><input type="number" id="pay_voucher" class="calc-trigger text-right" value=""></td></tr>
@@ -218,14 +467,13 @@
     const dateInput = document.getElementById('report_date');
     if(!dateInput.value) dateInput.value = today;
 
-    // Attach calculation listener to ALL inputs
     const inputs = document.querySelectorAll('.calc-trigger');
     inputs.forEach(input => input.addEventListener('input', calculateAll));
     
     if (editId) {
       loadReportData(editId);
     } else {
-      calculateAll(); // Init calculations
+      calculateAll();
     }
   });
 
@@ -248,27 +496,27 @@
     const footfall = getVal('in_visit_men') + getVal('in_visit_women');
     setVal('out_footfall', footfall);
 
-    // 3. Item Total = Men's + Women's + Black + Perfume + Boy's + Accessories + Belwari
+    // 3. Item Total
     const itemTotal = getVal('itm_mens') + getVal('itm_womens') + getVal('itm_black') + getVal('itm_perfume') + getVal('itm_boys') + getVal('itm_acc') + getVal('itm_belwari');
     setVal('out_item_total', itemTotal);
 
-    // 4. Total Cash Sale = Cash Sale + Manual Cash Sale
+    // 4. Total Cash Sale
     const totalCash = getVal('sale_cash') + getVal('sale_manual');
     setVal('out_total_cash', totalCash);
 
-    // 5. Total Card Sale = City + DBBL + UCB + EBL
+    // 5. Total Card Sale
     const totalCard = getVal('card_city') + getVal('card_dbbl') + getVal('card_ucb') + getVal('card_ebl');
     setVal('out_total_card', totalCard);
 
-    // 6. Mobile Banking = Bkash + Nagad + SSL + City Pay
+    // 6. Mobile Banking
     const totalMob = getVal('mob_bkash') + getVal('mob_nagad') + getVal('mob_ssl') + getVal('mob_citypay');
     setVal('out_total_mob', totalMob);
 
-    // 7. Total Digital Payment = Total Card Sale + Mobile Banking
+    // 7. Total Digital Payment
     const totalDigital = totalCard + totalMob;
     setVal('out_total_digital', totalDigital);
 
-    // 8. Total Sales = Total Digital Payment + Q-Coupon + Gift Voucher + Total Cash Sale
+    // 8. Total Sales
     const grandTotal = totalDigital + getVal('pay_coupon') + getVal('pay_voucher') + totalCash;
     setVal('out_grand_total', grandTotal);
   }
@@ -286,18 +534,13 @@
       opening_time: document.getElementById('open_time').value,
       closing_time: document.getElementById('close_time').value,
       
-      // Stock
       open_stock: getVal('in_open_stock'), recv_qty: getVal('in_recv_qty'), trans_qty: getVal('in_trans_qty'), sold_qty: getVal('in_sold_qty'), exch_qty: getVal('in_exch_qty'), close_stock: getVal('out_close_stock'),
-      // Footfall
       visit_men: getVal('in_visit_men'), visit_women: getVal('in_visit_women'), total_footfall: getVal('out_footfall'),
-      // Extra Info
       inv_qty: getVal('in_inv_qty'), vat_amount: getVal('in_vat_amt'),
-      // Sales
       cash_sale: getVal('sale_cash'), manual_cash: getVal('sale_manual'), total_cash: getVal('out_total_cash'),
       city_card: getVal('card_city'), dbbl_card: getVal('card_dbbl'), ucb_card: getVal('card_ucb'), ebl_card: getVal('card_ebl'), total_card: getVal('out_total_card'),
       bkash: getVal('mob_bkash'), nagad: getVal('mob_nagad'), ssl: getVal('mob_ssl'), city_pay: getVal('mob_citypay'), total_mobile: getVal('out_total_mob'),
       total_digital: getVal('out_total_digital'), q_coupon: getVal('pay_coupon'), gift_voucher: getVal('pay_voucher'), total_sales: getVal('out_grand_total'),
-      // Items
       item_mens: getVal('itm_mens'), item_womens: getVal('itm_womens'), item_black: getVal('itm_black'), item_perfume: getVal('itm_perfume'), item_boys: getVal('itm_boys'), item_acc: getVal('itm_acc'), item_belwari: getVal('itm_belwari'), item_total: getVal('out_item_total')
     };
 
