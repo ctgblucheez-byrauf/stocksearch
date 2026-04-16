@@ -46,7 +46,7 @@
     <input type="date" id="dateTo">
     <button class="btn btn-filter" onclick="fetchReports()">Filter</button>
     <div style="flex-grow: 1;"></div>
-    <button class="btn btn-export" onclick="exportToExcel('reportTable', 'Sales_Report')">Export to Excel</button>
+    <button class="btn btn-export" onclick="exportToExcel()">Export to Excel</button>
     <button class="btn btn-add" onclick="window.location.href='dailysale.html'">+ New Report</button>
   </div>
 
@@ -54,46 +54,15 @@
     <table id="reportTable">
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Outlet</th>
-          <th>Open Time</th>
-          <th>Close Time</th>
-          <th>Open Stock</th>
-          <th>Recv</th>
-          <th>Trans</th>
-          <th>Sold QTY</th>
-          <th>Exch QTY</th>
-          <th>Close Stock</th>
-          <th>Men</th>
-          <th>Women</th>
-          <th>Total Footfall</th>
-          <th style="color:#ffeb3b;">Inv QTY</th>
-          <th style="color:#ffeb3b;">VAT Amount</th>
-          <th>Cash</th>
-          <th>Manual Cash</th>
-          <th>Ttl Cash</th>
-          <th>City</th>
-          <th>DBBL</th>
-          <th>UCB</th>
-          <th>EBL</th>
-          <th>Ttl Card</th>
-          <th>Bkash</th>
-          <th>Nagad</th>
-          <th>SSL</th>
-          <th>City Pay</th>
-          <th>Mob Ttl</th>
-          <th>Digital Ttl</th>
-          <th>Coupon</th>
-          <th>Voucher</th>
-          <th>Grand Total</th>
-          <th>Itm Men</th>
-          <th>Itm Wmn</th>
-          <th>Itm Blk</th>
-          <th>Itm Prf</th>
-          <th>Itm Boy</th>
-          <th>Itm Acc</th>
-          <th>Itm Bel</th>
-          <th>Itm Ttl</th>
+          <th>Date</th><th>Outlet</th><th>Open Time</th><th>Close Time</th>
+          <th>Open Stock</th><th>Recv</th><th>Trans</th><th>Sold QTY</th><th>Exch QTY</th><th>Close Stock</th>
+          <th>Men</th><th>Women</th><th>Total Footfall</th>
+          <th>Inv QTY</th><th>VAT Amount</th>
+          <th>Cash</th><th>Manual Cash</th><th>Ttl Cash</th>
+          <th>City</th><th>DBBL</th><th>UCB</th><th>EBL</th><th>Ttl Card</th>
+          <th>Bkash</th><th>Nagad</th><th>SSL</th><th>City Pay</th><th>Mob Ttl</th>
+          <th>Digital Ttl</th><th>Coupon</th><th>Voucher</th><th>Grand Total</th>
+          <th>Itm Men</th><th>Itm Wmn</th><th>Itm Blk</th><th>Itm Prf</th><th>Itm Boy</th><th>Itm Acc</th><th>Itm Bel</th><th>Itm Ttl</th>
           <th style="min-width: 100px;">Actions</th>
         </tr>
       </thead>
@@ -105,7 +74,10 @@
 <script>
   const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-  const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  let sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  
+  // Global variable to store fetched data for Excel Export
+  let globalDataArray = [];
 
   document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
@@ -129,54 +101,46 @@
     const { data, error } = await query;
 
     tbody.innerHTML = '';
-    if (error) { tbody.innerHTML = '<tr><td colspan="44" style="text-align:center; color:red;">Error loading data</td></tr>'; return; }
-    if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="44" style="text-align:center;">No records found.</td></tr>'; return; }
+    if (error) { 
+      tbody.innerHTML = '<tr><td colspan="44" style="text-align:center; color:red;">Error loading data: ' + error.message + '</td></tr>'; 
+      return; 
+    }
+    if (data.length === 0) { 
+      tbody.innerHTML = '<tr><td colspan="44" style="text-align:center;">No records found.</td></tr>'; 
+      return; 
+    }
+
+    // Store data globally for export
+    globalDataArray = data;
 
     data.forEach(row => {
       const tr = document.createElement('tr');
       const val = (v) => (v === null || v === undefined) ? '' : v;
 
       tr.innerHTML = `
-        <td>${val(row.report_date)}</td>
-        <td>${val(row.outlet_name)}</td>
-        <td class="text-center">${val(row.opening_time)}</td>
-        <td class="text-center">${val(row.closing_time)}</td>
-        <td class="text-right">${val(row.open_stock)}</td>
-        <td class="text-right">${val(row.recv_qty)}</td>
-        <td class="text-right">${val(row.trans_qty)}</td>
-        <td class="text-right">${val(row.sold_qty)}</td>
-        <td class="text-right">${val(row.exch_qty)}</td>
-        <td class="text-right" style="color:blue; font-weight:bold;">${val(row.close_stock)}</td>
-        <td class="text-right">${val(row.visit_men)}</td>
-        <td class="text-right">${val(row.visit_women)}</td>
+        <td>${val(row.report_date)}</td><td>${val(row.outlet_name)}</td>
+        <td class="text-center">${val(row.opening_time)}</td><td class="text-center">${val(row.closing_time)}</td>
+        <td class="text-right">${val(row.open_stock)}</td><td class="text-right">${val(row.recv_qty)}</td>
+        <td class="text-right">${val(row.trans_qty)}</td><td class="text-right">${val(row.sold_qty)}</td>
+        <td class="text-right">${val(row.exch_qty)}</td><td class="text-right" style="color:blue;font-weight:bold;">${val(row.close_stock)}</td>
+        <td class="text-right">${val(row.visit_men)}</td><td class="text-right">${val(row.visit_women)}</td>
         <td class="text-right">${val(row.total_footfall)}</td>
-        <td class="text-right" style="background:#fffde7;">${val(row.inv_qty)}</td>
-        <td class="text-right" style="background:#fffde7;">${val(row.vat_amount)}</td>
-        <td class="text-right">${val(row.cash_sale)}</td>
-        <td class="text-right">${val(row.manual_cash)}</td>
+        <td class="text-right" style="background:#fffde7;">${val(row.inv_qty)}</td><td class="text-right" style="background:#fffde7;">${val(row.vat_amount)}</td>
+        <td class="text-right">${val(row.cash_sale)}</td><td class="text-right">${val(row.manual_cash)}</td>
         <td class="text-right" style="background:#e3f2fd;">${val(row.total_cash)}</td>
-        <td class="text-right">${val(row.city_card)}</td>
-        <td class="text-right">${val(row.dbbl_card)}</td>
-        <td class="text-right">${val(row.ucb_card)}</td>
-        <td class="text-right">${val(row.ebl_card)}</td>
+        <td class="text-right">${val(row.city_card)}</td><td class="text-right">${val(row.dbbl_card)}</td>
+        <td class="text-right">${val(row.ucb_card)}</td><td class="text-right">${val(row.ebl_card)}</td>
         <td class="text-right" style="background:#e8f5e9;">${val(row.total_card)}</td>
-        <td class="text-right">${val(row.bkash)}</td>
-        <td class="text-right">${val(row.nagad)}</td>
-        <td class="text-right">${val(row.ssl)}</td>
-        <td class="text-right">${val(row.city_pay)}</td>
+        <td class="text-right">${val(row.bkash)}</td><td class="text-right">${val(row.nagad)}</td>
+        <td class="text-right">${val(row.ssl)}</td><td class="text-right">${val(row.city_pay)}</td>
         <td class="text-right">${val(row.total_mobile)}</td>
-        <td class="text-right">${val(row.total_digital)}</td>
-        <td class="text-right">${val(row.q_coupon)}</td>
+        <td class="text-right">${val(row.total_digital)}</td><td class="text-right">${val(row.q_coupon)}</td>
         <td class="text-right">${val(row.gift_voucher)}</td>
         <td class="text-right grand-total">${val(row.total_sales)}</td>
-        <td class="text-right">${val(row.item_mens)}</td>
-        <td class="text-right">${val(row.item_womens)}</td>
-        <td class="text-right">${val(row.item_black)}</td>
-        <td class="text-right">${val(row.item_perfume)}</td>
-        <td class="text-right">${val(row.item_boys)}</td>
-        <td class="text-right">${val(row.item_acc)}</td>
-        <td class="text-right">${val(row.item_belwari)}</td>
-        <td class="text-right">${val(row.item_total)}</td>
+        <td class="text-right">${val(row.item_mens)}</td><td class="text-right">${val(row.item_womens)}</td>
+        <td class="text-right">${val(row.item_black)}</td><td class="text-right">${val(row.item_perfume)}</td>
+        <td class="text-right">${val(row.item_boys)}</td><td class="text-right">${val(row.item_acc)}</td>
+        <td class="text-right">${val(row.item_belwari)}</td><td class="text-right">${val(row.item_total)}</td>
         <td>
           <button class="btn btn-view" onclick="viewReport(${row.id})">View / Edit</button>
           <button class="btn btn-del" onclick="deleteReport(${row.id})">Delete</button>
@@ -186,10 +150,7 @@
     });
   }
 
-  // VIEW/EDIT FIX: Points to dailysale.html
-  function viewReport(id) {
-    window.location.href = `dailysale.html?id=${id}`;
-  }
+  function viewReport(id) { window.location.href = `dailysale.html?id=${id}`; }
 
   async function deleteReport(id) {
     if(!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
@@ -197,24 +158,62 @@
     if(error) { alert("Error deleting report: " + error.message); } else { alert("Report deleted."); fetchReports(); }
   }
 
-  function exportToExcel(tableID, filename = ''){
-    let downloadLink;
-    const dataType = 'application/vnd.ms-excel';
-    const tableSelect = document.getElementById(tableID);
-    const tableHTML = tableSelect.outerHTML.replace(/ /g, '%20');
-    
-    filename = filename ? filename+'.xls' : 'excel_data.xls';
-    downloadLink = document.createElement("a");
-    document.body.appendChild(downloadLink);
-    
-    if(navigator.msSaveOrOpenBlob){
-        const blob = new Blob(['\ufeff', tableHTML], { type: dataType });
-        navigator.msSaveOrOpenBlob( blob, filename);
-    }else{
-        downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
-        downloadLink.download = filename;
-        downloadLink.click();
+  function exportToExcel() {
+    if(globalDataArray.length === 0) {
+      alert("No data to export!");
+      return;
     }
+
+    // 1. Build the HTML Table String manually from data
+    let html = `
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Date</th><th>Outlet</th><th>Open Time</th><th>Close Time</th>
+          <th>Open Stock</th><th>Recv</th><th>Trans</th><th>Sold QTY</th><th>Exch QTY</th><th>Close Stock</th>
+          <th>Men</th><th>Women</th><th>Total Footfall</th>
+          <th>Inv QTY</th><th>VAT Amount</th>
+          <th>Cash</th><th>Manual Cash</th><th>Ttl Cash</th>
+          <th>City</th><th>DBBL</th><th>UCB</th><th>EBL</th><th>Ttl Card</th>
+          <th>Bkash</th><th>Nagad</th><th>SSL</th><th>City Pay</th><th>Mob Ttl</th>
+          <th>Digital Ttl</th><th>Coupon</th><th>Voucher</th><th>Grand Total</th>
+          <th>Itm Men</th><th>Itm Wmn</th><th>Itm Blk</th><th>Itm Prf</th><th>Itm Boy</th><th>Itm Acc</th><th>Itm Bel</th><th>Itm Ttl</th>
+        </tr>
+      </thead>
+      <tbody>
+    `;
+
+    globalDataArray.forEach(row => {
+      const val = (v) => (v === null || v === undefined) ? '' : v;
+      html += `
+        <tr>
+          <td>${val(row.report_date)}</td><td>${val(row.outlet_name)}</td>
+          <td>${val(row.opening_time)}</td><td>${val(row.closing_time)}</td>
+          <td>${val(row.open_stock)}</td><td>${val(row.recv_qty)}</td>
+          <td>${val(row.trans_qty)}</td><td>${val(row.sold_qty)}</td>
+          <td>${val(row.exch_qty)}</td><td>${val(row.close_stock)}</td>
+          <td>${val(row.visit_men)}</td><td>${val(row.visit_women)}</td><td>${val(row.total_footfall)}</td>
+          <td>${val(row.inv_qty)}</td><td>${val(row.vat_amount)}</td>
+          <td>${val(row.cash_sale)}</td><td>${val(row.manual_cash)}</td><td>${val(row.total_cash)}</td>
+          <td>${val(row.city_card)}</td><td>${val(row.dbbl_card)}</td><td>${val(row.ucb_card)}</td><td>${val(row.ebl_card)}</td><td>${val(row.total_card)}</td>
+          <td>${val(row.bkash)}</td><td>${val(row.nagad)}</td><td>${val(row.ssl)}</td><td>${val(row.city_pay)}</td><td>${val(row.total_mobile)}</td>
+          <td>${val(row.total_digital)}</td><td>${val(row.q_coupon)}</td><td>${val(row.gift_voucher)}</td><td>${val(row.total_sales)}</td>
+          <td>${val(row.item_mens)}</td><td>${val(row.item_womens)}</td><td>${val(row.item_black)}</td><td>${val(row.item_perfume)}</td><td>${val(row.item_boys)}</td><td>${val(row.item_acc)}</td><td>${val(row.item_belwari)}</td><td>${val(row.item_total)}</td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+
+    // 2. Create Blob and Download
+    const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Sales_Report_' + new Date().toISOString().split('T')[0] + '.xls';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 </script>
 </body>
