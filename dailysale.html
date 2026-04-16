@@ -3,357 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <title>Blucheez Daily Sales Report</title>
-<!-- Supabase JS Library -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; font-family: 'Roboto', sans-serif; }
+  
+  .report-wrapper { background: #fff; width: 680px; border: 2px solid #000; box-shadow: 0 8px 32px rgba(0,0,0,0.45); position: relative; }
+  input.editable { width: 100%; border: none; background: transparent; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; padding: 0; margin: 0; text-align: inherit; }
+  input.editable:focus { outline: 2px solid #1a6bb5; background: #eef; }
+  input[readonly] { color: blue; font-weight: bold; pointer-events: none; }
+  .text-center { text-align: center; } .text-right { text-align: right; } .text-left { text-align: left; }
 
-  body {
-    background: #1a1a2e;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
-    padding: 20px;
-    font-family: 'Roboto', sans-serif;
-  }
+  .brand-header { background: #0a0a1a; color: #fff; text-align: center; padding: 10px 0 6px; border-bottom: 3px solid #c8a84b; }
+  .brand-header h1 { font-family: 'Oswald', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #fff; text-shadow: 0 0 18px rgba(200,168,75,0.5); }
 
-  .report-wrapper {
-    background: #fff;
-    width: 680px;
-    border: 2px solid #000;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
-    position: relative;
-  }
-
-  /* INPUT STYLING TO MATCH TEXT */
-  input.editable {
-    width: 100%;
-    border: none;
-    background: transparent;
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: inherit;
-    color: inherit;
-    padding: 0;
-    margin: 0;
-    text-align: inherit;
-  }
-  input.editable:focus {
-    outline: 2px solid #1a6bb5;
-    background: #eef;
-  }
-  /* Alignments */
-  .text-center { text-align: center; }
-  .text-right { text-align: right; }
-  .text-left { text-align: left; }
-
-  /* HEADER */
-  .brand-header {
-    background: #0a0a1a;
-    color: #fff;
-    text-align: center;
-    padding: 10px 0 6px;
-    border-bottom: 3px solid #c8a84b;
-  }
-  .brand-header h1 {
-    font-family: 'Oswald', sans-serif;
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: 6px;
-    color: #fff;
-    text-shadow: 0 0 18px rgba(200,168,75,0.5);
-  }
-
-  /* META ROW */
-  .meta-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    border-bottom: 2px solid #000;
-  }
-  .meta-cell {
-    display: flex;
-    align-items: center;
-    border-right: 1px solid #888;
-    padding: 0;
-  }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 2px solid #000; }
+  .meta-cell { display: flex; align-items: center; border-right: 1px solid #888; padding: 0; }
   .meta-cell:last-child { border-right: none; }
-  .meta-label {
-    background: #1a3a5c;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 6px 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    min-width: 105px;
-    text-align: center;
-    border-right: 1px solid #000;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .meta-value {
-    font-size: 13px;
-    font-weight: 700;
-    color: #1a6bb5;
-    padding: 6px 12px;
-    font-family: 'Oswald', sans-serif;
-    letter-spacing: 1px;
-    width: 100%;
-  }
-
-  /* DATE ROW */
-  .date-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    border-bottom: 2px solid #000;
-  }
-  .date-cell {
-    display: flex;
-    align-items: center;
-    border-right: 1px solid #888;
-  }
+  .meta-label { background: #1a3a5c; color: #fff; font-size: 10px; font-weight: 700; padding: 6px 8px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; min-width: 105px; text-align: center; border-right: 1px solid #000; height: 100%; display: flex; align-items: center; justify-content: center; }
+  .meta-value { font-size: 13px; font-weight: 700; color: #1a6bb5; padding: 6px 12px; font-family: 'Oswald', sans-serif; letter-spacing: 1px; width: 100%; }
+  .date-row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 2px solid #000; }
+  .date-cell { display: flex; align-items: center; border-right: 1px solid #888; }
   .date-cell:last-child { border-right: none; }
+  .section-title { background: #1a3a5c; color: #fff; text-align: center; font-size: 13px; font-weight: 700; padding: 5px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 2px solid #000; }
 
-  /* SECTION TITLE */
-  .section-title {
-    background: #1a3a5c;
-    color: #fff;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 700;
-    padding: 5px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    border-bottom: 2px solid #000;
-  }
-
-  /* MAIN TABLE LAYOUT */
-  .table-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    border-top: none;
-  }
-
-  .left-table, .right-table {
-    border-right: 2px solid #000;
-  }
+  .table-layout { display: grid; grid-template-columns: 1fr 1fr; border-top: none; }
+  .left-table, .right-table { border-right: 2px solid #000; }
   .right-table { border-right: none; }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 11px;
-  }
-
-  thead tr th {
-    background: #1a3a5c;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 4px 5px;
-    text-align: center;
-    border: 1px solid #000;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  tbody tr td {
-    padding: 3px 5px;
-    border: 1px solid #bbb;
-    color: #111;
-    font-size: 10.5px;
-  }
-
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  thead tr th { background: #1a3a5c; color: #fff; font-size: 10px; font-weight: 700; padding: 4px 5px; text-align: center; border: 1px solid #000; text-transform: uppercase; letter-spacing: 0.5px; }
+  tbody tr td { padding: 3px 5px; border: 1px solid #bbb; color: #111; font-size: 10.5px; }
+  
   .td-sl { text-align: center; width: 24px; font-weight: 600; background: #f5f5f5; }
   .td-particulars { font-weight: 500; }
   .td-sold { text-align: center; font-weight: 600; }
-  
-  /* Specific Background Colors */
-  .td-label {
-    background: #d0e8f5;
-    font-weight: 700;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #1a3a5c;
-  }
+  .td-label { background: #d0e8f5; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #1a3a5c; }
   .td-value { text-align: right; font-weight: 700; font-family: 'Oswald', sans-serif; font-size: 11px; }
-  .td-total-label {
-    background: #1a3a5c;
-    color: #fff;
-    font-weight: 700;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .td-total-value {
-    background: #1a3a5c;
-    color: #fff;
-    text-align: right;
-    font-weight: 700;
-    font-family: 'Oswald', sans-serif;
-    font-size: 12px;
-  }
-  .td-card-label {
-    background: #c8e6c9;
-    font-weight: 700;
-    font-size: 10px;
-    text-transform: uppercase;
-    color: #1b5e20;
-    letter-spacing: 0.5px;
-  }
-  .td-card-value {
-    background: #c8e6c9;
-    text-align: right;
-    font-weight: 700;
-    font-family: 'Oswald', sans-serif;
-    font-size: 11px;
-    color: #1b5e20;
-  }
-  .td-mobile-label {
-    background: #ffe0b2;
-    font-weight: 700;
-    font-size: 10px;
-    text-transform: uppercase;
-    color: #e65100;
-    letter-spacing: 0.5px;
-  }
-  .td-total-sales-label {
-    background: #b71c1c;
-    color: #fff;
-    font-weight: 700;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  .td-total-sales-value {
-    background: #b71c1c;
-    color: #fff;
-    text-align: right;
-    font-weight: 700;
-    font-family: 'Oswald', sans-serif;
-    font-size: 13px;
-  }
-  .td-item-wise {
-    background: #e8eaf6;
-    font-weight: 700;
-    font-size: 10px;
-    text-transform: uppercase;
-    color: #283593;
-    letter-spacing: 0.5px;
-    text-align: center;
-  }
+  .td-total-label { background: #1a3a5c; color: #fff; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .td-total-value { background: #1a3a5c; color: #fff; text-align: right; font-weight: 700; font-family: 'Oswald', sans-serif; font-size: 12px; }
+  .td-card-label { background: #c8e6c9; font-weight: 700; font-size: 10px; text-transform: uppercase; color: #1b5e20; letter-spacing: 0.5px; }
+  .td-card-value { background: #c8e6c9; text-align: right; font-weight: 700; font-family: 'Oswald', sans-serif; font-size: 11px; color: #1b5e20; }
+  .td-mobile-label { background: #ffe0b2; font-weight: 700; font-size: 10px; text-transform: uppercase; color: #e65100; letter-spacing: 0.5px; }
+  .td-total-sales-label { background: #b71c1c; color: #fff; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .td-total-sales-value { background: #b71c1c; color: #fff; text-align: right; font-weight: 700; font-family: 'Oswald', sans-serif; font-size: 13px; }
+  .td-item-wise { background: #e8eaf6; font-weight: 700; font-size: 10px; text-transform: uppercase; color: #283593; letter-spacing: 0.5px; text-align: center; }
   .td-dash { text-align: center; color: #888; }
   .td-empty { background: #fafafa; }
 
-  /* FOOTER */
-  .footer-row {
-    border-top: 2px solid #000;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-  .footer-left {
-    border-right: 2px solid #000;
-    padding: 6px 10px;
-    font-size: 10px;
-  }
-  .footer-left .total-row {
-    display: flex;
-    justify-content: space-between;
-    font-weight: 700;
-    font-size: 11px;
-    margin-top: 3px;
-    border-top: 1px solid #aaa;
-    padding-top: 3px;
-  }
-  .footer-right {
-    padding: 6px 10px;
-    text-align: center;
-  }
+  .footer-row { border-top: 2px solid #000; display: grid; grid-template-columns: 1fr 1fr; }
+  .footer-left { border-right: 2px solid #000; padding: 6px 10px; font-size: 10px; }
+  .footer-left .total-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 11px; margin-top: 3px; border-top: 1px solid #aaa; padding-top: 3px; }
+  .footer-right { padding: 6px 10px; text-align: center; }
   .footer-right .regards { font-size: 9px; color: #555; font-style: italic; margin-bottom: 4px; }
   .footer-right .name { font-size: 12px; font-weight: 700; color: #1a3a5c; font-family: 'Oswald', sans-serif; letter-spacing: 1px; }
   .footer-right .sub { font-size: 10px; font-weight: 600; color: #333; letter-spacing: 0.5px; }
   .footer-right .brand { font-size: 11px; font-weight: 700; color: #b71c1c; letter-spacing: 1px; }
   .footer-right .thank { font-size: 9px; color: #777; font-style: italic; margin-top: 2px; }
 
-  /* BUTTON */
-  .btn-container {
-    margin-top: 20px;
-    text-align: center;
-  }
-  .btn-generate {
-    background: #c8a84b;
-    color: #000;
-    font-family: 'Oswald', sans-serif;
-    font-weight: 700;
-    font-size: 18px;
-    padding: 12px 40px;
-    border: none;
-    cursor: pointer;
-    letter-spacing: 2px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
-  }
-  .btn-generate:hover {
-    background: #e0c060;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.4);
-  }
+  .btn-container { margin-top: 20px; display: flex; gap: 15px; justify-content: center; }
+  .btn-generate { background: #c8a84b; color: #000; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 18px; padding: 12px 40px; border: none; cursor: pointer; letter-spacing: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: all 0.3s ease; }
+  .btn-generate:hover { background: #e0c060; transform: translateY(-2px); }
+  .btn-summary { background: #333; color: #fff; padding: 12px 30px; border: none; cursor: pointer; font-weight: 700; text-transform: uppercase; }
+
+  .toast-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
+  .toast-box { background: #fff; padding: 30px; border-radius: 8px; width: 400px; text-align: center; border-top: 5px solid #c8a84b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .toast-title { font-family: 'Oswald'; font-size: 20px; margin-bottom: 10px; color: #1a1a2e; }
+  .toast-msg { font-family: 'Roboto'; font-size: 14px; margin-bottom: 20px; color: #555; }
+  .toast-actions { display: flex; gap: 10px; justify-content: center; }
+  .btn-confirm { background: #1a6bb5; color: #fff; border: none; padding: 8px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; }
+  .btn-cancel { background: #ccc; color: #333; border: none; padding: 8px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; }
 </style>
 </head>
 <body>
 
-<div class="report-wrapper">
-  <!-- Brand Header -->
-  <div class="brand-header">
-    <h1>Blucheez</h1>
+<div class="toast-overlay" id="confirmToast">
+  <div class="toast-box">
+    <div class="toast-title">Confirm Submission</div>
+    <div class="toast-msg">Are you sure you want to generate this report? Data will be saved to the database.</div>
+    <div class="toast-actions">
+      <button class="btn-confirm" onclick="confirmGenerate()">Yes, Generate</button>
+      <button class="btn-cancel" onclick="closeToast()">Cancel</button>
+    </div>
   </div>
+</div>
 
-  <!-- Outlet Name / Date -->
+<div class="report-wrapper">
+  <div class="brand-header"><h1>Blucheez</h1></div>
   <div class="meta-grid">
     <div class="meta-cell">
       <div class="meta-label">Outlet Name</div>
-      <div class="meta-value">
-        <input type="text" id="outlet_name" class="editable" value="Chattogram">
-      </div>
+      <div class="meta-value"><input type="text" id="outlet_name" class="editable" value="Chattogram"></div>
     </div>
     <div class="meta-cell">
       <div class="meta-label" style="min-width:110px;">Date</div>
-      <div class="meta-value">
-        <input type="date" id="report_date" class="editable">
-      </div>
+      <div class="meta-value"><input type="date" id="report_date" class="editable"></div>
     </div>
   </div>
-
-  <!-- Opening / Closing Time -->
   <div class="date-row">
     <div class="date-cell">
       <div class="meta-label">Opening Time</div>
-      <div class="meta-value">
-        <input type="time" id="open_time" class="editable" value="10:00">
-      </div>
+      <div class="meta-value"><input type="time" id="open_time" class="editable" value="10:00"></div>
     </div>
     <div class="date-cell">
       <div class="meta-label">Closing Time</div>
-      <div class="meta-value">
-        <input type="time" id="close_time" class="editable" value="20:00">
-      </div>
+      <div class="meta-value"><input type="time" id="close_time" class="editable" value="20:00"></div>
     </div>
   </div>
-
-  <!-- Section Title -->
   <div class="section-title">Daily Sales Report</div>
 
-  <!-- Two-column table layout -->
   <div class="table-layout">
-
-    <!-- LEFT TABLE -->
     <div class="left-table">
       <table>
         <thead>
@@ -364,385 +123,202 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td class="td-sl">1</td>
-            <td class="td-particulars">Opening Stock</td>
-            <td class="td-sold"><input type="number" id="in_open_stock" class="editable text-center" value="14767"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">2</td>
-            <td class="td-particulars">Received QTY</td>
-            <td class="td-sold"><input type="number" id="in_recv_qty" class="editable text-center" value="120"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">3</td>
-            <td class="td-particulars">Transfer QTY</td>
-            <td class="td-sold"><input type="number" id="in_trans_qty" class="editable text-center" value="1"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">4</td>
-            <td class="td-particulars">Sold QTY</td>
-            <td class="td-sold"><input type="number" id="in_sold_qty" class="editable text-center" value="4"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">5</td>
-            <td class="td-particulars">Exchange QTY</td>
-            <td class="td-sold"><input type="number" id="in_exch_qty" class="editable text-center" value="0"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">6</td>
-            <td class="td-particulars">Closing Stock (MIS)</td>
-            <td class="td-sold"><input type="number" id="out_close_stock" class="editable text-center" readonly style="color: blue; font-weight:bold;" value="14882"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">7</td>
-            <td class="td-particulars">Visitors Mens</td>
-            <td class="td-sold"><input type="number" id="in_visit_men" class="editable text-center" value="3"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">8</td>
-            <td class="td-particulars">Visitors Womens</td>
-            <td class="td-sold"><input type="number" id="in_visit_women" class="editable text-center" value="4"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">9</td>
-            <td class="td-particulars">Total Footfall</td>
-            <td class="td-sold"><input type="number" id="out_footfall" class="editable text-center" readonly style="color: blue; font-weight:bold;" value="0"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">10</td>
-            <td class="td-particulars">Total Invoice QTY</td>
-            <td class="td-sold"><input type="number" id="in_inv_qty" class="editable text-center" value="3"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">11</td>
-            <td class="td-particulars">VAT Amount</td>
-            <td class="td-sold"><input type="number" id="in_vat_amt" class="editable text-center" value="1090"></td>
-          </tr>
-          <tr>
-            <td colspan="3" class="td-item-wise">Item Wise Sale</td>
-          </tr>
-          <tr>
-            <td class="td-sl">12</td>
-            <td class="td-particulars">Men's</td>
-            <td class="td-sold"><input type="number" id="itm_mens" class="editable text-center" value="3"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">13</td>
-            <td class="td-particulars">Womens</td>
-            <td class="td-sold"><input type="number" id="itm_womens" class="editable text-center" value="1"></td>
-          </tr>
-          <tr>
-            <td class="td-sl">14</td>
-            <td class="td-particulars">Black</td>
-            <td class="td-sold"><input type="number" id="itm_black" class="editable text-center" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-sl">15</td>
-            <td class="td-particulars">Perfume</td>
-            <td class="td-sold"><input type="number" id="itm_perfume" class="editable text-center" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-sl">16</td>
-            <td class="td-particulars">Boy's Item</td>
-            <td class="td-sold"><input type="number" id="itm_boys" class="editable text-center" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-sl">17</td>
-            <td class="td-particulars">Accessories</td>
-            <td class="td-sold"><input type="number" id="itm_acc" class="editable text-center" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-sl">18</td>
-            <td class="td-particulars">Belwari</td>
-            <td class="td-sold"><input type="number" id="itm_belwari" class="editable text-center" value=""></td>
-          </tr>
-          <!-- Added Row for Item Total as requested by logic -->
-          <tr>
-            <td class="td-sl"></td>
-            <td class="td-particulars" style="font-weight:bold; background:#eee;">ITEM TOTAL</td>
-            <td class="td-sold"><input type="number" id="out_item_total" class="editable text-center" readonly style="color: #b71c1c; font-weight:bold;" value="0"></td>
-          </tr>
+          <tr><td class="td-sl">1</td><td class="td-particulars">Opening Stock</td><td class="td-sold"><input type="number" id="in_open_stock" class="editable text-center" value="14767"></td></tr>
+          <tr><td class="td-sl">2</td><td class="td-particulars">Received QTY</td><td class="td-sold"><input type="number" id="in_recv_qty" class="editable text-center" value="120"></td></tr>
+          <tr><td class="td-sl">3</td><td class="td-particulars">Transfer QTY</td><td class="td-sold"><input type="number" id="in_trans_qty" class="editable text-center" value="1"></td></tr>
+          <tr><td class="td-sl">4</td><td class="td-particulars">Sold QTY</td><td class="td-sold"><input type="number" id="in_sold_qty" class="editable text-center" value="4"></td></tr>
+          <tr><td class="td-sl">5</td><td class="td-particulars">Exchange QTY</td><td class="td-sold"><input type="number" id="in_exch_qty" class="editable text-center" value="0"></td></tr>
+          <tr><td class="td-sl">6</td><td class="td-particulars">Closing Stock (MIS)</td><td class="td-sold"><input type="number" id="out_close_stock" class="editable text-center" readonly value="14882"></td></tr>
+          <tr><td class="td-sl">7</td><td class="td-particulars">Visitors Mens</td><td class="td-sold"><input type="number" id="in_visit_men" class="editable text-center" value="3"></td></tr>
+          <tr><td class="td-sl">8</td><td class="td-particulars">Visitors Womens</td><td class="td-sold"><input type="number" id="in_visit_women" class="editable text-center" value="4"></td></tr>
+          <tr><td class="td-sl">9</td><td class="td-particulars">Total Footfall</td><td class="td-sold"><input type="number" id="out_footfall" class="editable text-center" readonly value="0"></td></tr>
+          <!-- ADDED FIELDS -->
+          <tr><td class="td-sl">10</td><td class="td-particulars">Total Invoice QTY</td><td class="td-sold"><input type="number" id="in_inv_qty" class="editable text-center" value="3"></td></tr>
+          <tr><td class="td-sl">11</td><td class="td-particulars">VAT Amount</td><td class="td-sold"><input type="number" id="in_vat_amt" class="editable text-center" value="1090"></td></tr>
+          <tr><td colspan="3" class="td-item-wise">Item Wise Sale</td></tr>
+          <tr><td class="td-sl">12</td><td class="td-particulars">Men's</td><td class="td-sold"><input type="number" id="itm_mens" class="editable text-center" value="3"></td></tr>
+          <tr><td class="td-sl">13</td><td class="td-particulars">Womens</td><td class="td-sold"><input type="number" id="itm_womens" class="editable text-center" value="1"></td></tr>
+          <tr><td class="td-sl">14</td><td class="td-particulars">Black</td><td class="td-sold"><input type="number" id="itm_black" class="editable text-center" value=""></td></tr>
+          <tr><td class="td-sl">15</td><td class="td-particulars">Perfume</td><td class="td-sold"><input type="number" id="itm_perfume" class="editable text-center" value=""></td></tr>
+          <tr><td class="td-sl">16</td><td class="td-particulars">Boy's Item</td><td class="td-sold"><input type="number" id="itm_boys" class="editable text-center" value=""></td></tr>
+          <tr><td class="td-sl">17</td><td class="td-particulars">Accessories</td><td class="td-sold"><input type="number" id="itm_acc" class="editable text-center" value=""></td></tr>
+          <tr><td class="td-sl">18</td><td class="td-particulars">Belwari</td><td class="td-sold"><input type="number" id="itm_belwari" class="editable text-center" value=""></td></tr>
+          <tr><td class="td-sl"></td><td class="td-particulars" style="font-weight:bold; background:#eee;">ITEM TOTAL</td><td class="td-sold"><input type="number" id="out_item_total" class="editable text-center" readonly value="0"></td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- RIGHT TABLE -->
     <div class="right-table">
       <table>
-        <thead>
-          <tr>
-            <th>Total Sale</th>
-            <th style="width:70px;">Amount</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Total Sale</th><th style="width:70px;">Amount</th></tr></thead>
         <tbody>
-          <tr>
-            <td class="td-label">Cash Sale</td>
-            <td class="td-value"><input type="number" id="sale_cash" class="editable text-right" value="11584"></td>
-          </tr>
-          <tr>
-            <td class="td-label">Manual Cash Sale</td>
-            <td class="td-value"><input type="number" id="sale_manual" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-total-label">Total Cash Sale</td>
-            <td class="td-total-value"><input type="number" id="out_total_cash" class="editable text-right" readonly value="11584"></td>
-          </tr>
-          <tr>
-            <td class="td-label">City</td>
-            <td class="td-value"><input type="number" id="card_city" class="editable text-right" value="532"></td>
-          </tr>
-          <tr>
-            <td class="td-label">DBBL</td>
-            <td class="td-value"><input type="number" id="card_dbbl" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-label">UCB</td>
-            <td class="td-value"><input type="number" id="card_ucb" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-label">EBL</td>
-            <td class="td-value"><input type="number" id="card_ebl" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-card-label">Total Card Sale</td>
-            <td class="td-card-value"><input type="number" id="out_total_card" class="editable text-right" readonly value="532"></td>
-          </tr>
-          <tr>
-            <td class="td-label">Bkash</td>
-            <td class="td-value"><input type="number" id="mob_bkash" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-label">Nagad</td>
-            <td class="td-value"><input type="number" id="mob_nagad" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-label">SSl</td>
-            <td class="td-value"><input type="number" id="mob_ssl" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-label">City Pay</td>
-            <td class="td-value"><input type="number" id="mob_citypay" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-mobile-label" style="font-weight:700;color:#e65100;">Mobile Banking</td>
-            <td class="td-mobile-label" style="text-align:right;"><input type="number" id="out_total_mob" class="editable text-right" readonly value="0"></td>
-          </tr>
-          <tr>
-            <td class="td-label">Total Digital Payment</td>
-            <td class="td-value"><input type="number" id="out_total_digital" class="editable text-right" readonly value="0"></td>
-          </tr>
-          <tr>
-            <td class="td-label">Q-Coupon</td>
-            <td class="td-value"><input type="number" id="pay_coupon" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-empty"></td>
-            <td class="td-empty"></td>
-          </tr>
-          <tr>
-            <td class="td-label">Gift Voucher</td>
-            <td class="td-value"><input type="number" id="pay_voucher" class="editable text-right" value=""></td>
-          </tr>
-          <tr>
-            <td class="td-total-sales-label">Total Sales</td>
-            <td class="td-total-sales-value"><input type="number" id="out_grand_total" class="editable text-right" readonly value="12116"></td>
-          </tr>
+          <tr><td class="td-label">Cash Sale</td><td class="td-value"><input type="number" id="sale_cash" class="editable text-right" value="11584"></td></tr>
+          <tr><td class="td-label">Manual Cash Sale</td><td class="td-value"><input type="number" id="sale_manual" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-total-label">Total Cash Sale</td><td class="td-total-value"><input type="number" id="out_total_cash" class="editable text-right" readonly value="11584"></td></tr>
+          <tr><td class="td-label">City</td><td class="td-value"><input type="number" id="card_city" class="editable text-right" value="532"></td></tr>
+          <tr><td class="td-label">DBBL</td><td class="td-value"><input type="number" id="card_dbbl" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-label">UCB</td><td class="td-value"><input type="number" id="card_ucb" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-label">EBL</td><td class="td-value"><input type="number" id="card_ebl" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-card-label">Total Card Sale</td><td class="td-card-value"><input type="number" id="out_total_card" class="editable text-right" readonly value="532"></td></tr>
+          <tr><td class="td-label">Bkash</td><td class="td-value"><input type="number" id="mob_bkash" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-label">Nagad</td><td class="td-value"><input type="number" id="mob_nagad" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-label">SSl</td><td class="td-value"><input type="number" id="mob_ssl" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-label">City Pay</td><td class="td-value"><input type="number" id="mob_citypay" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-mobile-label" style="font-weight:700;color:#e65100;">Mobile Banking</td><td class="td-mobile-label" style="text-align:right;"><input type="number" id="out_total_mob" class="editable text-right" readonly value="0"></td></tr>
+          <tr><td class="td-label">Total Digital Payment</td><td class="td-value"><input type="number" id="out_total_digital" class="editable text-right" readonly value="0"></td></tr>
+          <tr><td class="td-label">Q-Coupon</td><td class="td-value"><input type="number" id="pay_coupon" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-empty"></td><td class="td-empty"></td></tr>
+          <tr><td class="td-label">Gift Voucher</td><td class="td-value"><input type="number" id="pay_voucher" class="editable text-right" value=""></td></tr>
+          <tr><td class="td-total-sales-label">Total Sales</td><td class="td-total-sales-value"><input type="number" id="out_grand_total" class="editable text-right" readonly value="12116"></td></tr>
         </tbody>
       </table>
     </div>
   </div>
-
-  <!-- Footer -->
   <div class="footer-row">
-    <div class="footer-left">
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:#555;">
-        <span></span>
-        <span style="font-weight:600;">Total</span>
-        <span style="font-weight:700;">4</span>
-      </div>
-    </div>
+    <div class="footer-left"><div style="display:flex;justify-content:space-between;font-size:10px;color:#555;"><span></span><span style="font-weight:600;">Total</span><span style="font-weight:700;">4</span></div></div>
     <div class="footer-right">
-      <div class="regards">Best Regards</div>
-      <div class="name">MD RAIHAN UDDIN</div>
-      <div class="sub">BIC</div>
-      <div class="brand">BLUCHEEZ OUTFITTERS</div>
-      <div class="thank">Thank you........</div>
+      <div class="regards">Best Regards</div><div class="name">MD RAIHAN UDDIN</div><div class="sub">BIC</div><div class="brand">BLUCHEEZ OUTFITTERS</div><div class="thank">Thank you........</div>
     </div>
   </div>
-
 </div>
 
 <div class="btn-container">
-  <button class="btn-generate" onclick="generateReport()">GENERATE REPORT</button>
+  <button class="btn-summary" onclick="window.location.href='summary.html'">View Summary</button>
+  <button class="btn-generate" onclick="showToast()">GENERATE REPORT</button>
 </div>
 
 <script>
-  // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
   const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-  
-  let sbClient;
-  if (window.supabase) {
-    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  } else {
-    console.error("Supabase library failed to load.");
-  }
+  let sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // --- 2. INITIALIZATION ---
+  const urlParams = new URLSearchParams(window.location.search);
+  const editId = urlParams.get('id');
+
   document.addEventListener('DOMContentLoaded', () => {
-    // Auto-fill Date to Today
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('report_date').value = today;
-
-    // Add input listeners to all editable fields for real-time calculation
-    const inputs = document.querySelectorAll('input.editable');
-    inputs.forEach(input => {
-      input.addEventListener('input', calculateAll);
-    });
-
-    // Initial Calculation
-    calculateAll();
+    const dateInput = document.getElementById('report_date');
+    if(!dateInput.value) dateInput.value = today;
+    document.querySelectorAll('input.editable').forEach(input => input.addEventListener('input', calculateAll));
+    if (editId) loadReportData(editId);
+    else calculateAll();
   });
 
-  // --- 3. HELPER FUNCTIONS ---
-  function getVal(id) {
-    const val = document.getElementById(id).value;
-    return val === '' ? 0 : parseFloat(val);
-  }
+  function getVal(id) { const v = document.getElementById(id).value; return v === '' ? 0 : parseFloat(v); }
+  function setVal(id, val) { const el = document.getElementById(id); if(el) el.value = val === 0 ? '' : val; }
 
-  function setVal(id, val) {
-    // Check if element exists and is not readonly (some readonlys we update manually)
-    const el = document.getElementById(id);
-    if(el) el.value = val === 0 ? '' : val;
-  }
-
-  // --- 4. CORE CALCULATIONS ---
   function calculateAll() {
-    // A. Stock Logic
-    // Opening + Received - Transfer - Sold = Closing
-    const openStock = getVal('in_open_stock');
-    const recv = getVal('in_recv_qty');
-    const trans = getVal('in_trans_qty');
-    const sold = getVal('in_sold_qty');
-    setVal('out_close_stock', openStock + recv - trans - sold);
-
-    // B. Footfall Logic
-    // Men + Women = Total
+    setVal('out_close_stock', getVal('in_open_stock') + getVal('in_recv_qty') - getVal('in_trans_qty') - getVal('in_sold_qty'));
     setVal('out_footfall', getVal('in_visit_men') + getVal('in_visit_women'));
-
-    // C. Item Total
-    // Sum of all categories
-    const itemTotal = getVal('itm_mens') + getVal('itm_womens') + getVal('itm_black') + 
-                      getVal('itm_perfume') + getVal('itm_boys') + getVal('itm_acc') + getVal('itm_belwari');
+    const itemTotal = getVal('itm_mens') + getVal('itm_womens') + getVal('itm_black') + getVal('itm_perfume') + getVal('itm_boys') + getVal('itm_acc') + getVal('itm_belwari');
     setVal('out_item_total', itemTotal);
-
-    // D. Cash Sale Logic
-    // Cash + Manual = Total Cash
     setVal('out_total_cash', getVal('sale_cash') + getVal('sale_manual'));
-
-    // E. Card Sale Logic
-    // City + DBBL + UCB + EBL = Total Card
     setVal('out_total_card', getVal('card_city') + getVal('card_dbbl') + getVal('card_ucb') + getVal('card_ebl'));
-
-    // F. Mobile Banking Logic
-    // Bkash + Nagad + SSl + City Pay = Total Mob
     const totalMob = getVal('mob_bkash') + getVal('mob_nagad') + getVal('mob_ssl') + getVal('mob_citypay');
     setVal('out_total_mob', totalMob);
-
-    // G. Digital Payment Logic
-    // Total Card + Total Mob = Total Digital
     setVal('out_total_digital', getVal('out_total_card') + totalMob);
-
-    // H. Grand Total Logic
-    // Total Digital + Q-Coupon + Gift Voucher + Total Cash = Total Sales
-    const grandTotal = getVal('out_total_digital') + getVal('pay_coupon') + getVal('pay_voucher') + getVal('out_total_cash');
-    setVal('out_grand_total', grandTotal);
+    setVal('out_grand_total', getVal('out_total_digital') + getVal('pay_coupon') + getVal('pay_voucher') + getVal('out_total_cash'));
   }
 
-  // --- 5. SUPABASE INTEGRATION ---
-  async function generateReport() {
-    // Gather Data Object
-    const reportData = {
+  function showToast() { document.getElementById('confirmToast').style.display = 'flex'; }
+  function closeToast() { document.getElementById('confirmToast').style.display = 'none'; }
+  function confirmGenerate() { closeToast(); saveReport(); }
+
+  async function saveReport() {
+    const data = {
       outlet_name: document.getElementById('outlet_name').value,
       report_date: document.getElementById('report_date').value,
       opening_time: document.getElementById('open_time').value,
       closing_time: document.getElementById('close_time').value,
       
-      // Stock
-      open_stock: getVal('in_open_stock'),
-      recv_qty: getVal('in_recv_qty'),
-      trans_qty: getVal('in_trans_qty'),
-      sold_qty: getVal('in_sold_qty'),
-      exch_qty: getVal('in_exch_qty'),
-      close_stock: getVal('out_close_stock'),
+      open_stock: getVal('in_open_stock'), recv_qty: getVal('in_recv_qty'), trans_qty: getVal('in_trans_qty'), sold_qty: getVal('in_sold_qty'), exch_qty: getVal('in_exch_qty'), close_stock: getVal('out_close_stock'),
+      visit_men: getVal('in_visit_men'), visit_women: getVal('in_visit_women'), total_footfall: getVal('out_footfall'),
       
-      // Footfall
-      visit_men: getVal('in_visit_men'),
-      visit_women: getVal('in_visit_women'),
-      total_footfall: getVal('out_footfall'),
-      
-      // Sales & Money
-      cash_sale: getVal('sale_cash'),
-      manual_cash: getVal('sale_manual'),
-      total_cash: getVal('out_total_cash'),
-      
-      city_card: getVal('card_city'),
-      dbbl_card: getVal('card_dbbl'),
-      ucb_card: getVal('card_ucb'),
-      ebl_card: getVal('card_ebl'),
-      total_card: getVal('out_total_card'),
-      
-      bkash: getVal('mob_bkash'),
-      nagad: getVal('mob_nagad'),
-      ssl: getVal('mob_ssl'),
-      city_pay: getVal('mob_citypay'),
-      total_mobile: getVal('out_total_mob'),
-      
-      total_digital: getVal('out_total_digital'),
-      q_coupon: getVal('pay_coupon'),
-      gift_voucher: getVal('pay_voucher'),
-      total_sales: getVal('out_grand_total'),
+      // ADDED MISSING FIELDS HERE
+      inv_qty: getVal('in_inv_qty'),
+      vat_amount: getVal('in_vat_amt'),
 
-      // Items
-      item_mens: getVal('itm_mens'),
-      item_womens: getVal('itm_womens'),
-      item_black: getVal('itm_black'),
-      item_perfume: getVal('itm_perfume'),
-      item_boys: getVal('itm_boys'),
-      item_acc: getVal('itm_acc'),
-      item_belwari: getVal('itm_belwari'),
-      item_total: getVal('out_item_total')
+      cash_sale: getVal('sale_cash'), manual_cash: getVal('sale_manual'), total_cash: getVal('out_total_cash'),
+      city_card: getVal('card_city'), dbbl_card: getVal('card_dbbl'), ucb_card: getVal('card_ucb'), ebl_card: getVal('card_ebl'), total_card: getVal('out_total_card'),
+      bkash: getVal('mob_bkash'), nagad: getVal('mob_nagad'), ssl: getVal('mob_ssl'), city_pay: getVal('mob_citypay'), total_mobile: getVal('out_total_mob'),
+      total_digital: getVal('out_total_digital'), q_coupon: getVal('pay_coupon'), gift_voucher: getVal('pay_voucher'), total_sales: getVal('out_grand_total'),
+      item_mens: getVal('itm_mens'), item_womens: getVal('itm_womens'), item_black: getVal('itm_black'), item_perfume: getVal('itm_perfume'), item_boys: getVal('itm_boys'), item_acc: getVal('itm_acc'), item_belwari: getVal('itm_belwari'), item_total: getVal('out_item_total')
     };
 
-    console.log("Sending Data:", reportData);
-
-    if(!sbClient) {
-      alert("Supabase client not initialized. Check console.");
-      return;
+    let error;
+    if(editId) {
+      const res = await sbClient.from('daily_reports').update(data).eq('id', editId).select();
+      error = res.error;
+    } else {
+      const res = await sbClient.from('daily_reports').insert([data]).select();
+      error = res.error;
     }
 
-    // Insert into Supabase
-    const { data, error } = await sbClient
-      .from('daily_reports')
-      .insert([reportData])
-      .select();
-
-    if (error) {
-      console.error('Error inserting data:', error);
-      alert('Error saving report: ' + error.message);
-    } else {
-      alert('Report Generated and Saved Successfully!');
-      console.log('Success:', data);
-      
-      // Redirect to a summary page (Simulation)
-      // In a real app, you would redirect here: window.location.href = 'summary.html?id=' + data[0].id;
-      // For this demo, we will just reload the page or clear inputs to simulate "sent"
-      // window.location.reload(); 
+    if (error) { alert('Error: ' + error.message); } 
+    else { 
+      alert(editId ? 'Report Updated Successfully!' : 'Report Generated Successfully!'); 
+      if(!editId) clearFormKeepStock();
+      window.location.href = 'summary.html';
     }
   }
-</script>
 
+  function clearFormKeepStock() {
+    const exceptions = ['in_open_stock', 'out_close_stock'];
+    document.querySelectorAll('input.editable').forEach(input => {
+      if(!exceptions.includes(input.id)) input.value = '';
+    });
+    calculateAll();
+  }
+
+  async function loadReportData(id) {
+    const { data, error } = await sbClient.from('daily_reports').select('*').eq('id', id).single();
+    if(error) return alert("Error loading report");
+    const setS = (id, val) => { const el = document.getElementById(id); if(el) el.value = (val===null)?'':val; };
+
+    setS('outlet_name', data.outlet_name);
+    setS('report_date', data.report_date);
+    setS('open_time', data.opening_time);
+    setS('close_time', data.closing_time);
+    setS('in_open_stock', data.open_stock);
+    setS('in_recv_qty', data.recv_qty);
+    setS('in_trans_qty', data.trans_qty);
+    setS('in_sold_qty', data.sold_qty);
+    setS('in_exch_qty', data.exch_qty);
+    setS('out_close_stock', data.close_stock);
+    setS('in_visit_men', data.visit_men);
+    setS('in_visit_women', data.visit_women);
+    setS('out_footfall', data.total_footfall);
+    
+    // ADDED MISSING FIELDS LOADING
+    setS('in_inv_qty', data.inv_qty);
+    setS('in_vat_amt', data.vat_amount);
+
+    setS('itm_mens', data.item_mens);
+    setS('itm_womens', data.item_womens);
+    setS('itm_black', data.item_black);
+    setS('itm_perfume', data.item_perfume);
+    setS('itm_boys', data.item_boys);
+    setS('itm_acc', data.item_acc);
+    setS('itm_belwari', data.item_belwari);
+    setS('out_item_total', data.item_total);
+    setS('sale_cash', data.cash_sale);
+    setS('sale_manual', data.manual_cash);
+    setS('out_total_cash', data.total_cash);
+    setS('card_city', data.city_card);
+    setS('card_dbbl', data.dbbl_card);
+    setS('card_ucb', data.ucb_card);
+    setS('card_ebl', data.ebl_card);
+    setS('out_total_card', data.total_card);
+    setS('mob_bkash', data.bkash);
+    setS('mob_nagad', data.nagad);
+    setS('mob_ssl', data.ssl);
+    setS('mob_citypay', data.city_pay);
+    setS('out_total_mob', data.total_mobile);
+    setS('out_total_digital', data.total_digital);
+    setS('pay_coupon', data.q_coupon);
+    setS('pay_voucher', data.gift_voucher);
+    setS('out_grand_total', data.total_sales);
+  }
+</script>
 </body>
 </html>
