@@ -482,6 +482,26 @@
         const a4Container = document.getElementById('a4PreviewContainer');
         const fetchBtn = document.getElementById('fetchBtn');
 
+        // --- 2. HELPER FUNCTIONS ---
+        // FIX: Added the missing showStatus function here
+        function showStatus(msg, type) {
+            statusMsg.textContent = msg;
+            statusMsg.className = 'status-message ' + (type === 'error' ? 'status-error' : 'status-success');
+            if(type === 'success') {
+                setTimeout(() => { if(statusMsg.textContent === msg) statusMsg.textContent = ''; }, 5000);
+            }
+        }
+
+        function formatPrice(mrp) {
+            if (!mrp) return "BDT. 0.00 (+VAT)";
+            return "BDT. " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + " (+VAT)";
+        }
+
+        function truncate(str, n) {
+            if (!str) return "";
+            return (str.length > n) ? str.substr(0, n-1) + '&hellip;' : str;
+        }
+
         // Init Supabase
         try {
             if (window.supabase) {
@@ -493,7 +513,7 @@
             console.error("Init error", e); 
         }
 
-        // --- 2. MODE SWITCHING ---
+        // --- 3. MODE SWITCHING ---
         function setMode(mode) {
             currentMode = mode;
             document.body.className = mode === 'a4' ? 'a4-mode' : '';
@@ -517,7 +537,7 @@
             barcodeInput.focus();
         }
 
-        // --- 3. DATA FETCHING ---
+        // --- 4. DATA FETCHING ---
         async function fetchData() {
             const query = barcodeInput.value.trim();
             if (!query) { showStatus("Please scan a barcode.", "error"); return; }
@@ -553,7 +573,7 @@
             }
         }
 
-        // --- 4. THERMAL LOGIC (Original) ---
+        // --- 5. THERMAL LOGIC (Original) ---
         function populateSingleTag(item) {
             document.getElementById('tagName').textContent = item.name || "ITEM";
             document.getElementById('tagStyle').textContent = item.style_code || "--";
@@ -571,7 +591,7 @@
             window.print();
         }
 
-        // --- 5. A4 QUEUE & LOGIC (New) ---
+        // --- 6. A4 QUEUE & LOGIC (New) ---
         function addToQueue(item) {
             tagsQueue.push(item);
             showStatus(`Added ${item.name} (${item.size})`, "success");
@@ -583,11 +603,6 @@
                 tagsQueue = [];
                 renderA4Grid();
             }
-        }
-
-        function formatPrice(mrp) {
-            if (!mrp) return "BDT. 0.00 (+VAT)";
-            return "BDT. " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + " (+VAT)";
         }
 
         function renderA4Grid() {
@@ -636,7 +651,7 @@
                 </div>
                 <div class="a4-details">
                     <span class="a4-detail-item">STY: ${truncate(item.style_code, 10)}</span>
-                    <span class="a4-detail-item">CLR: ${item.color.toUpperCase()}</span>
+                    <span class="a4-detail-item">CLR: ${item.color ? item.color.toUpperCase() : '--'}</span>
                     <span class="a4-detail-item">SZ: ${item.size}</span>
                 </div>
                 <div class="a4-price-row">
@@ -666,11 +681,7 @@
             return div;
         }
 
-        function truncate(str, n) {
-            return (str.length > n) ? str.substr(0, n-1) + '&hellip;' : str;
-        }
-
-        // --- 6. EVENTS ---
+        // --- 7. EVENTS ---
         barcodeInput.addEventListener("keypress", function(e) {
             if (e.key === "Enter") { e.preventDefault(); fetchData(); }
         });
