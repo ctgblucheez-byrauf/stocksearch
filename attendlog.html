@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blucheez | Geo-Attendance (Supabase)</title>
+    <!-- 1. ADD SUPABASE JS CLIENT LIBRARY -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #64748b;
+            --success: #22c55e; /* Green - Present */
+            --danger: #ef4444;  /* Red - Late */
+            --info: #3b82f6;    /* Blue - Overtime */
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 8px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        
+        body { background: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* --- Layout --- */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand { font-size: 1.5rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }
+        .nav-links { display: flex; gap: 1rem; }
+        
+        nav button {
+            background: transparent;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+        
+        nav button.active { background: var(--primary); color: white; }
+        nav button:hover:not(.active) { background: #f1f5f9; }
+
+        main { flex: 1; padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+        /* --- Views --- */
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Components --- */
+        .card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+
+        h2 { margin-bottom: 1rem; font-size: 1.25rem; color: var(--text-main); }
+        h3 { margin-bottom: 0.5rem; font-size: 1rem; color: var(--text-muted); }
+
+        .stat-card { text-align: center; padding: 1.5rem; }
+        .stat-val { font-size: 2rem; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 0.875rem; color: var(--text-muted); }
+
+        /* --- Forms --- */
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 500; }
+        input, select {
+            width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius);
+            font-size: 1rem; transition: border 0.2s;
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.75rem 1.5rem; border: none; border-radius: var(--radius);
+            font-weight: 600; cursor: pointer; transition: background 0.2s;
+            background: var(--primary); color: white; width: 100%;
+        }
+        .btn:hover { background: var(--primary-dark); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { background: #f8fafc; border-color: var(--text-muted); }
+        .btn-danger { background: var(--danger); }
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; width: auto; }
+
+        /* --- Employee Portal Specifics --- */
+        .clock-display { font-size: 3rem; font-weight: 700; text-align: center; margin: 1rem 0; font-variant-numeric: tabular-nums; }
+        .status-badge {
+            display: inline-block; padding: 0.25rem 0.75rem; border-radius: 99px; 
+            font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem;
+        }
+        .status-present { background: #dcfce7; color: #15803d; }
+        .status-late { background: #fee2e2; color: #b91c1c; }
+        .status-early { background: #dbeafe; color: #1e40af; }
+        .status-absent { background: #f1f5f9; color: #475569; }
+
+        .geo-status { font-size: 0.9rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .geo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+        .geo-dot.active { background: var(--success); box-shadow: 0 0 0 4px #dcfce7; }
+
+        /* --- Tables --- */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; font-weight: 600; color: var(--text-muted); }
+        tr:hover { background: #f8fafc; }
+
+        /* --- Toast Notification --- */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .toast {
+            background: var(--text-main); color: white; padding: 1rem 1.5rem; border-radius: var(--radius);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* --- Mobile --- */
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .nav-links { overflow-x: auto; padding-bottom: 5px; }
+            header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+        }
+        
+        /* Utility */
+        .hidden { display: none !important; }
+        .text-right { text-align: right; }
+        .mt-2 { margin-top: 1rem; }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <header>
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+            Blucheez Attendance
+        </div>
+        <nav class="nav-links">
+            <button onclick="router('dashboard')" id="nav-dashboard" class="active">Dashboard</button>
+            <button onclick="router('employee')" id="nav-employee">Employee Portal</button>
+            <button onclick="router('reports')" id="nav-reports">Reports</button>
+            <button onclick="router('admin')" id="nav-admin">Admin & Settings</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- DASHBOARD VIEW -->
+        <section id="view-dashboard" class="view active">
+            <h2>Today's Overview</h2>
+            <div class="grid-4">
+                <div class="card stat-card">
+                    <div class="stat-val" id="dash-total">0</div>
+                    <div class="stat-label">Total Employees</div>
+                </div>
+                <div class="card stat-card" style="border-bottom: 4px solid var(--success)">
+                    <div class="stat-val" id="dash-present" style="color: var(--success)">0</div>
+                    <div class="stat-label">Present Today</div>
+                </div>
+                <div class="card stat-card" style="border-bottom: 4px solid var(--danger)">
+                    <div class="stat-val" id="dash-late" style="color: var(--danger)">0</div>
+                    <div class="stat-label">Late Today</div>
+                </div>
+                <div class="card stat-card" style="border-bottom: 4px solid var(--info)">
+                    <div class="stat-val" id="dash-overtime" style="color: var(--info)">0h</div>
+                    <div class="stat-label">Total Overtime</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Live Attendance Feed</h3>
+                <div class="table-container">
+                    <table id="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Time In</th>
+                                <th>Time Out</th>
+                                <th>Status</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- EMPLOYEE PORTAL VIEW -->
+        <section id="view-employee" class="view">
+            <div class="grid-2">
+                <div class="card">
+                    <h2>Welcome, <span id="emp-name-display">Employee</span></h2>
+                    
+                    <div class="form-group">
+                        <label>Select Your Profile</label>
+                        <select id="emp-selector" onchange="loadEmployeeProfile()">
+                            <option value="">-- Select Self --</option>
+                        </select>
+                    </div>
+
+                    <div class="clock-display" id="clock">12:00:00 PM</div>
+                    <div class="geo-status">
+                        <div class="geo-dot" id="geo-dot"></div>
+                        <span id="geo-msg">Locating Shop...</span>
+                    </div>
+
+                    <div id="action-area" class="hidden">
+                        <div id="status-card" class="status-badge status-absent">Absent Today</div>
+                        
+                        <button id="btn-checkin" class="btn" onclick="attemptCheckIn()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                            Check In
+                        </button>
+                        
+                        <button id="btn-checkout" class="btn btn-danger hidden" onclick="attemptCheckOut()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                            Check Out
+                        </button>
+                    </div>
+
+                    <div id="login-hint" class="mt-2" style="text-align:center; color: var(--text-muted); font-size: 0.9rem;">
+                        Please select your name above to enable punch buttons.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Your Attendance History (Last 5 Days)</h3>
+                    <div class="table-container">
+                        <table id="emp-history-table">
+                            <thead><tr><th>Date</th><th>In</th><th>Out</th><th>Status</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- REPORTS VIEW -->
+        <section id="view-reports" class="view">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h2>Monthly Report</h2>
+                    <div>
+                        <input type="month" id="report-month" onchange="generateReports()" style="width:auto; display:inline-block;">
+                        <button class="btn btn-sm btn-outline" onclick="exportCSV()">Download CSV</button>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table id="report-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Designation</th>
+                                <th>Present Days</th>
+                                <th>Late Count</th>
+                                <th>Total Overtime (Hrs)</th>
+                                <th>Est. Salary Base</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Report Data -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Daily Summary (Selected Month)</h3>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; height: 150px; align-items: flex-end;" id="bar-chart">
+                    <!-- Simple CSS Bar Chart injected via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ADMIN VIEW -->
+        <section id="view-admin" class="view">
+            <div class="grid-2">
+                <!-- Settings -->
+                <div class="card">
+                    <h2>Shop Configuration</h2>
+                    <div class="form-group">
+                        <label>Shop Name</label>
+                        <input type="text" id="set-shop-name" value="Blucheez Main Store">
+                    </div>
+                    <div class="form-group">
+                        <label>Allowed Radius (Meters)</label>
+                        <input type="number" id="set-radius" value="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Office Start Time</label>
+                        <input type="time" id="set-start-time" value="09:00">
+                    </div>
+                    <div class="form-group">
+                        <label>Overtime Start Time</label>
+                        <input type="time" id="set-ot-time" value="18:00">
+                    </div>
+                    <div class="form-group">
+                        <label>GPS Coordinates (Lat, Lon)</label>
+                        <div style="display:flex; gap:0.5rem;">
+                            <input type="text" id="set-lat" placeholder="Latitude" readonly>
+                            <input type="text" id="set-lon" placeholder="Longitude" readonly>
+                        </div>
+                        <button class="btn btn-sm btn-outline mt-2" onclick="setShopToCurrentLocation()">Set Current Location as Shop</button>
+                    </div>
+                    <button class="btn" onclick="saveSettings()">Save Settings</button>
+                </div>
+
+                <!-- Employee Management -->
+                <div class="card">
+                    <h2>Employee Management</h2>
+                    <div class="form-group" style="background:#f1f5f9; padding:1rem; border-radius:8px;">
+                        <h3>Add New Employee</h3>
+                        <input type="text" id="new-emp-name" placeholder="Full Name" style="margin-bottom:0.5rem;">
+                        <input type="text" id="new-emp-role" placeholder="Designation" style="margin-bottom:0.5rem;">
+                        <input type="number" id="new-emp-salary" placeholder="Monthly Base Salary" style="margin-bottom:0.5rem;">
+                        <button class="btn btn-sm" onclick="addEmployee()">Add Employee</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="admin-emp-table">
+                            <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Action</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+        const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+        
+        if (window.supabase) {
+            var sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } else {
+            console.error("Supabase library failed to load.");
+            alert("Supabase library failed to load. Please check your internet connection.");
+        }
+
+        // Global State
+        let currentEmpId = null;
+        let currentLocation = null;
+        let allEmployeesCache = []; // Cache to reduce calls
+        let allAttendanceCache = []; // Cache to reduce calls
+
+        /**
+         * INITIALIZATION
+         */
+        window.addEventListener('DOMContentLoaded', async () => {
+            initClock();
+            initGeo();
+            
+            // Load Settings from LocalStorage (Settings are client-side for this demo)
+            loadSettingsToUI();
+            
+            // Load Data from Supabase
+            await loadEmployeeDropdown();
+            await updateDashboard();
+            
+            // Set default month picker to current month
+            const now = new Date();
+            const monthStr = now.toISOString().slice(0, 7); // YYYY-MM
+            document.getElementById('report-month').value = monthStr;
+            
+            await generateReports(); 
+        });
+
+        /**
+         * SUPABASE DATA ACCESS LAYER
+         */
+        async function fetchEmployees() {
+            const { data, error } = await sbClient.from('employees').select('*').order('id');
+            if (error) {
+                console.error("Error fetching employees:", error);
+                showToast("Failed to load employees", "error");
+                return [];
+            }
+            return data;
+        }
+
+        async function addEmployeeToSupabase(emp) {
+            const { data, error } = await sbClient.from('employees').insert([emp]).select();
+            if (error) {
+                console.error("Error adding employee:", error);
+                showToast("Failed to add employee", "error");
+                return null;
+            }
+            return data;
+        }
+
+        async function deleteEmployeeFromSupabase(id) {
+            const { error } = await sbClient.from('employees').delete().eq('id', id);
+            if (error) {
+                console.error("Error deleting employee:", error);
+                showToast("Failed to delete employee", "error");
+            }
+        }
+
+        async function fetchAttendance() {
+            const { data, error } = await sbClient.from('attendance').select('*').order('date', { ascending: false });
+            if (error) {
+                console.error("Error fetching attendance:", error);
+                return [];
+            }
+            return data;
+        }
+
+        async function addAttendanceToSupabase(record) {
+            const { data, error } = await sbClient.from('attendance').insert([record]);
+            if (error) {
+                console.error("Error checking in:", error);
+                showToast("Check-in failed. Database error.", "error");
+                return false;
+            }
+            return true;
+        }
+
+        async function updateAttendanceInSupabase(id, updates) {
+            const { error } = await sbClient.from('attendance').update(updates).eq('id', id);
+            if (error) {
+                console.error("Error checking out:", error);
+                showToast("Check-out failed. Database error.", "error");
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * GEO LOCATION UTILS
+         */
+        function initGeo() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(
+                    (position) => {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        };
+                        checkZone(currentLocation);
+                    },
+                    (error) => {
+                        document.getElementById('geo-msg').innerText = "GPS Disabled/Denied";
+                        document.getElementById('geo-dot').classList.remove('active');
+                        showToast("Location access denied.", "error");
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                showToast("Browser does not support Geolocation.", "error");
+            }
+        }
+
+        function checkZone(userLoc) {
+            // Get settings from LocalStorage for validation logic
+            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || {
+                lat: 40.7128, lon: -74.0060, radius: 100
+            };
+            
+            const distance = getDistanceFromLatLonInM(userLoc.lat, userLoc.lon, settings.lat, settings.lon);
+            const msgEl = document.getElementById('geo-msg');
+            const dotEl = document.getElementById('geo-dot');
+
+            if (distance <= settings.radius) {
+                msgEl.innerText = `Within Range (${Math.round(distance)}m from Shop)`;
+                dotEl.classList.add('active');
+                return true;
+            } else {
+                msgEl.innerText = `Outside Range (${Math.round(distance)}m from Shop)`;
+                dotEl.classList.remove('active');
+                return false;
+            }
+        }
+
+        function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+            var R = 6371; 
+            var dLat = deg2rad(lat2-lat1);  
+            var dLon = deg2rad(lon2-lon1); 
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                    Math.sin(dLon/2) * Math.sin(dLon/2); 
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            var d = R * c; 
+            return d * 1000; 
+        }
+        function deg2rad(deg) { return deg * (Math.PI/180); }
+        function setShopToCurrentLocation() {
+            if(!currentLocation) { showToast("Waiting for location...", "error"); return; }
+            document.getElementById('set-lat').value = currentLocation.lat;
+            document.getElementById('set-lon').value = currentLocation.lon;
+            showToast("Coordinates set! Click Save.", "success");
+        }
+
+        /**
+         * TIME UTILS
+         */
+        function initClock() {
+            setInterval(() => {
+                document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', { hour12: true });
+            }, 1000);
+        }
+        function getTodayDateStr() { return new Date().toISOString().slice(0, 10); }
+        function formatTime24to12(time24) {
+            if(!time24) return '--:--';
+            const [hours, minutes] = time24.split(':');
+            const h = parseInt(hours, 10);
+            const suffix = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            return `${h12}:${minutes} ${suffix}`;
+        }
+
+        /**
+         * ROUTING
+         */
+        function router(viewName) {
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`nav-${viewName}`).classList.add('active');
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
+
+            if (viewName === 'dashboard') updateDashboard();
+            if (viewName === 'reports') generateReports();
+        }
+
+        /**
+         * EMPLOYEE LOGIC
+         */
+        async function loadEmployeeDropdown() {
+            allEmployeesCache = await fetchEmployees();
+            const select = document.getElementById('emp-selector');
+            select.innerHTML = '<option value="">-- Select Self --</option>';
+            allEmployeesCache.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.id;
+                opt.innerText = e.name;
+                select.appendChild(opt);
+            });
+            updateAdminEmpTable();
+        }
+
+        async function loadEmployeeProfile() {
+            const id = document.getElementById('emp-selector').value;
+            if (!id) {
+                currentEmpId = null;
+                document.getElementById('action-area').classList.add('hidden');
+                document.getElementById('login-hint').classList.remove('hidden');
+                return;
+            }
+            currentEmpId = parseInt(id);
+            const emp = allEmployeesCache.find(e => e.id === currentEmpId);
+            document.getElementById('emp-name-display').innerText = emp.name;
+            document.getElementById('action-area').classList.remove('hidden');
+            document.getElementById('login-hint').classList.add('hidden');
+
+            updateEmployeeStatusUI();
+            renderEmployeeHistory();
+        }
+
+        async function updateEmployeeStatusUI() {
+            // Fetch fresh attendance data
+            allAttendanceCache = await fetchAttendance();
+            const today = getTodayDateStr();
+            const record = allAttendanceCache.find(a => a.employee_id === currentEmpId && a.date === today);
+
+            const btnIn = document.getElementById('btn-checkin');
+            const btnOut = document.getElementById('btn-checkout');
+            const statusBadge = document.getElementById('status-card');
+
+            if (!record) {
+                btnIn.classList.remove('hidden');
+                btnOut.classList.add('hidden');
+                statusBadge.className = 'status-badge status-absent';
+                statusBadge.innerText = 'Not Checked In';
+            } else if (record.check_in_time && !record.check_out_time) {
+                btnIn.classList.add('hidden');
+                btnOut.classList.remove('hidden');
+                statusBadge.className = `status-badge ${record.status === 'Late' ? 'status-late' : 'status-present'}`;
+                statusBadge.innerText = `Checked In: ${formatTime24to12(record.check_in_time)} (${record.status})`;
+            } else {
+                btnIn.classList.add('hidden');
+                btnOut.classList.add('hidden');
+                statusBadge.className = 'status-badge status-present';
+                statusBadge.innerText = `Completed Day at ${formatTime24to12(record.check_out_time)}`;
+            }
+        }
+
+        async function attemptCheckIn() {
+            if (!checkZone(currentLocation)) { showToast("Outside allowed geo-radius!", "error"); return; }
+
+            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { startTime: '09:00' };
+            const now = new Date();
+            const timeStr24 = now.toTimeString().slice(0, 5);
+            
+            let status = 'Present';
+            const diffMin = (parseInt(timeStr24.split(':')[0]) * 60 + parseInt(timeStr24.split(':')[1])) - 
+                            (parseInt(settings.startTime.split(':')[0]) * 60 + parseInt(settings.startTime.split(':')[1]));
+            if (diffMin > 0) status = 'Late';
+
+            const record = {
+                employee_id: currentEmpId,
+                date: getTodayDateStr(),
+                check_in_time: timeStr24,
+                check_out_time: null,
+                lat: currentLocation.lat,
+                lon: currentLocation.lon,
+                status: status,
+                overtime_hours: 0
+            };
+
+            const success = await addAttendanceToSupabase(record);
+            if(success) {
+                showToast(`Checked In (${status})`, "success");
+                await updateEmployeeStatusUI();
+                await renderEmployeeHistory();
+            }
+        }
+
+        async function attemptCheckOut() {
+            if (!checkZone(currentLocation)) { showToast("Outside allowed geo-radius!", "error"); return; }
+
+            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { otStartTime: '18:00' };
+            // We need the record ID from DB
+            allAttendanceCache = await fetchAttendance();
+            const today = getTodayDateStr();
+            const record = allAttendanceCache.find(a => a.employee_id === currentEmpId && a.date === today);
+
+            if (record) {
+                const now = new Date();
+                const timeStr24 = now.toTimeString().slice(0, 5);
+                
+                const otStart = settings.otStartTime;
+                const totalMin = parseInt(timeStr24.split(':')[0]) * 60 + parseInt(timeStr24.split(':')[1]);
+                const otStartMin = parseInt(otStart.split(':')[0]) * 60 + parseInt(otStart.split(':')[1]);
+                
+                let otHours = 0;
+                if (totalMin > otStartMin) {
+                    otHours = Math.round(((totalMin - otStartMin) / 60) * 100) / 100;
+                }
+
+                const success = await updateAttendanceInSupabase(record.id, {
+                    check_out_time: timeStr24,
+                    overtime_hours: otHours
+                });
+
+                if(success) {
+                    showToast("Checked Out Successfully", "success");
+                    await updateEmployeeStatusUI();
+                    await renderEmployeeHistory();
+                }
+            }
+        }
+
+        async function renderEmployeeHistory() {
+            allAttendanceCache = await fetchAttendance();
+            const logs = allAttendanceCache.filter(a => a.employee_id === currentEmpId);
+            logs.sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            const tbody = document.querySelector('#emp-history-table tbody');
+            tbody.innerHTML = '';
+            
+            logs.slice(0, 5).forEach(log => {
+                const tr = document.createElement('tr');
+                const colorClass = log.status === 'Late' ? 'color: var(--danger)' : 'color: var(--success)';
+                tr.innerHTML = `
+                    <td>${log.date}</td>
+                    <td>${formatTime24to12(log.check_in_time)}</td>
+                    <td>${formatTime24to12(log.check_out_time)}</td>
+                    <td style="${colorClass}; font-weight:bold;">${log.status}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        /**
+         * ADMIN & SETTINGS LOGIC (Settings kept Local for simplicity in this version)
+         */
+        function loadSettingsToUI() {
+            const s = JSON.parse(localStorage.getItem('blucheez_settings'));
+            if(s) {
+                document.getElementById('set-shop-name').value = s.shopName;
+                document.getElementById('set-radius').value = s.radius;
+                document.getElementById('set-lat').value = s.lat;
+                document.getElementById('set-lon').value = s.lon;
+                document.getElementById('set-start-time').value = s.startTime;
+                document.getElementById('set-ot-time').value = s.otStartTime;
+            }
+        }
+
+        function saveSettings() {
+            const settings = {
+                shopName: document.getElementById('set-shop-name').value,
+                radius: parseInt(document.getElementById('set-radius').value),
+                lat: parseFloat(document.getElementById('set-lat').value),
+                lon: parseFloat(document.getElementById('set-lon').value),
+                startTime: document.getElementById('set-start-time').value,
+                otStartTime: document.getElementById('set-ot-time').value
+            };
+            localStorage.setItem('blucheez_settings', JSON.stringify(settings));
+            showToast("Settings Saved!", "success");
+            if(currentLocation) checkZone(currentLocation);
+        }
+
+        async function addEmployee() {
+            const name = document.getElementById('new-emp-name').value;
+            const role = document.getElementById('new-emp-role').value;
+            const salary = document.getElementById('new-emp-salary').value;
+
+            if(!name || !role) { showToast("Name and Role required", "error"); return; }
+
+            const result = await addEmployeeToSupabase({ name, designation: role, salary: parseFloat(salary)||0 });
+            
+            if (result) {
+                document.getElementById('new-emp-name').value = '';
+                document.getElementById('new-emp-role').value = '';
+                document.getElementById('new-emp-salary').value = '';
+                await loadEmployeeDropdown();
+                showToast("Employee Added", "success");
+            }
+        }
+
+        function updateAdminEmpTable() {
+            const tbody = document.querySelector('#admin-emp-table tbody');
+            tbody.innerHTML = '';
+            allEmployeesCache.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${e.id}</td>
+                    <td>${e.name}</td>
+                    <td>${e.designation}</td>
+                    <td><button class="btn btn-sm btn-outline" style="color:red; border-color:red" onclick="deleteEmployee(${e.id})">Remove</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function deleteEmployee(id) {
+            if(!confirm("Delete employee?")) return;
+            await deleteEmployeeFromSupabase(id);
+            await loadEmployeeDropdown();
+            showToast("Employee Removed", "success");
+        }
+
+        /**
+         * DASHBOARD & REPORTS LOGIC
+         */
+        async function updateDashboard() {
+            allEmployeesCache = await fetchEmployees();
+            allAttendanceCache = await fetchAttendance();
+            
+            const today = getTodayDateStr();
+            const todaysLogs = allAttendanceCache.filter(l => l.date === today);
+
+            document.getElementById('dash-total').innerText = allEmployeesCache.length;
+            document.getElementById('dash-present').innerText = todaysLogs.filter(l => l.status === 'Present').length;
+            document.getElementById('dash-late').innerText = todaysLogs.filter(l => l.status === 'Late').length;
+            
+            const totalOt = todaysLogs.reduce((acc, curr) => acc + (curr.overtime_hours || 0), 0);
+            document.getElementById('dash-overtime').innerText = totalOt.toFixed(1) + "h";
+
+            const tbody = document.querySelector('#dash-table tbody');
+            tbody.innerHTML = '';
+            
+            allEmployeesCache.forEach(e => {
+                const log = todaysLogs.find(l => l.employee_id === e.id);
+                const tr = document.createElement('tr');
+                
+                let statusHTML = '<span style="color:#94a3b8">Absent</span>';
+                let loc = '-';
+
+                if (log) {
+                    statusHTML = log.status === 'Late' ? '<span style="color:var(--danger); font-weight:bold">Late</span>' : '<span style="color:var(--success); font-weight:bold">Present</span>';
+                    loc = `<a href="https://maps.google.com/?q=${log.lat},${log.lon}" target="_blank" style="color:var(--primary)">Map</a>`;
+                }
+
+                tr.innerHTML = `
+                    <td>${e.name}</td>
+                    <td>${log ? formatTime24to12(log.check_in_time) : '--:--'}</td>
+                    <td>${log ? formatTime24to12(log.check_out_time) : '--:--'}</td>
+                    <td>${statusHTML}</td>
+                    <td>${loc}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function generateReports() {
+            const monthVal = document.getElementById('report-month').value;
+            if(!monthVal) return;
+
+            allEmployeesCache = await fetchEmployees();
+            allAttendanceCache = await fetchAttendance();
+            const logs = allAttendanceCache.filter(l => l.date.startsWith(monthVal));
+            
+            const tbody = document.querySelector('#report-table tbody');
+            tbody.innerHTML = '';
+            const dailyData = {};
+
+            allEmployeesCache.forEach(e => {
+                const empLogs = logs.filter(l => l.employee_id === e.id);
+                const presentDays = empLogs.length;
+                const lateDays = empLogs.filter(l => l.status === 'Late').length;
+                const totalOt = empLogs.reduce((acc, curr) => acc + (curr.overtime_hours || 0), 0);
+                
+                const latePenalty = lateDays * 10; 
+                const otPay = totalOt * 15; 
+                const totalPay = (e.salary || 0) - latePenalty + otPay;
+
+                empLogs.forEach(l => { dailyData[l.date] = (dailyData[l.date] || 0) + 1; });
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${e.name}</td>
+                    <td>${e.designation}</td>
+                    <td><span style="color:var(--success)">${presentDays}</span></td>
+                    <td><span style="color:var(--danger)">${lateDays}</span></td>
+                    <td>${totalOt.toFixed(1)}</td>
+                    <td>$${totalPay.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            renderChart(dailyData, monthVal);
+        }
+
+        function renderChart(data, month) {
+            const container = document.getElementById('bar-chart');
+            container.innerHTML = '';
+            const [year, mon] = month.split('-');
+            const daysInMonth = new Date(year, mon, 0).getDate();
+            let maxVal = 0;
+            for(let i=1; i<=daysInMonth; i++) {
+                const val = data[`${month}-${i.toString().padStart(2,'0')}`] || 0;
+                if(val > maxVal) maxVal = val;
+            }
+            if(maxVal === 0) maxVal = 1;
+
+            for(let i=1; i<=daysInMonth; i++) {
+                const dayStr = `${month}-${i.toString().padStart(2,'0')}`;
+                const val = data[dayStr] || 0;
+                const heightPct = (val / maxVal) * 100;
+                
+                const bar = document.createElement('div');
+                bar.style.cssText = `flex:1; background:${val>0?'var(--primary)':'#e2e8f0'}; height:${heightPct}%; border-radius:4px 4px 0 0; margin:0 2px;`;
+                bar.title = `${dayStr}: ${val}`;
+                container.appendChild(bar);
+            }
+        }
+
+        function exportCSV() {
+            const table = document.getElementById("report-table");
+            let csv = "data:text/csv;charset=utf-8,";
+            const headers = []; table.querySelectorAll("th").forEach(th => headers.push(th.innerText));
+            csv += headers.join(",") + "\r\n";
+            table.querySelectorAll("tbody tr").forEach(row => {
+                const rowData = []; row.querySelectorAll("td").forEach(td => rowData.push(td.innerText));
+                csv += rowData.join(",") + "\r\n";
+            });
+            const link = document.createElement("a"); link.href = encodeURI(csv); link.download = "blucheez_report.csv";
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        function showToast(message, type = "success") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `${type === 'success' ? '✔' : '✖'} <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+    </script>
+</body>
+</html>
