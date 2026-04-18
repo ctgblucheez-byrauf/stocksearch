@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blucheez Tag Printer (Unified Design)</title>
+    <title>Blucheez Tag Printer (Unified Size)</title>
     
     <!-- Load JsBarcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -13,13 +13,15 @@
     <style>
         :root {
             /* --- TAG DIMENSIONS (Unified) --- */
-            /* 1 inch = 96px, 2.5 inches = 240px */
-            --tag-w: 96px;  
-            --tag-h: 240px;
+            /* 1 inch = 25.4mm, 2.5 inches = 63.5mm */
+            /* 1 inch = 96px (screen) */
+            --tag-w-px: 96px;
+            --tag-h-px: 240px;
             
-            /* --- A4 GRID CONFIG --- */
-            --a4-label-w: 50mm;
-            --a4-label-h: 30mm;
+            --tag-w-mm: 25.4mm;
+            --tag-h-mm: 63.5mm;
+
+            /* --- A4 PAGE CONFIG --- */
             --a4-page-w: 210mm;
             --a4-page-h: 297mm;
         }
@@ -134,8 +136,8 @@
         /* This is the MASTER design. Used for both Thermal and A4. */
         .tag-design {
             background: white;
-            width: var(--tag-w);
-            height: var(--tag-h);
+            width: var(--tag-w-px);
+            height: var(--tag-h-px);
             position: relative;
             display: flex;
             flex-direction: column;
@@ -246,15 +248,17 @@
             gap: 20px;
         }
 
+        /* A4 Page Setup */
         .a4-page {
             background: white;
             width: var(--a4-page-w);
             min-height: var(--a4-page-h);
             padding: 10mm; 
             display: grid;
-            grid-template-columns: repeat(3, var(--a4-label-w));
-            grid-auto-rows: var(--a4-label-h);
-            gap: 5mm;
+            /* 7 columns x 4 rows to fit 1"x2.5" tags on A4 */
+            grid-template-columns: repeat(7, var(--tag-w-mm));
+            grid-auto-rows: var(--tag-h-mm);
+            gap: 3mm; /* Gap between labels */
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             page-break-after: always;
@@ -262,27 +266,12 @@
 
         /* A4 Grid Cell */
         .a4-cell {
-            border: 1px dashed #ccc; /* Dashed border for preview only */
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
             background: #fafafa; /* Light grey background for preview contrast */
-        }
-
-        /* The Rotator:
-           Since the tag is Vertical (2.5" tall) and the slot is Horizontal (30mm tall),
-           we must rotate the tag 90deg to fit the design into the slot.
-        */
-        .tag-rotator {
-            /* 
-               Calculation: 
-               Tag Width (rotated) = 240px. 
-               Available Width = 50mm (~189px).
-               Scale = 189 / 240 ≈ 0.78
-            */
-            transform: rotate(90deg) scale(0.78);
-            transform-origin: center center;
+            /* No rotation needed because size matches */
         }
 
         /* =========================================
@@ -315,7 +304,6 @@
             
             /* Remove preview styling for A4 cells */
             body.a4-mode .a4-cell {
-                border: none;
                 background: none;
             }
             
@@ -333,7 +321,7 @@
         
         <div class="mode-switch">
             <button class="mode-btn active" id="btnModeThermal" onclick="setMode('thermal')">Thermal (1"x2.5")</button>
-            <button class="mode-btn" id="btnModeA4" onclick="setMode('a4')">A4 Sheet (50x30mm)</button>
+            <button class="mode-btn" id="btnModeA4" onclick="setMode('a4')">A4 Sheet (Same Size)</button>
         </div>
 
         <div class="input-group">
@@ -451,8 +439,6 @@
             } else {
                 fetchBtn.textContent = "Fetch";
                 queueInfo.style.display = 'none';
-                // If we have a last scanned item (or just clear), we could reload thermal
-                // For now, we leave it empty or clear it
                 thermalContainer.innerHTML = '';
             }
             
@@ -535,7 +521,8 @@
                 return;
             }
 
-            const ITEMS_PER_PAGE = 24;
+            // Layout: 7 columns x 4 rows = 28 items per A4 page (using 1"x2.5" tags)
+            const ITEMS_PER_PAGE = 28;
             const pages = Math.ceil(tagsQueue.length / ITEMS_PER_PAGE);
 
             for (let p = 0; p < pages; p++) {
@@ -552,15 +539,10 @@
                     // Create Cell
                     const cell = document.createElement('div');
                     cell.className = 'a4-cell';
-
-                    // Create Rotator Wrapper (allows rotating the vertical tag)
-                    const rotator = document.createElement('div');
-                    rotator.className = 'tag-rotator';
                     
-                    // Inject Unified Tag HTML
-                    rotator.innerHTML = getTagHTML(item, `a4-${globalIndex}`);
+                    // Inject Unified Tag HTML (No transform needed)
+                    cell.innerHTML = getTagHTML(item, `a4-${globalIndex}`);
                     
-                    cell.appendChild(rotator);
                     pageDiv.appendChild(cell);
                 });
 
@@ -568,7 +550,6 @@
             }
 
             // Generate Barcodes for all A4 tags
-            // We use a slight timeout to ensure DOM is ready
             setTimeout(() => {
                 tagsQueue.forEach((item, idx) => {
                     try {
