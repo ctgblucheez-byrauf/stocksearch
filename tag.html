@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Price Tag</title>
+    <title>Blucheez Tag Printer (Dual Mode)</title>
     
     <!-- Load JsBarcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -12,9 +12,15 @@
 
     <style>
         :root {
+            /* --- THERMAL MODE (Original) --- */
             /* 1 inch = 96px, 2.5 inches = 240px */
             --tag-width: 96px;  
-            --tag-height: 240px; 
+            --tag-height: 240px;
+            
+            /* --- A4 MODE (New) --- */
+            /* Label dimensions: 50mm x 30mm */
+            --a4-label-w: 50mm;
+            --a4-label-h: 30mm;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,23 +33,50 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 40px 20px;
+            padding: 20px;
         }
 
-        /* --- Controls --- */
+        /* =========================================
+           UI CONTROLS
+           ========================================= */
         .controls-container {
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 400px;
+            max-width: 600px;
             margin-bottom: 30px;
             text-align: center;
         }
 
         h1 { font-size: 1.2rem; margin-bottom: 15px; font-weight: 500; }
         
+        /* Mode Switcher */
+        .mode-switch {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .mode-btn {
+            background: #eee;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .mode-btn.active {
+            background: #000;
+            color: white;
+        }
+
         .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
         
         input[type="text"] {
@@ -54,7 +87,7 @@
             font-size: 1rem;
         }
 
-        button {
+        button.action-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 4px;
@@ -64,20 +97,48 @@
         }
 
         .btn-fetch { background-color: #000; color: white; }
+        
+        .queue-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
         .btn-print { 
             background-color: #333; 
             color: white; 
-            width: 100%; 
             margin-top: 10px; 
-            display: none; 
+            width: 100%;
         }
+        
+        .btn-clear { background-color: #d32f2f; color: white; }
 
         .status-message { font-size: 0.85rem; margin-top: 10px; }
         .status-error { color: #d32f2f; }
         .status-success { color: #2e7d32; }
+        
+        .queue-info {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 5px;
+        }
 
-        /* --- THE TAG (1" x 2.5") --- */
-        .tag-wrapper { margin: 20px; }
+        /* =========================================
+           VISIBILITY CONTROLS
+           ========================================= */
+        /* By default, show Thermal, hide A4 */
+        body:not(.a4-mode) .a4-wrapper { display: none; }
+        body:not(.a4-mode) .queue-controls { display: none; }
+        
+        body.a4-mode .thermal-wrapper { display: none; }
+        body.a4-mode .btn-print-thermal { display: none; }
+
+
+        /* =========================================
+           THERMAL TAG STYLES (Original)
+           ========================================= */
+        .thermal-wrapper { margin: 20px; }
 
         #price-tag {
             background: white;
@@ -92,7 +153,6 @@
             padding-top: 4px;
         }
 
-        /* --- HEADER --- */
         .brand-box {
             margin: 0 4px;
             margin-bottom: 15px; 
@@ -119,7 +179,6 @@
             line-height: 1.2;
         }
 
-        /* --- CONTENT WRAPPER --- */
         .content-wrapper {
             display: flex;
             flex-direction: column;
@@ -130,7 +189,6 @@
             width: 100%;
         }
 
-        /* --- ELEMENTS --- */
         .info-text {
             text-align: center;
             font-weight: 900;
@@ -179,24 +237,112 @@
             letter-spacing: 0.5px;
         }
 
-        /* --- FOOTER --- */
         .tag-footer {
             border-top: 1px solid #000;
-            padding: 4px 2px; /* Reduced side padding for text fit */
+            padding: 4px 2px;
             display: flex;
-            justify-content: center; /* Centered */
+            justify-content: center;
             align-items: center;
             width: 100%; 
         }
 
         .price-full-text {
-            font-size: 7px; /* Small font to fit "BDT. 5,490.00 (+VAT)" */
+            font-size: 7px; 
             font-weight: 900; 
             text-align: center;
             line-height: 1.2;
         }
 
-        /* --- PRINT STYLES --- */
+        /* =========================================
+           A4 LABEL STYLES (New)
+           ========================================= */
+        .a4-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .a4-page {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm; /* Margin */
+            display: grid;
+            grid-template-columns: repeat(3, var(--a4-label-w));
+            grid-auto-rows: var(--a4-label-h);
+            gap: 5mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            page-break-after: always;
+        }
+
+        .a4-label {
+            border: 1px solid #000;
+            padding: 2mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            font-size: 0;
+        }
+
+        /* A4 Internal Layout - Compact Horizontal */
+        .a4-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #000;
+            padding-bottom: 1px;
+            margin-bottom: 2px;
+        }
+
+        .a4-brand { font-weight: 900; font-size: 6pt; text-transform: uppercase; }
+        .a4-name { font-weight: 900; font-size: 7pt; text-transform: uppercase; max-width: 60%; }
+
+        .a4-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2mm;
+            font-size: 5pt;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1px;
+        }
+
+        .a4-detail-item { display: block; }
+        .a4-price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: auto;
+            border-top: 1px solid #000;
+            padding-top: 1px;
+        }
+
+        .a4-price {
+            font-size: 7pt;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .a4-barcode {
+            width: 60%; 
+            height: 12mm; /* Shorter barcode for A4 */
+        }
+        
+        .a4-barcode-num {
+            font-family: 'Courier New', monospace;
+            font-size: 5pt;
+            text-align: center;
+            margin-top: -2px;
+        }
+
+        /* =========================================
+           PRINT STYLES
+           ========================================= */
         @media print {
             body { 
                 background: white; 
@@ -205,25 +351,48 @@
                 display: block;
             }
 
+            /* Hide Controls */
             .controls-container, .no-print {
                 display: none !important;
             }
 
-            .tag-wrapper {
+            /* --- THERMAL PRINT LOGIC --- */
+            body:not(.a4-mode) .thermal-wrapper {
                 margin: 0;
+                position: absolute;
                 top: 0;
                 left: 0;
-                transform: none;
             }
 
-            #price-tag {
+            body:not(.a4-mode) #price-tag {
                 box-shadow: none;
                 width: var(--tag-width);
                 height: var(--tag-height);
                 -webkit-print-color-adjust: exact; 
                 print-color-adjust: exact;
             }
+
+            /* --- A4 PRINT LOGIC --- */
+            body.a4-mode .a4-wrapper {
+                display: block;
+                width: 100%;
+            }
+
+            body.a4-mode .a4-page {
+                box-shadow: none;
+                margin: 0;
+                width: 210mm;
+                height: 297mm;
+                page-break-after: always;
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+            }
             
+            body.a4-mode .a4-label {
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+            }
+
             @page {
                 size: auto;
                 margin: 0mm;
@@ -231,66 +400,89 @@
         }
     </style>
 </head>
-<body>
+<body class="">
 
     <div class="controls-container no-print">
-        <h1>Tag Generator (Blucheez)</h1>
-        <div class="input-group">
-            <input type="text" id="barcodeInput" placeholder="Barcode (e.g. A021103)" autocomplete="off">
-            <button class="btn-fetch" onclick="fetchData()">Fetch</button>
+        <h1>Blucheez Tag Printer</h1>
+        
+        <!-- MODE SWITCHER -->
+        <div class="mode-switch">
+            <button class="mode-btn active" id="btnModeThermal" onclick="setMode('thermal')">Thermal (1"x2.5")</button>
+            <button class="mode-btn" id="btnModeA4" onclick="setMode('a4')">A4 Sheet (50x30mm)</button>
         </div>
+
+        <div class="input-group">
+            <input type="text" id="barcodeInput" placeholder="Scan Barcode..." autocomplete="off">
+            <button class="action-btn btn-fetch" id="fetchBtn" onclick="fetchData()">Fetch</button>
+        </div>
+        
         <div id="statusMsg" class="status-message"></div>
-        <button id="printBtn" class="btn-print no-print" onclick="printTag()">Print Tag</button>
+        
+        <!-- A4 Queue Info -->
+        <div id="queueInfo" class="queue-info" style="display:none;">Queue: 0 items</div>
+
+        <!-- Thermal Button -->
+        <button id="printBtnThermal" class="action-btn btn-print btn-print-thermal" onclick="printTag()">Print Thermal Tag</button>
+
+        <!-- A4 Buttons -->
+        <div class="queue-controls">
+            <button class="action-btn btn-clear" onclick="clearQueue()">Clear All</button>
+            <button class="action-btn btn-print" onclick="window.print()">Print A4 Sheet</button>
+        </div>
     </div>
 
-    <!-- 1" x 2.5" Tag -->
-    <div class="tag-wrapper">
+    <!-- =========================================
+         1. THERMAL PREVIEW (Existing)
+         ========================================= -->
+    <div class="thermal-wrapper">
         <div id="price-tag">
-            <!-- Header: Blucheez -->
             <div class="brand-box">
                 <div class="brand-name">Blucheez</div>
             </div>
-
-            <!-- Product Name: Jacket -->
             <div class="product-name" id="tagName">JACKET</div>
-
-            <!-- Balanced Layout Wrapper -->
             <div class="content-wrapper">
-                
-                <!-- 1. Style Code -->
                 <div class="info-text" id="tagStyle">AB-WIN54-BMJ-039</div>
-
-                <!-- 2. Color: Updated to "COLOR: BLACK" -->
                 <div class="info-text" id="tagColor">COLOR: BLACK</div>
-
-                <!-- 3. Size -->
                 <div class="size-block">
                     <span class="size-label">SIZE</span>
                     <span class="size-value" id="tagSize">S</span>
                 </div>
-
-                <!-- 4. Barcode -->
                 <div class="barcode-block">
                     <svg id="barcode-canvas"></svg>
                     <div class="barcode-number" id="tagBarcodeText">A021103</div>
                 </div>
-                
             </div>
-
-            <!-- Footer: Updated to "BDT. 5,490.00 (+VAT)" -->
             <div class="tag-footer">
                 <span class="price-full-text" id="tagPrice">BDT. 5,490.00 (+VAT)</span>
             </div>
         </div>
     </div>
 
+    <!-- =========================================
+         2. A4 PREVIEW CONTAINER (New)
+         ========================================= -->
+    <div class="a4-wrapper" id="a4PreviewContainer">
+        <!-- Dynamic Pages will be injected here -->
+        <div class="a4-page" id="a4Page1"></div>
+    </div>
+
     <script>
-        // --- 1. CONFIGURATION ---
+        // --- 1. CONFIGURATION & STATE ---
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
         
         let sbClient;
-        
+        let currentMode = 'thermal'; // 'thermal' or 'a4'
+        let tagsQueue = []; // Array to hold tag objects for A4 mode
+
+        // DOM Elements
+        const barcodeInput = document.getElementById('barcodeInput');
+        const statusMsg = document.getElementById('statusMsg');
+        const queueInfo = document.getElementById('queueInfo');
+        const a4Container = document.getElementById('a4PreviewContainer');
+        const fetchBtn = document.getElementById('fetchBtn');
+
+        // Init Supabase
         try {
             if (window.supabase) {
                 sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -299,40 +491,38 @@
             }
         } catch (e) { 
             console.error("Init error", e); 
-            showStatus("Init Error: " + e.message, "error");
         }
 
-        const barcodeInput = document.getElementById('barcodeInput');
-        const statusMsg = document.getElementById('statusMsg');
-        const printBtn = document.getElementById('printBtn');
-
-        const elName = document.getElementById('tagName');
-        const elStyle = document.getElementById('tagStyle');
-        const elColor = document.getElementById('tagColor');
-        const elSize = document.getElementById('tagSize');
-        const elPrice = document.getElementById('tagPrice');
-        const elBarcodeText = document.getElementById('tagBarcodeText');
-
-        function showStatus(msg, type) {
-            statusMsg.textContent = msg;
-            statusMsg.className = 'status-message ' + (type === 'error' ? 'status-error' : 'status-success');
-            if(type === 'success') {
-                setTimeout(() => { if(statusMsg.textContent === msg) statusMsg.textContent = ''; }, 5000);
+        // --- 2. MODE SWITCHING ---
+        function setMode(mode) {
+            currentMode = mode;
+            document.body.className = mode === 'a4' ? 'a4-mode' : '';
+            
+            // UI Toggle
+            document.getElementById('btnModeThermal').classList.toggle('active', mode === 'thermal');
+            document.getElementById('btnModeA4').classList.toggle('active', mode === 'a4');
+            
+            // Update Text/Visibility
+            if (mode === 'a4') {
+                fetchBtn.textContent = "Add to Queue";
+                queueInfo.style.display = 'block';
+                renderA4Grid();
+            } else {
+                fetchBtn.textContent = "Fetch";
+                queueInfo.style.display = 'none';
             }
+            
+            // Reset input focus
+            barcodeInput.value = '';
+            barcodeInput.focus();
         }
 
-        function formatPrice(mrp) {
-            if (!mrp) return "BDT. 0.00 (+VAT)";
-            // Format: BDT. 5,490.00 (+VAT)
-            return "BDT. " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + " (+VAT)";
-        }
-
+        // --- 3. DATA FETCHING ---
         async function fetchData() {
             const query = barcodeInput.value.trim();
-            if (!query) { showStatus("Please enter a barcode.", "error"); return; }
+            if (!query) { showStatus("Please scan a barcode.", "error"); return; }
             
-            showStatus("Searching...", "success");
-            printBtn.style.display = 'none';
+            showStatus("Processing...", "success");
 
             try {
                 const { data, error } = await sbClient
@@ -341,67 +531,152 @@
                     .eq('barcode', query)
                     .maybeSingle();
 
-                if (error) {
-                    throw error; 
-                }
-                
+                if (error) throw error; 
                 if (!data) { 
-                    showStatus("Barcode not found in database.", "error"); 
-                    resetTag(); 
+                    showStatus("Barcode not found.", "error"); 
                     return; 
                 }
 
-                populateTag(data);
-                showStatus("Loaded successfully!", "success");
-                printBtn.style.display = 'block';
+                if (currentMode === 'thermal') {
+                    populateSingleTag(data);
+                    showStatus("Loaded! Ready to print.", "success");
+                } else {
+                    addToQueue(data);
+                }
+                
+                barcodeInput.value = ''; // Clear input for next scan
+                barcodeInput.focus();
+
             } catch (err) {
                 console.error("Fetch Error:", err);
                 showStatus("DB Error: " + err.message, "error");
             }
         }
 
-        function populateTag(item) {
-            elName.textContent = item.name || "ITEM";
-            elStyle.textContent = item.style_code || "--";
-            
-            // Update Color to format "COLOR: BLACK"
-            elColor.textContent = "COLOR: " + (item.color ? item.color.toUpperCase() : "--");
-            
-            elSize.textContent = item.size || "--";
-            elPrice.textContent = formatPrice(item.mrp);
-            elBarcodeText.textContent = item.barcode;
+        // --- 4. THERMAL LOGIC (Original) ---
+        function populateSingleTag(item) {
+            document.getElementById('tagName').textContent = item.name || "ITEM";
+            document.getElementById('tagStyle').textContent = item.style_code || "--";
+            document.getElementById('tagColor').textContent = "COLOR: " + (item.color ? item.color.toUpperCase() : "--");
+            document.getElementById('tagSize').textContent = item.size || "--";
+            document.getElementById('tagPrice').textContent = formatPrice(item.mrp);
+            document.getElementById('tagBarcodeText').textContent = item.barcode;
 
-            try {
-                JsBarcode("#barcode-canvas", item.barcode, {
-                    format: "CODE128",
-                    lineColor: "#000",
-                    width: 1.0,      
-                    height: 30,      
-                    displayValue: false, 
-                    margin: 0
-                });
-            } catch (e) {
-                console.error("Barcode Error", e);
-            }
-        }
-
-        function resetTag() {
-            elName.textContent = "ITEM";
-            elStyle.textContent = "--";
-            elColor.textContent = "COLOR: --";
-            elSize.textContent = "--";
-            elPrice.textContent = "BDT. 0.00 (+VAT)";
-            elBarcodeText.textContent = "--";
-            document.getElementById('barcode-canvas').innerHTML = "";
+            JsBarcode("#barcode-canvas", item.barcode, {
+                format: "CODE128", lineColor: "#000", width: 1.0, height: 30, displayValue: false, margin: 0
+            });
         }
 
         function printTag() {
             window.print();
         }
 
+        // --- 5. A4 QUEUE & LOGIC (New) ---
+        function addToQueue(item) {
+            tagsQueue.push(item);
+            showStatus(`Added ${item.name} (${item.size})`, "success");
+            renderA4Grid();
+        }
+
+        function clearQueue() {
+            if(confirm("Clear all tags?")) {
+                tagsQueue = [];
+                renderA4Grid();
+            }
+        }
+
+        function formatPrice(mrp) {
+            if (!mrp) return "BDT. 0.00 (+VAT)";
+            return "BDT. " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + " (+VAT)";
+        }
+
+        function renderA4Grid() {
+            queueInfo.textContent = `Queue: ${tagsQueue.length} items`;
+            a4Container.innerHTML = '';
+
+            if (tagsQueue.length === 0) {
+                a4Container.innerHTML = '<div style="padding:20px; color:#999; font-style:italic;">Scan barcodes to populate A4 sheet...</div>';
+                return;
+            }
+
+            // Pagination: 24 labels per page (3 cols x 8 rows)
+            const ITEMS_PER_PAGE = 24;
+            const pages = Math.ceil(tagsQueue.length / ITEMS_PER_PAGE);
+
+            for (let p = 0; p < pages; p++) {
+                const start = p * ITEMS_PER_PAGE;
+                const end = start + ITEMS_PER_PAGE;
+                const pageItems = tagsQueue.slice(start, end);
+
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'a4-page';
+
+                pageItems.forEach((item, index) => {
+                    const globalIndex = (p * ITEMS_PER_PAGE) + index;
+                    const label = createA4Label(item, globalIndex);
+                    pageDiv.appendChild(label);
+                });
+
+                a4Container.appendChild(pageDiv);
+            }
+        }
+
+        function createA4Label(item, index) {
+            const div = document.createElement('div');
+            div.className = 'a4-label';
+
+            // Unique ID for barcode SVG
+            const bcId = `bc-svg-${index}`;
+
+            // Compact Layout Construction
+            div.innerHTML = `
+                <div class="a4-head">
+                    <span class="a4-brand">BLUCHEEZ</span>
+                    <span class="a4-name">${truncate(item.name, 18)}</span>
+                </div>
+                <div class="a4-details">
+                    <span class="a4-detail-item">STY: ${truncate(item.style_code, 10)}</span>
+                    <span class="a4-detail-item">CLR: ${item.color.toUpperCase()}</span>
+                    <span class="a4-detail-item">SZ: ${item.size}</span>
+                </div>
+                <div class="a4-price-row">
+                    <span class="a4-price">${formatPrice(item.mrp)}</span>
+                    <div class="barcode-block">
+                        <svg id="${bcId}" class="a4-barcode"></svg>
+                        <div class="a4-barcode-num">${item.barcode}</div>
+                    </div>
+                </div>
+            `;
+
+            // Generate Barcode
+            setTimeout(() => {
+                try {
+                    JsBarcode(`#${bcId}`, item.barcode, {
+                        format: "CODE128",
+                        lineColor: "#000",
+                        width: 1,
+                        height: 25, // Shorter height for A4 label
+                        displayValue: false,
+                        margin: 0,
+                        fontOptions: "bold"
+                    });
+                } catch(e) { console.error("Barcode fail", e); }
+            }, 0);
+
+            return div;
+        }
+
+        function truncate(str, n) {
+            return (str.length > n) ? str.substr(0, n-1) + '&hellip;' : str;
+        }
+
+        // --- 6. EVENTS ---
         barcodeInput.addEventListener("keypress", function(e) {
             if (e.key === "Enter") { e.preventDefault(); fetchData(); }
         });
+
+        // Initialize Default State
+        setMode('thermal');
     </script>
 </body>
 </html>
