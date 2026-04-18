@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blucheez Tag Printer (Dual Mode)</title>
+    <title>Blucheez Tag Printer (Unified Design)</title>
     
     <!-- Load JsBarcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -12,15 +12,16 @@
 
     <style>
         :root {
-            /* --- THERMAL MODE (Original) --- */
+            /* --- TAG DIMENSIONS (Unified) --- */
             /* 1 inch = 96px, 2.5 inches = 240px */
-            --tag-width: 96px;  
-            --tag-height: 240px;
+            --tag-w: 96px;  
+            --tag-h: 240px;
             
-            /* --- A4 MODE (New) --- */
-            /* Label dimensions: 50mm x 30mm */
+            /* --- A4 GRID CONFIG --- */
             --a4-label-w: 50mm;
             --a4-label-h: 30mm;
+            --a4-page-w: 210mm;
+            --a4-page-h: 297mm;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -52,7 +53,6 @@
 
         h1 { font-size: 1.2rem; margin-bottom: 15px; font-weight: 500; }
         
-        /* Mode Switcher */
         .mode-switch {
             display: flex;
             justify-content: center;
@@ -117,33 +117,25 @@
         .status-message { font-size: 0.85rem; margin-top: 10px; }
         .status-error { color: #d32f2f; }
         .status-success { color: #2e7d32; }
-        
-        .queue-info {
-            font-size: 0.8rem;
-            color: #555;
-            margin-top: 5px;
-        }
+        .queue-info { font-size: 0.8rem; color: #555; margin-top: 5px; }
 
         /* =========================================
-           VISIBILITY CONTROLS
+           VISIBILITY TOGGLES
            ========================================= */
-        /* By default, show Thermal, hide A4 */
         body:not(.a4-mode) .a4-wrapper { display: none; }
         body:not(.a4-mode) .queue-controls { display: none; }
-        
-        body.a4-mode .thermal-wrapper { display: none; }
-        body.a4-mode .btn-print-thermal { display: none; }
+        body:not(.a4-mode) .btn-print-thermal { display: none; }
 
+        body.a4-mode .thermal-wrapper { display: none; }
 
         /* =========================================
-           THERMAL TAG STYLES (Original)
+           SHARED TAG DESIGN (.tag-design)
            ========================================= */
-        .thermal-wrapper { margin: 20px; }
-
-        #price-tag {
+        /* This is the MASTER design. Used for both Thermal and A4. */
+        .tag-design {
             background: white;
-            width: var(--tag-width);
-            height: var(--tag-height);
+            width: var(--tag-w);
+            height: var(--tag-h);
             position: relative;
             display: flex;
             flex-direction: column;
@@ -151,9 +143,12 @@
             border: 1px solid #000; 
             overflow: hidden;
             padding-top: 4px;
+            /* Ensures print color accuracy */
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact;
         }
 
-        .brand-box {
+        .tag-brand-box {
             margin: 0 4px;
             margin-bottom: 15px; 
             padding: 2px 0;
@@ -162,14 +157,14 @@
             width: calc(100% - 8px); 
         }
 
-        .brand-name {
+        .tag-brand-name {
             font-size: 9px;
             font-weight: 900; 
             text-transform: uppercase;
             color: #000;
         }
 
-        .product-name {
+        .tag-product-name {
             text-align: center;
             font-size: 8px;
             font-weight: 900;
@@ -179,7 +174,7 @@
             line-height: 1.2;
         }
 
-        .content-wrapper {
+        .tag-content-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -189,7 +184,7 @@
             width: 100%;
         }
 
-        .info-text {
+        .tag-info-text {
             text-align: center;
             font-weight: 900;
             font-size: 7px;
@@ -198,38 +193,20 @@
             width: 100%;
         }
 
-        .size-block {
-            text-align: center;
-        }
+        .tag-size-block { text-align: center; }
+        .tag-size-label { font-size: 6px; font-weight: 800; display: block; margin-bottom: 1px; }
+        .tag-size-value { font-size: 13px; font-weight: 900; display: block; line-height: 1; }
 
-        .size-label {
-            font-size: 6px;
-            font-weight: 800;
-            display: block;
-            margin-bottom: 1px;
-        }
-
-        .size-value {
-            font-size: 13px; 
-            font-weight: 900; 
-            display: block;
-            line-height: 1;
-        }
-
-        .barcode-block {
+        .tag-barcode-block {
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
         }
 
-        #barcode-canvas {
-            width: 100%;
-            max-width: 84px;
-            height: auto;
-        }
+        .tag-barcode-canvas { width: 100%; max-width: 84px; height: auto; }
 
-        .barcode-number {
+        .tag-barcode-number {
             font-family: 'Courier New', monospace;
             font-size: 8px; 
             font-weight: 900;
@@ -246,7 +223,7 @@
             width: 100%; 
         }
 
-        .price-full-text {
+        .tag-price-text {
             font-size: 7px; 
             font-weight: 900; 
             text-align: center;
@@ -254,8 +231,13 @@
         }
 
         /* =========================================
-           A4 LABEL STYLES (New)
+           MODE SPECIFIC CONTAINERS
            ========================================= */
+        
+        /* 1. Thermal View Wrapper */
+        .thermal-wrapper { margin: 20px; }
+
+        /* 2. A4 View Wrapper */
         .a4-wrapper {
             width: 100%;
             display: flex;
@@ -266,9 +248,9 @@
 
         .a4-page {
             background: white;
-            width: 210mm;
-            min-height: 297mm;
-            padding: 10mm; /* Margin */
+            width: var(--a4-page-w);
+            min-height: var(--a4-page-h);
+            padding: 10mm; 
             display: grid;
             grid-template-columns: repeat(3, var(--a4-label-w));
             grid-auto-rows: var(--a4-label-h);
@@ -278,66 +260,29 @@
             page-break-after: always;
         }
 
-        .a4-label {
-            border: 1px solid #000;
-            padding: 2mm;
+        /* A4 Grid Cell */
+        .a4-cell {
+            border: 1px dashed #ccc; /* Dashed border for preview only */
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            overflow: hidden;
-            font-size: 0;
-        }
-
-        /* A4 Internal Layout - Compact Horizontal */
-        .a4-head {
-            display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            border-bottom: 1px solid #000;
-            padding-bottom: 1px;
-            margin-bottom: 2px;
+            overflow: hidden;
+            background: #fafafa; /* Light grey background for preview contrast */
         }
 
-        .a4-brand { font-weight: 900; font-size: 6pt; text-transform: uppercase; }
-        .a4-name { font-weight: 900; font-size: 7pt; text-transform: uppercase; max-width: 60%; }
-
-        .a4-details {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 2mm;
-            font-size: 5pt;
-            font-weight: 800;
-            line-height: 1.1;
-            margin-bottom: 1px;
-        }
-
-        .a4-detail-item { display: block; }
-        .a4-price-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-top: auto;
-            border-top: 1px solid #000;
-            padding-top: 1px;
-        }
-
-        .a4-price {
-            font-size: 7pt;
-            font-weight: 900;
-            line-height: 1;
-        }
-
-        .a4-barcode {
-            width: 60%; 
-            height: 12mm; /* Shorter barcode for A4 */
-        }
-        
-        .a4-barcode-num {
-            font-family: 'Courier New', monospace;
-            font-size: 5pt;
-            text-align: center;
-            margin-top: -2px;
+        /* The Rotator:
+           Since the tag is Vertical (2.5" tall) and the slot is Horizontal (30mm tall),
+           we must rotate the tag 90deg to fit the design into the slot.
+        */
+        .tag-rotator {
+            /* 
+               Calculation: 
+               Tag Width (rotated) = 240px. 
+               Available Width = 50mm (~189px).
+               Scale = 189 / 240 ≈ 0.78
+            */
+            transform: rotate(90deg) scale(0.78);
+            transform-origin: center center;
         }
 
         /* =========================================
@@ -351,48 +296,29 @@
                 display: block;
             }
 
-            /* Hide Controls */
-            .controls-container, .no-print {
-                display: none !important;
-            }
+            .controls-container, .no-print { display: none !important; }
 
-            /* --- THERMAL PRINT LOGIC --- */
-            body:not(.a4-mode) .thermal-wrapper {
-                margin: 0;
-                position: absolute;
-                top: 0;
-                left: 0;
-            }
+            /* --- THERMAL PRINT --- */
+            body:not(.a4-mode) .thermal-wrapper { margin: 0; position: absolute; top: 0; left: 0; }
+            body:not(.a4-mode) .tag-design { box-shadow: none; }
 
-            body:not(.a4-mode) #price-tag {
-                box-shadow: none;
-                width: var(--tag-width);
-                height: var(--tag-height);
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact;
-            }
-
-            /* --- A4 PRINT LOGIC --- */
-            body.a4-mode .a4-wrapper {
-                display: block;
-                width: 100%;
-            }
-
+            /* --- A4 PRINT --- */
+            body.a4-mode .a4-wrapper { display: block; width: 100%; }
+            
             body.a4-mode .a4-page {
                 box-shadow: none;
                 margin: 0;
-                width: 210mm;
-                height: 297mm;
+                width: var(--a4-page-w);
+                height: var(--a4-page-h);
                 page-break-after: always;
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact;
             }
             
-            body.a4-mode .a4-label {
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact;
+            /* Remove preview styling for A4 cells */
+            body.a4-mode .a4-cell {
+                border: none;
+                background: none;
             }
-
+            
             @page {
                 size: auto;
                 margin: 0mm;
@@ -405,7 +331,6 @@
     <div class="controls-container no-print">
         <h1>Blucheez Tag Printer</h1>
         
-        <!-- MODE SWITCHER -->
         <div class="mode-switch">
             <button class="mode-btn active" id="btnModeThermal" onclick="setMode('thermal')">Thermal (1"x2.5")</button>
             <button class="mode-btn" id="btnModeA4" onclick="setMode('a4')">A4 Sheet (50x30mm)</button>
@@ -417,14 +342,10 @@
         </div>
         
         <div id="statusMsg" class="status-message"></div>
-        
-        <!-- A4 Queue Info -->
         <div id="queueInfo" class="queue-info" style="display:none;">Queue: 0 items</div>
 
-        <!-- Thermal Button -->
         <button id="printBtnThermal" class="action-btn btn-print btn-print-thermal" onclick="printTag()">Print Thermal Tag</button>
 
-        <!-- A4 Buttons -->
         <div class="queue-controls">
             <button class="action-btn btn-clear" onclick="clearQueue()">Clear All</button>
             <button class="action-btn btn-print" onclick="window.print()">Print A4 Sheet</button>
@@ -432,34 +353,15 @@
     </div>
 
     <!-- =========================================
-         1. THERMAL PREVIEW (Existing)
+         1. THERMAL PREVIEW
          ========================================= -->
     <div class="thermal-wrapper">
-        <div id="price-tag">
-            <div class="brand-box">
-                <div class="brand-name">Blucheez</div>
-            </div>
-            <div class="product-name" id="tagName">JACKET</div>
-            <div class="content-wrapper">
-                <div class="info-text" id="tagStyle">AB-WIN54-BMJ-039</div>
-                <div class="info-text" id="tagColor">COLOR: BLACK</div>
-                <div class="size-block">
-                    <span class="size-label">SIZE</span>
-                    <span class="size-value" id="tagSize">S</span>
-                </div>
-                <div class="barcode-block">
-                    <svg id="barcode-canvas"></svg>
-                    <div class="barcode-number" id="tagBarcodeText">A021103</div>
-                </div>
-            </div>
-            <div class="tag-footer">
-                <span class="price-full-text" id="tagPrice">BDT. 5,490.00 (+VAT)</span>
-            </div>
-        </div>
+        <!-- The tag design is injected here -->
+        <div id="thermal-container"></div>
     </div>
 
     <!-- =========================================
-         2. A4 PREVIEW CONTAINER (New)
+         2. A4 PREVIEW CONTAINER
          ========================================= -->
     <div class="a4-wrapper" id="a4PreviewContainer">
         <!-- Dynamic Pages will be injected here -->
@@ -472,34 +374,27 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
         
         let sbClient;
-        let currentMode = 'thermal'; // 'thermal' or 'a4'
-        let tagsQueue = []; // Array to hold tag objects for A4 mode
+        let currentMode = 'thermal';
+        let tagsQueue = [];
 
         // DOM Elements
         const barcodeInput = document.getElementById('barcodeInput');
         const statusMsg = document.getElementById('statusMsg');
         const queueInfo = document.getElementById('queueInfo');
         const a4Container = document.getElementById('a4PreviewContainer');
+        const thermalContainer = document.getElementById('thermal-container');
         const fetchBtn = document.getElementById('fetchBtn');
 
         // --- 2. HELPER FUNCTIONS ---
-        // FIX: Added the missing showStatus function here
         function showStatus(msg, type) {
             statusMsg.textContent = msg;
             statusMsg.className = 'status-message ' + (type === 'error' ? 'status-error' : 'status-success');
-            if(type === 'success') {
-                setTimeout(() => { if(statusMsg.textContent === msg) statusMsg.textContent = ''; }, 5000);
-            }
+            if(type === 'success') setTimeout(() => { if(statusMsg.textContent === msg) statusMsg.textContent = ''; }, 5000);
         }
 
         function formatPrice(mrp) {
             if (!mrp) return "BDT. 0.00 (+VAT)";
             return "BDT. " + parseFloat(mrp).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + " (+VAT)";
-        }
-
-        function truncate(str, n) {
-            if (!str) return "";
-            return (str.length > n) ? str.substr(0, n-1) + '&hellip;' : str;
         }
 
         // Init Supabase
@@ -509,20 +404,46 @@
             } else {
                 showStatus("Error: Supabase library failed to load.", "error");
             }
-        } catch (e) { 
-            console.error("Init error", e); 
+        } catch (e) { console.error("Init error", e); }
+
+        // --- 3. UNIFIED TAG GENERATOR ---
+        // This function returns the HTML for the standard tag design
+        function getTagHTML(item, suffix) {
+            const bcId = `bc-${suffix}`;
+            
+            return `
+                <div class="tag-design">
+                    <div class="tag-brand-box">
+                        <div class="tag-brand-name">Blucheez</div>
+                    </div>
+                    <div class="tag-product-name">${item.name || "ITEM"}</div>
+                    <div class="tag-content-wrapper">
+                        <div class="tag-info-text">${item.style_code || "--"}</div>
+                        <div class="tag-info-text">COLOR: ${item.color ? item.color.toUpperCase() : "--"}</div>
+                        <div class="tag-size-block">
+                            <span class="tag-size-label">SIZE</span>
+                            <span class="tag-size-value">${item.size || "--"}</span>
+                        </div>
+                        <div class="tag-barcode-block">
+                            <svg id="${bcId}" class="tag-barcode-canvas"></svg>
+                            <div class="tag-barcode-number">${item.barcode}</div>
+                        </div>
+                    </div>
+                    <div class="tag-footer">
+                        <span class="tag-price-text">${formatPrice(item.mrp)}</span>
+                    </div>
+                </div>
+            `;
         }
 
-        // --- 3. MODE SWITCHING ---
+        // --- 4. MODE SWITCHING ---
         function setMode(mode) {
             currentMode = mode;
             document.body.className = mode === 'a4' ? 'a4-mode' : '';
             
-            // UI Toggle
             document.getElementById('btnModeThermal').classList.toggle('active', mode === 'thermal');
             document.getElementById('btnModeA4').classList.toggle('active', mode === 'a4');
             
-            // Update Text/Visibility
             if (mode === 'a4') {
                 fetchBtn.textContent = "Add to Queue";
                 queueInfo.style.display = 'block';
@@ -530,14 +451,16 @@
             } else {
                 fetchBtn.textContent = "Fetch";
                 queueInfo.style.display = 'none';
+                // If we have a last scanned item (or just clear), we could reload thermal
+                // For now, we leave it empty or clear it
+                thermalContainer.innerHTML = '';
             }
             
-            // Reset input focus
             barcodeInput.value = '';
             barcodeInput.focus();
         }
 
-        // --- 4. DATA FETCHING ---
+        // --- 5. DATA FETCHING ---
         async function fetchData() {
             const query = barcodeInput.value.trim();
             if (!query) { showStatus("Please scan a barcode.", "error"); return; }
@@ -558,13 +481,13 @@
                 }
 
                 if (currentMode === 'thermal') {
-                    populateSingleTag(data);
+                    renderThermalTag(data);
                     showStatus("Loaded! Ready to print.", "success");
                 } else {
                     addToQueue(data);
                 }
                 
-                barcodeInput.value = ''; // Clear input for next scan
+                barcodeInput.value = '';
                 barcodeInput.focus();
 
             } catch (err) {
@@ -573,25 +496,23 @@
             }
         }
 
-        // --- 5. THERMAL LOGIC (Original) ---
-        function populateSingleTag(item) {
-            document.getElementById('tagName').textContent = item.name || "ITEM";
-            document.getElementById('tagStyle').textContent = item.style_code || "--";
-            document.getElementById('tagColor').textContent = "COLOR: " + (item.color ? item.color.toUpperCase() : "--");
-            document.getElementById('tagSize').textContent = item.size || "--";
-            document.getElementById('tagPrice').textContent = formatPrice(item.mrp);
-            document.getElementById('tagBarcodeText').textContent = item.barcode;
-
-            JsBarcode("#barcode-canvas", item.barcode, {
-                format: "CODE128", lineColor: "#000", width: 1.0, height: 30, displayValue: false, margin: 0
-            });
+        // --- 6. THERMAL RENDER LOGIC ---
+        function renderThermalTag(item) {
+            thermalContainer.innerHTML = getTagHTML(item, 'thermal');
+            
+            // Generate Barcode
+            setTimeout(() => {
+                JsBarcode("#bc-thermal", item.barcode, {
+                    format: "CODE128", lineColor: "#000", width: 1.0, height: 30, displayValue: false, margin: 0
+                });
+            }, 0);
         }
 
         function printTag() {
             window.print();
         }
 
-        // --- 6. A4 QUEUE & LOGIC (New) ---
+        // --- 7. A4 QUEUE & RENDER LOGIC ---
         function addToQueue(item) {
             tagsQueue.push(item);
             showStatus(`Added ${item.name} (${item.size})`, "success");
@@ -610,11 +531,10 @@
             a4Container.innerHTML = '';
 
             if (tagsQueue.length === 0) {
-                a4Container.innerHTML = '<div style="padding:20px; color:#999; font-style:italic;">Scan barcodes to populate A4 sheet...</div>';
+                a4Container.innerHTML = '<div style="padding:20px; color:#999;">Scan to populate sheet...</div>';
                 return;
             }
 
-            // Pagination: 24 labels per page (3 cols x 8 rows)
             const ITEMS_PER_PAGE = 24;
             const pages = Math.ceil(tagsQueue.length / ITEMS_PER_PAGE);
 
@@ -628,65 +548,48 @@
 
                 pageItems.forEach((item, index) => {
                     const globalIndex = (p * ITEMS_PER_PAGE) + index;
-                    const label = createA4Label(item, globalIndex);
-                    pageDiv.appendChild(label);
+                    
+                    // Create Cell
+                    const cell = document.createElement('div');
+                    cell.className = 'a4-cell';
+
+                    // Create Rotator Wrapper (allows rotating the vertical tag)
+                    const rotator = document.createElement('div');
+                    rotator.className = 'tag-rotator';
+                    
+                    // Inject Unified Tag HTML
+                    rotator.innerHTML = getTagHTML(item, `a4-${globalIndex}`);
+                    
+                    cell.appendChild(rotator);
+                    pageDiv.appendChild(cell);
                 });
 
                 a4Container.appendChild(pageDiv);
             }
-        }
 
-        function createA4Label(item, index) {
-            const div = document.createElement('div');
-            div.className = 'a4-label';
-
-            // Unique ID for barcode SVG
-            const bcId = `bc-svg-${index}`;
-
-            // Compact Layout Construction
-            div.innerHTML = `
-                <div class="a4-head">
-                    <span class="a4-brand">BLUCHEEZ</span>
-                    <span class="a4-name">${truncate(item.name, 18)}</span>
-                </div>
-                <div class="a4-details">
-                    <span class="a4-detail-item">STY: ${truncate(item.style_code, 10)}</span>
-                    <span class="a4-detail-item">CLR: ${item.color ? item.color.toUpperCase() : '--'}</span>
-                    <span class="a4-detail-item">SZ: ${item.size}</span>
-                </div>
-                <div class="a4-price-row">
-                    <span class="a4-price">${formatPrice(item.mrp)}</span>
-                    <div class="barcode-block">
-                        <svg id="${bcId}" class="a4-barcode"></svg>
-                        <div class="a4-barcode-num">${item.barcode}</div>
-                    </div>
-                </div>
-            `;
-
-            // Generate Barcode
+            // Generate Barcodes for all A4 tags
+            // We use a slight timeout to ensure DOM is ready
             setTimeout(() => {
-                try {
-                    JsBarcode(`#${bcId}`, item.barcode, {
-                        format: "CODE128",
-                        lineColor: "#000",
-                        width: 1,
-                        height: 25, // Shorter height for A4 label
-                        displayValue: false,
-                        margin: 0,
-                        fontOptions: "bold"
-                    });
-                } catch(e) { console.error("Barcode fail", e); }
-            }, 0);
-
-            return div;
+                tagsQueue.forEach((item, idx) => {
+                    try {
+                        JsBarcode(`#bc-a4-${idx}`, item.barcode, {
+                            format: "CODE128",
+                            lineColor: "#000",
+                            width: 1.0,
+                            height: 30,
+                            displayValue: false,
+                            margin: 0
+                        });
+                    } catch(e) { console.error(e); }
+                });
+            }, 50);
         }
 
-        // --- 7. EVENTS ---
+        // --- 8. EVENTS ---
         barcodeInput.addEventListener("keypress", function(e) {
             if (e.key === "Enter") { e.preventDefault(); fetchData(); }
         });
 
-        // Initialize Default State
         setMode('thermal');
     </script>
 </body>
