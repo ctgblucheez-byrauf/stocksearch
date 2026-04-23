@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blucheez | Geo-Attendance (Supabase)</title>
-    <!-- 1. ADD SUPABASE JS CLIENT LIBRARY -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -59,7 +58,7 @@
         nav button.active { background: var(--primary); color: white; }
         nav button:hover:not(.active) { background: #f1f5f9; }
 
-        main { flex: 1; padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+        main { flex: 1; padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; }
 
         /* --- Views --- */
         .view { display: none; animation: fadeIn 0.3s ease; }
@@ -116,10 +115,30 @@
         .geo-dot.active { background: var(--success); box-shadow: 0 0 0 4px #dcfce7; }
 
         /* --- Tables --- */
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background: #f8fafc; font-weight: 600; color: var(--text-muted); }
+        .table-wrapper {
+            max-height: 800px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; font-weight: 600; color: var(--text-muted); position: sticky; top: 0; z-index: 10; }
+        
+        /* Summary Row Styles */
+        tr.emp-summary-row {
+            background-color: #fffbeb; /* Light Yellow */
+            font-weight: bold;
+            border-top: 2px solid var(--border);
+        }
+        tr.emp-summary-row td {
+            color: #92400e;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        /* Detail Row Styles */
+        tr.emp-detail-row:hover { background-color: #f1f5f9; }
+        
         tr:hover { background: #f8fafc; }
 
         /* --- Toast Notification --- */
@@ -187,7 +206,7 @@
 
             <div class="card">
                 <h3>Live Attendance Feed</h3>
-                <div class="table-container">
+                <div class="table-wrapper">
                     <table id="dash-table">
                         <thead>
                             <tr>
@@ -246,7 +265,7 @@
 
                 <div class="card">
                     <h3>Your Attendance History (Last 5 Days)</h3>
-                    <div class="table-container">
+                    <div class="table-wrapper">
                         <table id="emp-history-table">
                             <thead><tr><th>Date</th><th>In</th><th>Out</th><th>Status</th></tr></thead>
                             <tbody></tbody>
@@ -256,40 +275,41 @@
             </div>
         </section>
 
-        <!-- REPORTS VIEW -->
+        <!-- REPORTS VIEW (UPDATED) -->
         <section id="view-reports" class="view">
             <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                    <h2>Monthly Report</h2>
-                    <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
+                    <h2>Full Attendance Report</h2>
+                    <div style="display:flex; gap:0.5rem;">
                         <input type="month" id="report-month" onchange="generateReports()" style="width:auto; display:inline-block;">
-                        <button class="btn btn-sm btn-outline" onclick="exportCSV()">Download CSV</button>
+                        <button class="btn btn-sm btn-outline" onclick="exportExcel()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Export Excel
+                        </button>
                     </div>
                 </div>
                 
-                <div class="table-container">
+                <div class="table-wrapper">
                     <table id="report-table">
                         <thead>
                             <tr>
                                 <th>Employee</th>
                                 <th>Designation</th>
-                                <th>Present Days</th>
-                                <th>Late Count</th>
-                                <th>Total Overtime (Hrs)</th>
-                                <th>Est. Salary Base</th>
+                                <th>Summary (Pres / Late / Abs)</th>
+                                <th>Date</th>
+                                <th>In Time</th>
+                                <th>Out Time</th>
+                                <th>Total Duty (Hrs)</th>
+                                <th>Overtime (Hrs)</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Report Data -->
+                            <!-- Report Data Populated by JS -->
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            <div class="card">
-                <h3>Daily Summary (Selected Month)</h3>
-                <div style="display: flex; gap: 1rem; margin-top: 1rem; height: 150px; align-items: flex-end;" id="bar-chart">
-                    <!-- Simple CSS Bar Chart injected via JS -->
+                <div style="margin-top:10px; font-size:0.8rem; color:var(--text-muted);">
+                    * Summary rows (Yellow) show totals for the month. Detail rows show daily logs. Absent days are marked if no record is found.
                 </div>
             </div>
         </section>
@@ -337,7 +357,7 @@
                         <input type="number" id="new-emp-salary" placeholder="Monthly Base Salary" style="margin-bottom:0.5rem;">
                         <button class="btn btn-sm" onclick="addEmployee()">Add Employee</button>
                     </div>
-                    <div class="table-container">
+                    <div class="table-wrapper">
                         <table id="admin-emp-table">
                             <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Action</th></tr></thead>
                             <tbody></tbody>
@@ -363,33 +383,25 @@
         // Global State
         let currentEmpId = null;
         let currentLocation = null;
-        let allEmployeesCache = []; // Cache to reduce calls
-        let allAttendanceCache = []; // Cache to reduce calls
+        let allEmployeesCache = []; 
+        let allAttendanceCache = []; 
 
-        /**
-         * INITIALIZATION
-         */
         window.addEventListener('DOMContentLoaded', async () => {
             initClock();
             initGeo();
-            
-            // Load Settings from LocalStorage (Settings are client-side for this demo)
             loadSettingsToUI();
-            
-            // Load Data from Supabase
             await loadEmployeeDropdown();
             await updateDashboard();
             
-            // Set default month picker to current month
             const now = new Date();
-            const monthStr = now.toISOString().slice(0, 7); // YYYY-MM
+            const monthStr = now.toISOString().slice(0, 7); 
             document.getElementById('report-month').value = monthStr;
             
             await generateReports(); 
         });
 
         /**
-         * SUPABASE DATA ACCESS LAYER
+         * SUPABASE DATA ACCESS
          */
         async function fetchEmployees() {
             const { data, error } = await sbClient.from('employees').select('*').order('id');
@@ -449,7 +461,7 @@
         }
 
         /**
-         * GEO LOCATION UTILS
+         * GEO LOCATION
          */
         function initGeo() {
             if ("geolocation" in navigator) {
@@ -474,11 +486,7 @@
         }
 
         function checkZone(userLoc) {
-            // Get settings from LocalStorage for validation logic
-            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || {
-                lat: 40.7128, lon: -74.0060, radius: 100
-            };
-            
+            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { lat: 40.7128, lon: -74.0060, radius: 100 };
             const distance = getDistanceFromLatLonInM(userLoc.lat, userLoc.lon, settings.lat, settings.lon);
             const msgEl = document.getElementById('geo-msg');
             const dotEl = document.getElementById('geo-dot');
@@ -514,7 +522,7 @@
         }
 
         /**
-         * TIME UTILS
+         * TIME & UTILS
          */
         function initClock() {
             setInterval(() => {
@@ -530,16 +538,21 @@
             const h12 = h % 12 || 12;
             return `${h12}:${minutes} ${suffix}`;
         }
+        function calculateHours(start, end) {
+            const [sh, sm] = start.split(':').map(Number);
+            const [eh, em] = end.split(':').map(Number);
+            const startMin = sh * 60 + sm;
+            const endMin = eh * 60 + em;
+            const diff = endMin - startMin;
+            const hours = diff / 60;
+            return hours.toFixed(1); 
+        }
 
-        /**
-         * ROUTING
-         */
         function router(viewName) {
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
             document.getElementById(`nav-${viewName}`).classList.add('active');
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(`view-${viewName}`).classList.add('active');
-
             if (viewName === 'dashboard') updateDashboard();
             if (viewName === 'reports') generateReports();
         }
@@ -579,7 +592,6 @@
         }
 
         async function updateEmployeeStatusUI() {
-            // Fetch fresh attendance data
             allAttendanceCache = await fetchAttendance();
             const today = getTodayDateStr();
             const record = allAttendanceCache.find(a => a.employee_id === currentEmpId && a.date === today);
@@ -608,7 +620,6 @@
 
         async function attemptCheckIn() {
             if (!checkZone(currentLocation)) { showToast("Outside allowed geo-radius!", "error"); return; }
-
             const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { startTime: '09:00' };
             const now = new Date();
             const timeStr24 = now.toTimeString().slice(0, 5);
@@ -639,9 +650,7 @@
 
         async function attemptCheckOut() {
             if (!checkZone(currentLocation)) { showToast("Outside allowed geo-radius!", "error"); return; }
-
             const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { otStartTime: '18:00' };
-            // We need the record ID from DB
             allAttendanceCache = await fetchAttendance();
             const today = getTodayDateStr();
             const record = allAttendanceCache.find(a => a.employee_id === currentEmpId && a.date === today);
@@ -694,7 +703,7 @@
         }
 
         /**
-         * ADMIN & SETTINGS LOGIC (Settings kept Local for simplicity in this version)
+         * ADMIN LOGIC
          */
         function loadSettingsToUI() {
             const s = JSON.parse(localStorage.getItem('blucheez_settings'));
@@ -707,7 +716,6 @@
                 document.getElementById('set-ot-time').value = s.otStartTime;
             }
         }
-
         function saveSettings() {
             const settings = {
                 shopName: document.getElementById('set-shop-name').value,
@@ -721,16 +729,12 @@
             showToast("Settings Saved!", "success");
             if(currentLocation) checkZone(currentLocation);
         }
-
         async function addEmployee() {
             const name = document.getElementById('new-emp-name').value;
             const role = document.getElementById('new-emp-role').value;
             const salary = document.getElementById('new-emp-salary').value;
-
             if(!name || !role) { showToast("Name and Role required", "error"); return; }
-
             const result = await addEmployeeToSupabase({ name, designation: role, salary: parseFloat(salary)||0 });
-            
             if (result) {
                 document.getElementById('new-emp-name').value = '';
                 document.getElementById('new-emp-role').value = '';
@@ -739,7 +743,6 @@
                 showToast("Employee Added", "success");
             }
         }
-
         function updateAdminEmpTable() {
             const tbody = document.querySelector('#admin-emp-table tbody');
             tbody.innerHTML = '';
@@ -754,7 +757,6 @@
                 tbody.appendChild(tr);
             });
         }
-
         async function deleteEmployee(id) {
             if(!confirm("Delete employee?")) return;
             await deleteEmployeeFromSupabase(id);
@@ -768,7 +770,6 @@
         async function updateDashboard() {
             allEmployeesCache = await fetchEmployees();
             allAttendanceCache = await fetchAttendance();
-            
             const today = getTodayDateStr();
             const todaysLogs = allAttendanceCache.filter(l => l.date === today);
 
@@ -781,19 +782,15 @@
 
             const tbody = document.querySelector('#dash-table tbody');
             tbody.innerHTML = '';
-            
             allEmployeesCache.forEach(e => {
                 const log = todaysLogs.find(l => l.employee_id === e.id);
                 const tr = document.createElement('tr');
-                
                 let statusHTML = '<span style="color:#94a3b8">Absent</span>';
                 let loc = '-';
-
                 if (log) {
                     statusHTML = log.status === 'Late' ? '<span style="color:var(--danger); font-weight:bold">Late</span>' : '<span style="color:var(--success); font-weight:bold">Present</span>';
                     loc = `<a href="https://maps.google.com/?q=${log.lat},${log.lon}" target="_blank" style="color:var(--primary)">Map</a>`;
                 }
-
                 tr.innerHTML = `
                     <td>${e.name}</td>
                     <td>${log ? formatTime24to12(log.check_in_time) : '--:--'}</td>
@@ -805,80 +802,115 @@
             });
         }
 
+        /**
+         * NEW REPORTS LOGIC (Includes Present, Late, Absent Counts)
+         */
         async function generateReports() {
             const monthVal = document.getElementById('report-month').value;
             if(!monthVal) return;
 
             allEmployeesCache = await fetchEmployees();
             allAttendanceCache = await fetchAttendance();
-            const logs = allAttendanceCache.filter(l => l.date.startsWith(monthVal));
-            
+            const monthlyLogs = allAttendanceCache.filter(l => l.date.startsWith(monthVal));
+            const [year, mon] = monthVal.split('-');
+            const daysInMonth = new Date(year, mon, 0).getDate();
+
             const tbody = document.querySelector('#report-table tbody');
             tbody.innerHTML = '';
-            const dailyData = {};
 
-            allEmployeesCache.forEach(e => {
-                const empLogs = logs.filter(l => l.employee_id === e.id);
+            for (const emp of allEmployeesCache) {
+                // 1. Calculate Summary for this Employee
+                const empLogs = monthlyLogs.filter(l => l.employee_id === emp.id);
                 const presentDays = empLogs.length;
                 const lateDays = empLogs.filter(l => l.status === 'Late').length;
-                const totalOt = empLogs.reduce((acc, curr) => acc + (curr.overtime_hours || 0), 0);
-                
-                const latePenalty = lateDays * 10; 
-                const otPay = totalOt * 15; 
-                const totalPay = (e.salary || 0) - latePenalty + otPay;
+                const absentDays = daysInMonth - presentDays;
 
-                empLogs.forEach(l => { dailyData[l.date] = (dailyData[l.date] || 0) + 1; });
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${e.name}</td>
-                    <td>${e.designation}</td>
-                    <td><span style="color:var(--success)">${presentDays}</span></td>
-                    <td><span style="color:var(--danger)">${lateDays}</span></td>
-                    <td>${totalOt.toFixed(1)}</td>
-                    <td>$${totalPay.toFixed(2)}</td>
+                // 2. Add Summary Header Row
+                const summaryRow = document.createElement('tr');
+                summaryRow.className = 'emp-summary-row';
+                summaryRow.innerHTML = `
+                    <td>${emp.name}</td>
+                    <td>${emp.designation}</td>
+                    <td>
+                        <span style="color:var(--success)">Pres: ${presentDays}</span> | 
+                        <span style="color:var(--danger)">Late: ${lateDays}</span> | 
+                        <span style="color:var(--text-muted)">Abs: ${absentDays}</span>
+                    </td>
+                    <td colspan="5" style="text-align:right; font-weight:normal;">Total Days: ${daysInMonth}</td>
                 `;
-                tbody.appendChild(tr);
-            });
+                tbody.appendChild(summaryRow);
 
-            renderChart(dailyData, monthVal);
+                // 3. Add Daily Detail Rows
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${monthVal}-${day.toString().padStart(2, '0')}`;
+                    const log = empLogs.find(l => l.date === dateStr);
+                    const detailRow = document.createElement('tr');
+                    detailRow.className = 'emp-detail-row';
+
+                    let inTime = '--';
+                    let outTime = '--';
+                    let duty = '0.0';
+                    let ot = '0.0';
+                    let status = 'Absent';
+                    let rowStyle = 'background:#f8fafc; color:#94a3b8;';
+
+                    if (log) {
+                        inTime = formatTime24to12(log.check_in_time);
+                        outTime = log.check_out_time ? formatTime24to12(log.check_out_time) : 'Did not check out';
+                        if (log.check_in_time && log.check_out_time) duty = calculateHours(log.check_in_time, log.check_out_time);
+                        ot = log.overtime_hours > 0 ? log.overtime_hours.toFixed(2) : '0.0';
+                        status = log.status === 'Late' ? 'Late' : 'Present';
+                        
+                        if(status === 'Late') rowStyle = 'background:#fef2f2;';
+                        else rowStyle = 'background:#f0fdf4;';
+                    }
+
+                    detailRow.style = rowStyle;
+                    detailRow.innerHTML = `
+                        <td colspan="2"></td> <!-- Empty for alignment -->
+                        <td></td> <!-- Empty for alignment -->
+                        <td>${dateStr}</td>
+                        <td>${inTime}</td>
+                        <td>${outTime}</td>
+                        <td>${duty}</td>
+                        <td>${ot}</td>
+                    `;
+                    tbody.appendChild(detailRow);
+                }
+            }
         }
 
-        function renderChart(data, month) {
-            const container = document.getElementById('bar-chart');
-            container.innerHTML = '';
-            const [year, mon] = month.split('-');
-            const daysInMonth = new Date(year, mon, 0).getDate();
-            let maxVal = 0;
-            for(let i=1; i<=daysInMonth; i++) {
-                const val = data[`${month}-${i.toString().padStart(2,'0')}`] || 0;
-                if(val > maxVal) maxVal = val;
-            }
-            if(maxVal === 0) maxVal = 1;
-
-            for(let i=1; i<=daysInMonth; i++) {
-                const dayStr = `${month}-${i.toString().padStart(2,'0')}`;
-                const val = data[dayStr] || 0;
-                const heightPct = (val / maxVal) * 100;
-                
-                const bar = document.createElement('div');
-                bar.style.cssText = `flex:1; background:${val>0?'var(--primary)':'#e2e8f0'}; height:${heightPct}%; border-radius:4px 4px 0 0; margin:0 2px;`;
-                bar.title = `${dayStr}: ${val}`;
-                container.appendChild(bar);
-            }
-        }
-
-        function exportCSV() {
+        /**
+         * EXPORT EXCEL (CSV)
+         */
+        function exportExcel() {
             const table = document.getElementById("report-table");
-            let csv = "data:text/csv;charset=utf-8,";
-            const headers = []; table.querySelectorAll("th").forEach(th => headers.push(th.innerText));
-            csv += headers.join(",") + "\r\n";
+            if(table.rows.length <= 1) { showToast("No data to export", "error"); return; }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            const headers = [];
+            table.querySelectorAll("th").forEach(th => headers.push('"' + th.innerText + '"'));
+            csvContent += headers.join(",") + "\r\n";
+            
             table.querySelectorAll("tbody tr").forEach(row => {
-                const rowData = []; row.querySelectorAll("td").forEach(td => rowData.push(td.innerText));
-                csv += rowData.join(",") + "\r\n";
+                const rowData = [];
+                row.querySelectorAll("td").forEach(td => {
+                    let text = td.innerText.replace(/(\r\n|\n|\r)/gm, " ");
+                    // Handle summary rows that span columns: just take the text content
+                    rowData.push('"' + text + '"');
+                });
+                csvContent += rowData.join(",") + "\r\n";
             });
-            const link = document.createElement("a"); link.href = encodeURI(csv); link.download = "blucheez_report.csv";
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            const monthVal = document.getElementById('report-month').value || 'report';
+            link.setAttribute("download", `Blucheez_Report_${monthVal}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Excel CSV Downloaded!", "success");
         }
 
         function showToast(message, type = "success") {
