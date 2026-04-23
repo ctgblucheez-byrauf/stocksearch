@@ -58,7 +58,7 @@
         nav button.active { background: var(--primary); color: white; }
         nav button:hover:not(.active) { background: #f1f5f9; }
 
-        main { flex: 1; padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+        main { flex: 1; padding: 2rem; max-width: 1600px; margin: 0 auto; width: 100%; }
 
         /* --- Views --- */
         .view { display: none; animation: fadeIn 0.3s ease; }
@@ -114,32 +114,43 @@
         .geo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
         .geo-dot.active { background: var(--success); box-shadow: 0 0 0 4px #dcfce7; }
 
-        /* --- Tables --- */
+        /* --- Clean Report Table --- */
         .table-wrapper {
             max-height: 800px;
             overflow-y: auto;
             border: 1px solid var(--border);
             border-radius: var(--radius);
         }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background: #f8fafc; font-weight: 600; color: var(--text-muted); position: sticky; top: 0; z-index: 10; }
-        
-        /* Summary Row Styles */
-        tr.emp-summary-row {
-            background-color: #fffbeb; /* Light Yellow */
-            font-weight: bold;
-            border-top: 2px solid var(--border);
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { 
+            padding: 0.75rem 0.5rem; 
+            text-align: left; 
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
         }
-        tr.emp-summary-row td {
-            color: #92400e;
-            border-bottom: 2px solid var(--border);
+        th { 
+            background: #1e293b; 
+            color: white; 
+            font-weight: 600; 
+            position: sticky; 
+            top: 0; 
+            z-index: 10; 
+            text-align: center;
         }
-        
-        /* Detail Row Styles */
-        tr.emp-detail-row:hover { background-color: #f1f5f9; }
-        
-        tr:hover { background: #f8fafc; }
+        /* Align numbers right for better readability */
+        td:nth-child(6), td:nth-child(7), td:nth-child(8), td:nth-child(9), td:nth-child(10) {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Zebra Striping */
+        tbody tr:nth-child(even) { background-color: #f8fafc; }
+        tbody tr:hover { background-color: #e2e8f0; }
+
+        /* Status Colors in Table */
+        .text-green { color: var(--success); font-weight: bold; }
+        .text-red { color: var(--danger); font-weight: bold; }
+        .text-gray { color: #94a3b8; }
 
         /* --- Toast Notification --- */
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
@@ -156,11 +167,10 @@
             .grid-2 { grid-template-columns: 1fr; }
             .nav-links { overflow-x: auto; padding-bottom: 5px; }
             header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .table-wrapper { max-height: 500px; }
         }
         
-        /* Utility */
         .hidden { display: none !important; }
-        .text-right { text-align: right; }
         .mt-2 { margin-top: 1rem; }
     </style>
 </head>
@@ -275,11 +285,11 @@
             </div>
         </section>
 
-        <!-- REPORTS VIEW (UPDATED) -->
+        <!-- REPORTS VIEW (UPDATED FULL CLEAN TABLE) -->
         <section id="view-reports" class="view">
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
-                    <h2>Full Attendance Report</h2>
+                    <h2>Full Clean Report</h2>
                     <div style="display:flex; gap:0.5rem;">
                         <input type="month" id="report-month" onchange="generateReports()" style="width:auto; display:inline-block;">
                         <button class="btn btn-sm btn-outline" onclick="exportExcel()">
@@ -293,23 +303,26 @@
                     <table id="report-table">
                         <thead>
                             <tr>
+                                <th>Date</th>
                                 <th>Employee</th>
                                 <th>Designation</th>
-                                <th>Summary (Pres / Late / Abs)</th>
-                                <th>Date</th>
                                 <th>In Time</th>
                                 <th>Out Time</th>
+                                <th>Present Days</th>
+                                <th>Late Days</th>
+                                <th>Absent Days</th>
                                 <th>Total Duty (Hrs)</th>
                                 <th>Overtime (Hrs)</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Report Data Populated by JS -->
+                            <!-- Clean Rows Populated by JS -->
                         </tbody>
                     </table>
                 </div>
-                <div style="margin-top:10px; font-size:0.8rem; color:var(--text-muted);">
-                    * Summary rows (Yellow) show totals for the month. Detail rows show daily logs. Absent days are marked if no record is found.
+                <div style="margin-top:10px; font-size:0.8rem; color:var(--text-muted); display:flex; justify-content:space-between;">
+                    <span>* Columns "Present/Late/Absent Days" show the **Total Monthly Count** for that employee.</span>
+                    <span>* Columns "Total Duty" and "Overtime" show data for the **specific day**.</span>
                 </div>
             </div>
         </section>
@@ -531,7 +544,7 @@
         }
         function getTodayDateStr() { return new Date().toISOString().slice(0, 10); }
         function formatTime24to12(time24) {
-            if(!time24) return '--:--';
+            if(!time24) return '--';
             const [hours, minutes] = time24.split(':');
             const h = parseInt(hours, 10);
             const suffix = h >= 12 ? 'PM' : 'AM';
@@ -765,7 +778,7 @@
         }
 
         /**
-         * DASHBOARD & REPORTS LOGIC
+         * DASHBOARD LOGIC
          */
         async function updateDashboard() {
             allEmployeesCache = await fetchEmployees();
@@ -803,7 +816,7 @@
         }
 
         /**
-         * NEW REPORTS LOGIC (Includes Present, Late, Absent Counts)
+         * FULL CLEAN REPORT LOGIC
          */
         async function generateReports() {
             const monthVal = document.getElementById('report-month').value;
@@ -814,68 +827,74 @@
             const monthlyLogs = allAttendanceCache.filter(l => l.date.startsWith(monthVal));
             const [year, mon] = monthVal.split('-');
             const daysInMonth = new Date(year, mon, 0).getDate();
-
             const tbody = document.querySelector('#report-table tbody');
             tbody.innerHTML = '';
 
-            for (const emp of allEmployeesCache) {
-                // 1. Calculate Summary for this Employee
+            // 1. Pre-calculate Monthly Summary for each employee
+            const summaryMap = {};
+            allEmployeesCache.forEach(emp => {
                 const empLogs = monthlyLogs.filter(l => l.employee_id === emp.id);
                 const presentDays = empLogs.length;
                 const lateDays = empLogs.filter(l => l.status === 'Late').length;
-                const absentDays = daysInMonth - presentDays;
+                const totalDutyHrs = empLogs.reduce((acc, curr) => {
+                    if(curr.check_in_time && curr.check_out_time) {
+                        return acc + parseFloat(calculateHours(curr.check_in_time, curr.check_out_time));
+                    }
+                    return acc;
+                }, 0);
+                const totalOtHrs = empLogs.reduce((acc, curr) => acc + (parseFloat(curr.overtime_hours)||0), 0);
+                
+                summaryMap[emp.id] = {
+                    present: presentDays,
+                    late: lateDays,
+                    absent: daysInMonth - presentDays,
+                    duty: totalDutyHrs,
+                    ot: totalOtHrs
+                };
+            });
 
-                // 2. Add Summary Header Row
-                const summaryRow = document.createElement('tr');
-                summaryRow.className = 'emp-summary-row';
-                summaryRow.innerHTML = `
-                    <td>${emp.name}</td>
-                    <td>${emp.designation}</td>
-                    <td>
-                        <span style="color:var(--success)">Pres: ${presentDays}</span> | 
-                        <span style="color:var(--danger)">Late: ${lateDays}</span> | 
-                        <span style="color:var(--text-muted)">Abs: ${absentDays}</span>
-                    </td>
-                    <td colspan="5" style="text-align:right; font-weight:normal;">Total Days: ${daysInMonth}</td>
-                `;
-                tbody.appendChild(summaryRow);
-
-                // 3. Add Daily Detail Rows
+            // 2. Generate Clean Rows
+            for (const emp of allEmployeesCache) {
+                const stats = summaryMap[emp.id]; // Get monthly totals
+                
+                // Iterate through every day of the month
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dateStr = `${monthVal}-${day.toString().padStart(2, '0')}`;
-                    const log = empLogs.find(l => l.date === dateStr);
-                    const detailRow = document.createElement('tr');
-                    detailRow.className = 'emp-detail-row';
-
+                    const log = monthlyLogs.find(l => l.employee_id === emp.id && l.date === dateStr);
+                    
+                    const tr = document.createElement('tr');
+                    
+                    // Default values for Absent
                     let inTime = '--';
                     let outTime = '--';
-                    let duty = '0.0';
-                    let ot = '0.0';
-                    let status = 'Absent';
-                    let rowStyle = 'background:#f8fafc; color:#94a3b8;';
+                    let dailyDuty = '0.0';
+                    let dailyOt = '0.0';
+                    let statusStyle = 'color: #94a3b8;'; // Gray for absent
 
+                    // If Log exists (Present)
                     if (log) {
                         inTime = formatTime24to12(log.check_in_time);
-                        outTime = log.check_out_time ? formatTime24to12(log.check_out_time) : 'Did not check out';
-                        if (log.check_in_time && log.check_out_time) duty = calculateHours(log.check_in_time, log.check_out_time);
-                        ot = log.overtime_hours > 0 ? log.overtime_hours.toFixed(2) : '0.0';
-                        status = log.status === 'Late' ? 'Late' : 'Present';
+                        outTime = log.check_out_time ? formatTime24to12(log.check_out_time) : '--';
+                        if (log.check_in_time && log.check_out_time) dailyDuty = calculateHours(log.check_in_time, log.check_out_time);
+                        dailyOt = parseFloat(log.overtime_hours || 0).toFixed(2);
                         
-                        if(status === 'Late') rowStyle = 'background:#fef2f2;';
-                        else rowStyle = 'background:#f0fdf4;';
+                        if (log.status === 'Late') statusStyle = 'color: var(--danger);';
+                        else statusStyle = 'color: var(--success);';
                     }
 
-                    detailRow.style = rowStyle;
-                    detailRow.innerHTML = `
-                        <td colspan="2"></td> <!-- Empty for alignment -->
-                        <td></td> <!-- Empty for alignment -->
+                    tr.innerHTML = `
                         <td>${dateStr}</td>
-                        <td>${inTime}</td>
-                        <td>${outTime}</td>
-                        <td>${duty}</td>
-                        <td>${ot}</td>
+                        <td>${emp.name}</td>
+                        <td>${emp.designation}</td>
+                        <td style="${statusStyle}">${inTime}</td>
+                        <td style="${statusStyle}">${outTime}</td>
+                        <td class="text-green">${stats.present}</td>
+                        <td class="text-red">${stats.late}</td>
+                        <td class="text-gray">${stats.absent}</td>
+                        <td>${dailyDuty}</td>
+                        <td>${dailyOt}</td>
                     `;
-                    tbody.appendChild(detailRow);
+                    tbody.appendChild(tr);
                 }
             }
         }
@@ -889,15 +908,14 @@
 
             let csvContent = "data:text/csv;charset=utf-8,";
             const headers = [];
-            table.querySelectorAll("th").forEach(th => headers.push('"' + th.innerText + '"'));
+            table.querySelectorAll("th").forEach(th => headers.push('"' + th.innerText.replace(/"/g, '""') + '"')); // Escape quotes
             csvContent += headers.join(",") + "\r\n";
             
             table.querySelectorAll("tbody tr").forEach(row => {
                 const rowData = [];
                 row.querySelectorAll("td").forEach(td => {
                     let text = td.innerText.replace(/(\r\n|\n|\r)/gm, " ");
-                    // Handle summary rows that span columns: just take the text content
-                    rowData.push('"' + text + '"');
+                    rowData.push('"' + text.replace(/"/g, '""') + '"'); // Escape quotes
                 });
                 csvContent += rowData.join(",") + "\r\n";
             });
