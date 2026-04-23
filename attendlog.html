@@ -91,7 +91,7 @@
             background: var(--primary); color: white; width: 100%;
         }
         .btn:hover { background: var(--primary-dark); }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline { background: transparent; border:1px solid var(--border); color: var(--text-main); }
         .btn-outline:hover { background: #f8fafc; border-color: var(--text-muted); }
         .btn-danger { background: var(--danger); }
         .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; width: auto; }
@@ -114,14 +114,14 @@
         .table-wrapper {
             max-height: 800px;
             overflow-y: auto;
-            border: 1px solid var(--border);
+            border:1px solid var(--border);
             border-radius: var(--radius);
         }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th, td { 
             padding: 0.75rem 0.5rem; 
             text-align: center; 
-            border-bottom: 1px solid var(--border);
+            border-bottom:1px solid var(--border);
             white-space: nowrap;
         }
         th { 
@@ -142,7 +142,7 @@
         .sign-box {
             height: 50px;
             width: 80px;
-            border: 1px dashed #cbd5e1;
+            border:1px dashed #cbd5e1;
             display: inline-block;
             vertical-align: middle;
         }
@@ -150,7 +150,7 @@
         /* --- Toast Notification --- */
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
         .toast {
-            background: var(--text-main); color: white; padding: 1rem 1.5rem; border-radius: var(--radius);
+            background: var(--text-main); color: white; padding:1rem 1.5rem; border-radius: var(--radius);
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 0.5rem;
         }
         .toast.success { background: var(--success); }
@@ -448,7 +448,7 @@
         let currentLocation = null;
         let allEmployeesCache = []; 
         let allAttendanceCache = []; 
-        let globalSettings = {}; // Store settings from DB here
+        let globalSettings = {}; 
 
         window.addEventListener('DOMContentLoaded', async () => {
             initClock();
@@ -581,25 +581,55 @@
             }
         }
 
+        // --- FIXED SAVE SETTINGS FUNCTION ---
         async function saveSettings() {
+            // 1. Get Values from Inputs
+            const shopName = document.getElementById('set-shop-name').value;
+            const radius = parseInt(document.getElementById('set-radius').value);
+            const startTime = document.getElementById('set-start-time').value;
+            const otTime = document.getElementById('set-ot-time').value;
+            const otRate = parseFloat(document.getElementById('set-ot-rate').value) || 0;
+            const snacksRate = parseFloat(document.getElementById('set-snacks-rate').value) || 0;
+
+            // 2. Get GPS Coordinates Safely (FIX)
+            // We use 'currentLocation' (Global variable) if available, otherwise fallback to input or default
+            let saveLat, saveLon;
+
+            if (currentLocation && currentLocation.lat && currentLocation.lon) {
+                // Priority 1: Use live GPS data (guaranteed numbers)
+                saveLat = currentLocation.lat;
+                saveLon = currentLocation.lon;
+            } else {
+                // Priority 2: Try to read from input field manually
+                const inputLat = document.getElementById('set-lat').value;
+                const inputLon = document.getElementById('set-lon').value;
+                
+                saveLat = inputLat ? parseFloat(inputLat) : 40.7128;
+                saveLon = inputLon ? parseFloat(inputLon) : -74.0060;
+            }
+
+            // 3. Construct object matching Database Column Names
             const settings = {
-                id: 1, // Crucial: Update row ID 1
-                shop_name: document.getElementById('set-shop-name').value,
-                radius: parseInt(document.getElementById('set-radius').value),
-                lat: parseFloat(document.getElementById('set-lat').value),
-                lon: parseFloat(document.getElementById('set-lon').value),
-                office_start_time: document.getElementById('set-start-time').value,
-                ot_start_time: document.getElementById('set-ot-time').value,
-                ot_rate: parseFloat(document.getElementById('set-ot-rate').value) || 0,
-                snacks_rate: parseFloat(document.getElementById('set-snacks-rate').value) || 0
+                id: 1, // IMPORTANT: Update row ID 1
+                shop_name: shopName,
+                radius: radius,
+                lat: saveLat,
+                lon: saveLon,
+                office_start_time: startTime,
+                ot_start_time: otTime,
+                ot_rate: otRate,
+                snacks_rate: snacksRate
             };
 
-            const { error } = await sbClient
+            console.log("Saving Settings:", settings); // Check console to see what is being sent
+
+            // 4. Upsert to Supabase
+            const { data, error } = await sbClient
                 .from('admin_settings')
                 .upsert(settings, { onConflict: 'id' });
 
             if (error) {
-                console.error("Error saving settings:", error);
+                console.error("Supabase Error saving settings:", error);
                 showToast("Failed to save settings to DB", "error");
             } else {
                 // Update local cache immediately
