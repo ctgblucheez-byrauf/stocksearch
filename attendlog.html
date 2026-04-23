@@ -28,7 +28,6 @@
         
         body { background: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
 
-        /* --- Layout --- */
         header {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
@@ -66,7 +65,6 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Components --- */
         .card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
@@ -78,7 +76,6 @@
         .stat-val { font-size: 2rem; font-weight: 700; color: var(--primary); }
         .stat-label { font-size: 0.875rem; color: var(--text-muted); }
 
-        /* --- Forms --- */
         .form-group { margin-bottom: 1rem; }
         label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 500; }
         input, select {
@@ -160,7 +157,6 @@
         .toast.error { background: var(--danger); }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        /* --- Mobile --- */
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
             .nav-links { overflow-x: auto; padding-bottom: 5px; }
@@ -323,12 +319,12 @@
                 </div>
                 <div style="margin-top:10px; font-size:0.8rem; color:var(--text-muted); display:flex; justify-content:space-between;">
                     <span>* Columns "Present/Late/Absent Days" show **Total Monthly Count** for that employee.</span>
-                    <span>* Columns "Total Duty" and "Overtime" show data for the **specific day**.</span>
+                    <span>* Columns "Total Duty" and "Overtime" show data for **specific day**.</span>
                 </div>
             </div>
         </section>
 
-        <!-- SALARY REPORT VIEW (NEW) -->
+        <!-- SALARY REPORT VIEW (UPDATED) -->
         <section id="view-salary-report" class="view">
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
@@ -379,28 +375,28 @@
                     <h2>Shop Configuration</h2>
                     <div class="form-group">
                         <label>Shop Name</label>
-                        <input type="text" id="set-shop-name" value="Blucheez Main Store">
+                        <input type="text" id="set-shop-name">
                     </div>
                     <div class="form-group">
                         <label>Allowed Radius (Meters)</label>
-                        <input type="number" id="set-radius" value="100">
+                        <input type="number" id="set-radius">
                     </div>
                     <div class="form-group">
                         <label>Office Start Time</label>
-                        <input type="time" id="set-start-time" value="09:00">
+                        <input type="time" id="set-start-time">
                     </div>
                     <div class="form-group">
                         <label>Overtime Start Time</label>
-                        <input type="time" id="set-ot-time" value="18:00">
+                        <input type="time" id="set-ot-time">
                     </div>
                     <div class="grid-2" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                         <div class="form-group">
-                            <label>Overtime Hourly Rate ($)</label>
-                            <input type="number" id="set-ot-rate" value="10">
+                            <label>Overtime Hourly Rate</label>
+                            <input type="number" id="set-ot-rate">
                         </div>
                         <div class="form-group">
-                            <label>Snacks Daily Rate ($)</label>
-                            <input type="number" id="set-snacks-rate" value="5">
+                            <label>Snacks Daily Rate</label>
+                            <input type="number" id="set-snacks-rate">
                         </div>
                     </div>
                     <div class="form-group">
@@ -452,11 +448,14 @@
         let currentLocation = null;
         let allEmployeesCache = []; 
         let allAttendanceCache = []; 
+        let globalSettings = {}; // Store settings from DB here
 
         window.addEventListener('DOMContentLoaded', async () => {
             initClock();
             initGeo();
-            loadSettingsToUI();
+            
+            // Fetch Employees & Settings from DB
+            await fetchGlobalSettings();
             await loadEmployeeDropdown();
             await updateDashboard();
             
@@ -530,6 +529,97 @@
         }
 
         /**
+         * SETTINGS MANAGEMENT (FROM DATABASE)
+         */
+        async function fetchGlobalSettings() {
+            const { data, error } = await sbClient
+                .from('admin_settings')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (error || !data) {
+                // Fallback defaults
+                globalSettings = {
+                    shopName: "Blucheez Main Store",
+                    radius: 100,
+                    lat: 40.7128,
+                    lon: -74.0060,
+                    startTime: '09:00',
+                    otStartTime: '18:00',
+                    otRate: 10,
+                    snacksRate: 5
+                };
+            } else {
+                // Map snake_case DB cols to camelCase JS vars
+                globalSettings = {
+                    id: data.id,
+                    shopName: data.shop_name,
+                    radius: data.radius,
+                    lat: data.lat,
+                    lon: data.lon,
+                    startTime: data.office_start_time,
+                    otStartTime: data.ot_start_time,
+                    otRate: data.ot_rate,
+                    snacksRate: data.snacks_rate
+                };
+            }
+            loadSettingsToUI();
+        }
+
+        function loadSettingsToUI() {
+            const s = globalSettings;
+            if(s) {
+                document.getElementById('set-shop-name').value = s.shopName;
+                document.getElementById('set-radius').value = s.radius;
+                document.getElementById('set-lat').value = s.lat;
+                document.getElementById('set-lon').value = s.lon;
+                document.getElementById('set-start-time').value = s.startTime;
+                document.getElementById('set-ot-time').value = s.otStartTime;
+                document.getElementById('set-ot-rate').value = s.otRate;
+                document.getElementById('set-snacks-rate').value = s.snacksRate;
+            }
+        }
+
+        async function saveSettings() {
+            const settings = {
+                id: 1, // Crucial: Update row ID 1
+                shop_name: document.getElementById('set-shop-name').value,
+                radius: parseInt(document.getElementById('set-radius').value),
+                lat: parseFloat(document.getElementById('set-lat').value),
+                lon: parseFloat(document.getElementById('set-lon').value),
+                office_start_time: document.getElementById('set-start-time').value,
+                ot_start_time: document.getElementById('set-ot-time').value,
+                ot_rate: parseFloat(document.getElementById('set-ot-rate').value) || 0,
+                snacks_rate: parseFloat(document.getElementById('set-snacks-rate').value) || 0
+            };
+
+            const { error } = await sbClient
+                .from('admin_settings')
+                .upsert(settings, { onConflict: 'id' });
+
+            if (error) {
+                console.error("Error saving settings:", error);
+                showToast("Failed to save settings to DB", "error");
+            } else {
+                // Update local cache immediately
+                globalSettings = {
+                    id: 1,
+                    shopName: settings.shop_name,
+                    radius: settings.radius,
+                    lat: settings.lat,
+                    lon: settings.lon,
+                    startTime: settings.office_start_time,
+                    otStartTime: settings.ot_start_time,
+                    otRate: settings.ot_rate,
+                    snacksRate: settings.snacks_rate
+                };
+                showToast("Settings Saved Successfully!", "success");
+                if(currentLocation) checkZone(currentLocation);
+            }
+        }
+
+        /**
          * GEO LOCATION
          */
         function initGeo() {
@@ -555,12 +645,11 @@
         }
 
         function checkZone(userLoc) {
-            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { lat: 40.7128, lon: -74.0060, radius: 100 };
-            const distance = getDistanceFromLatLonInM(userLoc.lat, userLoc.lon, settings.lat, settings.lon);
+            const distance = getDistanceFromLatLonInM(userLoc.lat, userLoc.lon, globalSettings.lat, globalSettings.lon);
             const msgEl = document.getElementById('geo-msg');
             const dotEl = document.getElementById('geo-dot');
 
-            if (distance <= settings.radius) {
+            if (distance <= globalSettings.radius) {
                 msgEl.innerText = `Within Range (${Math.round(distance)}m from Shop)`;
                 dotEl.classList.add('active');
                 return true;
@@ -702,13 +791,13 @@
 
         async function attemptCheckIn() {
             if (!checkZone(currentLocation)) { showToast("Outside allowed geo-radius!", "error"); return; }
-            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { startTime: '09:00' };
+            
             const now = new Date();
             const timeStr24 = now.toTimeString().slice(0, 5);
             
             let status = 'Present';
             const diffMin = (parseInt(timeStr24.split(':')[0]) * 60 + parseInt(timeStr24.split(':')[1])) - 
-                            (parseInt(settings.startTime.split(':')[0]) * 60 + parseInt(settings.startTime.split(':')[1]));
+                            (parseInt(globalSettings.startTime.split(':')[0]) * 60 + parseInt(globalSettings.startTime.split(':')[1]));
             if (diffMin > 0) status = 'Late';
 
             const record = {
@@ -732,7 +821,7 @@
 
         async function attemptCheckOut() {
             if (!checkZone(currentLocation)) { showToast("Outside allowed geo-radius!", "error"); return; }
-            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { otStartTime: '18:00' };
+            
             allAttendanceCache = await fetchAttendance();
             const today = getTodayDateStr();
             const record = allAttendanceCache.find(a => a.employee_id === currentEmpId && a.date === today);
@@ -741,7 +830,7 @@
                 const now = new Date();
                 const timeStr24 = now.toTimeString().slice(0, 5);
                 
-                const otStart = settings.otStartTime;
+                const otStart = globalSettings.otStartTime;
                 const totalMin = parseInt(timeStr24.split(':')[0]) * 60 + parseInt(timeStr24.split(':')[1]);
                 const otStartMin = parseInt(otStart.split(':')[0]) * 60 + parseInt(otStart.split(':')[1]);
                 
@@ -787,34 +876,6 @@
         /**
          * ADMIN LOGIC
          */
-        function loadSettingsToUI() {
-            const s = JSON.parse(localStorage.getItem('blucheez_settings'));
-            if(s) {
-                document.getElementById('set-shop-name').value = s.shopName;
-                document.getElementById('set-radius').value = s.radius;
-                document.getElementById('set-lat').value = s.lat;
-                document.getElementById('set-lon').value = s.lon;
-                document.getElementById('set-start-time').value = s.startTime;
-                document.getElementById('set-ot-time').value = s.otStartTime;
-                document.getElementById('set-ot-rate').value = s.otRate || 10;
-                document.getElementById('set-snacks-rate').value = s.snacksRate || 5;
-            }
-        }
-        function saveSettings() {
-            const settings = {
-                shopName: document.getElementById('set-shop-name').value,
-                radius: parseInt(document.getElementById('set-radius').value),
-                lat: parseFloat(document.getElementById('set-lat').value),
-                lon: parseFloat(document.getElementById('set-lon').value),
-                startTime: document.getElementById('set-start-time').value,
-                otStartTime: document.getElementById('set-ot-time').value,
-                otRate: parseFloat(document.getElementById('set-ot-rate').value) || 0,
-                snacksRate: parseFloat(document.getElementById('set-snacks-rate').value) || 0
-            };
-            localStorage.setItem('blucheez_settings', JSON.stringify(settings));
-            showToast("Settings Saved!", "success");
-            if(currentLocation) checkZone(currentLocation);
-        }
         async function addEmployee() {
             const name = document.getElementById('new-emp-name').value;
             const role = document.getElementById('new-emp-role').value;
@@ -957,7 +1018,7 @@
         }
 
         /**
-         * SALARY REPORT LOGIC (NEW)
+         * SALARY REPORT LOGIC (UPDATED)
          */
         async function generateSalaryReport() {
             const monthVal = document.getElementById('salary-month').value;
@@ -967,10 +1028,6 @@
             allAttendanceCache = await fetchAttendance();
             const monthlyLogs = allAttendanceCache.filter(l => l.date.startsWith(monthVal));
             
-            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { otRate: 10, snacksRate: 5 };
-            const otRate = settings.otRate;
-            const snacksRate = settings.snacksRate;
-
             const tbody = document.querySelector('#salary-table tbody');
             tbody.innerHTML = '';
 
@@ -979,13 +1036,13 @@
                 
                 // 1. Calculate OT
                 const totalOtHrs = empLogs.reduce((acc, curr) => acc + (parseFloat(curr.overtime_hours) || 0), 0);
-                const otTotal = totalOtHrs * otRate;
+                const otTotal = totalOtHrs * globalSettings.otRate;
 
                 // 2. Calculate Snacks (Days = Present Days)
-                const snacksDays = empLogs.length; // Total records = present days
-                const snacksTotal = snacksDays * snacksRate;
+                const snacksDays = empLogs.length; 
+                const snacksTotal = snacksDays * globalSettings.snacksRate;
 
-                // 3. Total Pay
+                // 3. Total Pay = Base + OT + Snacks
                 const totalPay = (emp.salary || 0) + otTotal + snacksTotal;
 
                 const tr = document.createElement('tr');
@@ -996,16 +1053,16 @@
                     
                     <!-- OT Cols -->
                     <td>${totalOtHrs.toFixed(1)}</td>
-                    <td>${otRate}</td>
-                    <td>${otTotal.toFixed(2)}</td>
+                    <td>${globalSettings.otRate}</td>
+                    <td>${formatNumber(otTotal)}</td>
                     
                     <!-- Snacks Cols -->
                     <td>${snacksDays}</td>
-                    <td>${snacksRate}</td>
-                    <td>${snacksTotal.toFixed(2)}</td>
+                    <td>${globalSettings.snacksRate}</td>
+                    <td>${formatNumber(snacksTotal)}</td>
                     
                     <!-- Total Pay -->
-                    <td style="font-weight:bold; color:var(--primary)">${totalPay.toFixed(2)}</td>
+                    <td style="font-weight:bold; color:var(--primary)">${formatNumber(totalPay)}</td>
                     
                     <!-- Sign -->
                     <td><div class="sign-box"></div></td>
@@ -1014,25 +1071,39 @@
             });
         }
 
+        // Helper to format numbers with commas (1,000.00) and no symbols
+        function formatNumber(num) {
+            return num.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
         function exportSalaryCSV() {
             const table = document.getElementById("salary-table");
             if(table.rows.length <= 1) { showToast("No data to export", "error"); return; }
             
-            // Flatten the complex header for CSV
-            let headers = ["SL", "Name", "Designation", "OT Total Hours", "OT Per Hour", "OT Total", "Snacks Days", "Snacks Per Day", "Snacks Total", "Total Pay"];
-            
+            // CSV Content
             let csvContent = "data:text/csv;charset=utf-8,";
+            const headers = ["SL", "Name", "Designation", "OT Total Hours", "OT Per Hour", "OT Total", "Snacks Days", "Snacks Per Day", "Snacks Total", "Total Pay"];
             csvContent += headers.join(",") + "\r\n";
             
             table.querySelectorAll("tbody tr").forEach(row => {
                 const tds = row.querySelectorAll("td");
-                // Exclude the last column (Sign box)
-                for(let i=0; i<tds.length-1; i++) {
-                    let text = tds[i].innerText.replace(/(\r\n|\n|\r)/gm, " ");
-                    csvContent += '"' + text.replace(/"/g, '""') + '"';
-                    if(i < tds.length - 2) csvContent += ",";
-                }
-                csvContent += "\r\n";
+                const rowData = [
+                    tds[0].innerText, // SL
+                    `"${tds[1].innerText}"`, // Name
+                    `"${tds[2].innerText}"`, // Designation
+                    parseFloat(tds[3].innerText), // OT Hours
+                    parseFloat(tds[4].innerText), // OT Rate
+                    tds[5].innerText.replace(/,/g, ''), // OT Total
+                    parseInt(tds[6].innerText), // Snacks Days
+                    parseFloat(tds[7].innerText), // Snacks Rate
+                    tds[8].innerText.replace(/,/g, ''), // Snacks Total
+                    tds[9].innerText.replace(/,/g, '')  // Total Pay
+                ];
+                
+                csvContent += rowData.join(",") + "\r\n";
             });
 
             const link = document.createElement("a");
