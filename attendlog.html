@@ -11,9 +11,9 @@
             --primary: #2563eb;
             --primary-dark: #1e40af;
             --secondary: #64748b;
-            --success: #22c55e; /* Green - Present */
-            --danger: #ef4444;  /* Red - Late */
-            --info: #3b82f6;    /* Blue - Overtime */
+            --success: #22c55e;
+            --danger: #ef4444;
+            --info: #3b82f6;
             --warning: #f59e0b;
             --bg: #f8fafc;
             --surface: #ffffff;
@@ -42,7 +42,7 @@
         }
 
         .brand { font-size: 1.5rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }
-        .nav-links { display: flex; gap: 1rem; }
+        .nav-links { display: flex; gap: 1rem; flex-wrap: wrap; }
         
         nav button {
             background: transparent;
@@ -85,7 +85,7 @@
             width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius);
             font-size: 1rem; transition: border 0.2s;
         }
-        input:focus { outline: none; border-color: var(--primary); }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
 
         .btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -107,14 +107,13 @@
         }
         .status-present { background: #dcfce7; color: #15803d; }
         .status-late { background: #fee2e2; color: #b91c1c; }
-        .status-early { background: #dbeafe; color: #1e40af; }
         .status-absent { background: #f1f5f9; color: #475569; }
 
         .geo-status { font-size: 0.9rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
         .geo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
         .geo-dot.active { background: var(--success); box-shadow: 0 0 0 4px #dcfce7; }
 
-        /* --- Clean Report Table --- */
+        /* --- Tables --- */
         .table-wrapper {
             max-height: 800px;
             overflow-y: auto;
@@ -124,7 +123,7 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th, td { 
             padding: 0.75rem 0.5rem; 
-            text-align: left; 
+            text-align: center; 
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
         }
@@ -135,22 +134,21 @@
             position: sticky; 
             top: 0; 
             z-index: 10; 
-            text-align: center;
         }
-        /* Align numbers right for better readability */
-        td:nth-child(6), td:nth-child(7), td:nth-child(8), td:nth-child(9), td:nth-child(10) {
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-        }
-
-        /* Zebra Striping */
         tbody tr:nth-child(even) { background-color: #f8fafc; }
         tbody tr:hover { background-color: #e2e8f0; }
 
-        /* Status Colors in Table */
-        .text-green { color: var(--success); font-weight: bold; }
-        .text-red { color: var(--danger); font-weight: bold; }
-        .text-gray { color: #94a3b8; }
+        /* --- Salary Report Specifics --- */
+        .salary-table th { background: #0f172a; }
+        .salary-table tr:nth-child(even) { background-color: #ffffff; }
+        .salary-table tr:hover { background-color: #f1f5f9; }
+        .sign-box {
+            height: 50px;
+            width: 80px;
+            border: 1px dashed #cbd5e1;
+            display: inline-block;
+            vertical-align: middle;
+        }
 
         /* --- Toast Notification --- */
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
@@ -167,7 +165,6 @@
             .grid-2 { grid-template-columns: 1fr; }
             .nav-links { overflow-x: auto; padding-bottom: 5px; }
             header { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            .table-wrapper { max-height: 500px; }
         }
         
         .hidden { display: none !important; }
@@ -186,8 +183,9 @@
         <nav class="nav-links">
             <button onclick="router('dashboard')" id="nav-dashboard" class="active">Dashboard</button>
             <button onclick="router('employee')" id="nav-employee">Employee Portal</button>
-            <button onclick="router('reports')" id="nav-reports">Reports</button>
-            <button onclick="router('admin')" id="nav-admin">Admin & Settings</button>
+            <button onclick="router('reports')" id="nav-reports">Attendance Report</button>
+            <button onclick="router('salary-report')" id="nav-salary-report">Salary Report</button>
+            <button onclick="router('admin')" id="nav-admin">Admin</button>
         </nav>
     </header>
 
@@ -285,13 +283,16 @@
             </div>
         </section>
 
-        <!-- REPORTS VIEW (UPDATED FULL CLEAN TABLE) -->
+        <!-- REPORTS VIEW (ATTENDANCE) -->
         <section id="view-reports" class="view">
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
                     <h2>Full Clean Report</h2>
-                    <div style="display:flex; gap:0.5rem;">
-                        <input type="month" id="report-month" onchange="generateReports()" style="width:auto; display:inline-block;">
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <select id="report-emp-filter" onchange="generateReports()" style="width:180px;">
+                            <option value="all">All Employees</option>
+                        </select>
+                        <input type="month" id="report-month" onchange="generateReports()" style="width:auto;">
                         <button class="btn btn-sm btn-outline" onclick="exportExcel()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                             Export Excel
@@ -321,8 +322,51 @@
                     </table>
                 </div>
                 <div style="margin-top:10px; font-size:0.8rem; color:var(--text-muted); display:flex; justify-content:space-between;">
-                    <span>* Columns "Present/Late/Absent Days" show the **Total Monthly Count** for that employee.</span>
+                    <span>* Columns "Present/Late/Absent Days" show **Total Monthly Count** for that employee.</span>
                     <span>* Columns "Total Duty" and "Overtime" show data for the **specific day**.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SALARY REPORT VIEW (NEW) -->
+        <section id="view-salary-report" class="view">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
+                    <h2>Monthly Salary & Snacks Report</h2>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <input type="month" id="salary-month" onchange="generateSalaryReport()" style="width:auto;">
+                        <button class="btn btn-sm btn-outline" onclick="exportSalaryCSV()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Export
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-wrapper">
+                    <table id="salary-table" class="salary-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">SL</th>
+                                <th rowspan="2">Name</th>
+                                <th rowspan="2">Designation</th>
+                                <th colspan="3">OT</th>
+                                <th colspan="3">Snacks Bill</th>
+                                <th rowspan="2">Total Pay</th>
+                                <th rowspan="2">SIGN</th>
+                            </tr>
+                            <tr>
+                                <th>Total Hours</th>
+                                <th>Per Hours</th>
+                                <th>Total</th>
+                                <th>Snacks Day</th>
+                                <th>Per Snacks</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -348,6 +392,16 @@
                     <div class="form-group">
                         <label>Overtime Start Time</label>
                         <input type="time" id="set-ot-time" value="18:00">
+                    </div>
+                    <div class="grid-2" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label>Overtime Hourly Rate ($)</label>
+                            <input type="number" id="set-ot-rate" value="10">
+                        </div>
+                        <div class="form-group">
+                            <label>Snacks Daily Rate ($)</label>
+                            <input type="number" id="set-snacks-rate" value="5">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>GPS Coordinates (Lat, Lon)</label>
@@ -409,8 +463,10 @@
             const now = new Date();
             const monthStr = now.toISOString().slice(0, 7); 
             document.getElementById('report-month').value = monthStr;
+            document.getElementById('salary-month').value = monthStr;
             
             await generateReports(); 
+            await generateSalaryReport();
         });
 
         /**
@@ -568,6 +624,7 @@
             document.getElementById(`view-${viewName}`).classList.add('active');
             if (viewName === 'dashboard') updateDashboard();
             if (viewName === 'reports') generateReports();
+            if (viewName === 'salary-report') generateSalaryReport();
         }
 
         /**
@@ -583,6 +640,18 @@
                 opt.innerText = e.name;
                 select.appendChild(opt);
             });
+
+            const reportFilter = document.getElementById('report-emp-filter');
+            const currentVal = reportFilter.value;
+            reportFilter.innerHTML = '<option value="all">All Employees</option>';
+            allEmployeesCache.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.id;
+                opt.innerText = e.name;
+                reportFilter.appendChild(opt);
+            });
+            if(currentVal && allEmployeesCache.find(e => e.id == currentVal)) reportFilter.value = currentVal;
+
             updateAdminEmpTable();
         }
 
@@ -727,6 +796,8 @@
                 document.getElementById('set-lon').value = s.lon;
                 document.getElementById('set-start-time').value = s.startTime;
                 document.getElementById('set-ot-time').value = s.otStartTime;
+                document.getElementById('set-ot-rate').value = s.otRate || 10;
+                document.getElementById('set-snacks-rate').value = s.snacksRate || 5;
             }
         }
         function saveSettings() {
@@ -736,7 +807,9 @@
                 lat: parseFloat(document.getElementById('set-lat').value),
                 lon: parseFloat(document.getElementById('set-lon').value),
                 startTime: document.getElementById('set-start-time').value,
-                otStartTime: document.getElementById('set-ot-time').value
+                otStartTime: document.getElementById('set-ot-time').value,
+                otRate: parseFloat(document.getElementById('set-ot-rate').value) || 0,
+                snacksRate: parseFloat(document.getElementById('set-snacks-rate').value) || 0
             };
             localStorage.setItem('blucheez_settings', JSON.stringify(settings));
             showToast("Settings Saved!", "success");
@@ -778,7 +851,7 @@
         }
 
         /**
-         * DASHBOARD LOGIC
+         * DASHBOARD & REPORTS LOGIC (Existing)
          */
         async function updateDashboard() {
             allEmployeesCache = await fetchEmployees();
@@ -815,14 +888,14 @@
             });
         }
 
-        /**
-         * FULL CLEAN REPORT LOGIC
-         */
         async function generateReports() {
             const monthVal = document.getElementById('report-month').value;
+            const filterVal = document.getElementById('report-emp-filter').value;
             if(!monthVal) return;
 
-            allEmployeesCache = await fetchEmployees();
+            if(allEmployeesCache.length === 0) allEmployeesCache = await fetchEmployees();
+            const empsToShow = filterVal === 'all' ? allEmployeesCache : allEmployeesCache.filter(e => e.id == filterVal);
+
             allAttendanceCache = await fetchAttendance();
             const monthlyLogs = allAttendanceCache.filter(l => l.date.startsWith(monthVal));
             const [year, mon] = monthVal.split('-');
@@ -830,105 +903,145 @@
             const tbody = document.querySelector('#report-table tbody');
             tbody.innerHTML = '';
 
-            // 1. Pre-calculate Monthly Summary for each employee
             const summaryMap = {};
-            allEmployeesCache.forEach(emp => {
+            empsToShow.forEach(emp => {
                 const empLogs = monthlyLogs.filter(l => l.employee_id === emp.id);
                 const presentDays = empLogs.length;
                 const lateDays = empLogs.filter(l => l.status === 'Late').length;
                 const totalDutyHrs = empLogs.reduce((acc, curr) => {
-                    if(curr.check_in_time && curr.check_out_time) {
-                        return acc + parseFloat(calculateHours(curr.check_in_time, curr.check_out_time));
-                    }
+                    if(curr.check_in_time && curr.check_out_time) return acc + parseFloat(calculateHours(curr.check_in_time, curr.check_out_time));
                     return acc;
                 }, 0);
                 const totalOtHrs = empLogs.reduce((acc, curr) => acc + (parseFloat(curr.overtime_hours)||0), 0);
-                
-                summaryMap[emp.id] = {
-                    present: presentDays,
-                    late: lateDays,
-                    absent: daysInMonth - presentDays,
-                    duty: totalDutyHrs,
-                    ot: totalOtHrs
-                };
+                summaryMap[emp.id] = { present: presentDays, late: lateDays, absent: daysInMonth - presentDays, duty: totalDutyHrs, ot: totalOtHrs };
             });
 
-            // 2. Generate Clean Rows
-            for (const emp of allEmployeesCache) {
-                const stats = summaryMap[emp.id]; // Get monthly totals
-                
-                // Iterate through every day of the month
+            for (const emp of empsToShow) {
+                const stats = summaryMap[emp.id];
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dateStr = `${monthVal}-${day.toString().padStart(2, '0')}`;
                     const log = monthlyLogs.find(l => l.employee_id === emp.id && l.date === dateStr);
-                    
                     const tr = document.createElement('tr');
                     
-                    // Default values for Absent
-                    let inTime = '--';
-                    let outTime = '--';
-                    let dailyDuty = '0.0';
-                    let dailyOt = '0.0';
-                    let statusStyle = 'color: #94a3b8;'; // Gray for absent
+                    let inTime = '--', outTime = '--', dailyDuty = '0.0', dailyOt = '0.0', statusStyle = 'color: #94a3b8;';
 
-                    // If Log exists (Present)
                     if (log) {
                         inTime = formatTime24to12(log.check_in_time);
                         outTime = log.check_out_time ? formatTime24to12(log.check_out_time) : '--';
                         if (log.check_in_time && log.check_out_time) dailyDuty = calculateHours(log.check_in_time, log.check_out_time);
                         dailyOt = parseFloat(log.overtime_hours || 0).toFixed(2);
-                        
                         if (log.status === 'Late') statusStyle = 'color: var(--danger);';
                         else statusStyle = 'color: var(--success);';
                     }
 
                     tr.innerHTML = `
-                        <td>${dateStr}</td>
-                        <td>${emp.name}</td>
-                        <td>${emp.designation}</td>
-                        <td style="${statusStyle}">${inTime}</td>
-                        <td style="${statusStyle}">${outTime}</td>
-                        <td class="text-green">${stats.present}</td>
-                        <td class="text-red">${stats.late}</td>
-                        <td class="text-gray">${stats.absent}</td>
-                        <td>${dailyDuty}</td>
-                        <td>${dailyOt}</td>
+                        <td>${dateStr}</td><td>${emp.name}</td><td>${emp.designation}</td><td style="${statusStyle}">${inTime}</td><td style="${statusStyle}">${outTime}</td><td class="text-green">${stats.present}</td><td class="text-red">${stats.late}</td><td class="text-gray">${stats.absent}</td><td>${dailyDuty}</td><td>${dailyOt}</td>
                     `;
                     tbody.appendChild(tr);
                 }
             }
         }
 
-        /**
-         * EXPORT EXCEL (CSV)
-         */
         function exportExcel() {
             const table = document.getElementById("report-table");
             if(table.rows.length <= 1) { showToast("No data to export", "error"); return; }
-
             let csvContent = "data:text/csv;charset=utf-8,";
-            const headers = [];
-            table.querySelectorAll("th").forEach(th => headers.push('"' + th.innerText.replace(/"/g, '""') + '"')); // Escape quotes
+            table.querySelectorAll("th").forEach(th => csvContent += '"' + th.innerText.replace(/"/g, '""') + '",'); 
+            csvContent += "\r\n";
+            table.querySelectorAll("tbody tr").forEach(row => {
+                row.querySelectorAll("td").forEach(td => csvContent += '"' + td.innerText.replace(/"/g, '""') + '"');
+                csvContent += "\r\n";
+            });
+            const link = document.createElement("a"); link.href = encodeURI(csvContent); link.download = `Att_Report_${document.getElementById('report-month').value}.csv`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        /**
+         * SALARY REPORT LOGIC (NEW)
+         */
+        async function generateSalaryReport() {
+            const monthVal = document.getElementById('salary-month').value;
+            if(!monthVal) return;
+
+            if(allEmployeesCache.length === 0) allEmployeesCache = await fetchEmployees();
+            allAttendanceCache = await fetchAttendance();
+            const monthlyLogs = allAttendanceCache.filter(l => l.date.startsWith(monthVal));
+            
+            const settings = JSON.parse(localStorage.getItem('blucheez_settings')) || { otRate: 10, snacksRate: 5 };
+            const otRate = settings.otRate;
+            const snacksRate = settings.snacksRate;
+
+            const tbody = document.querySelector('#salary-table tbody');
+            tbody.innerHTML = '';
+
+            allEmployeesCache.forEach((emp, index) => {
+                const empLogs = monthlyLogs.filter(l => l.employee_id === emp.id);
+                
+                // 1. Calculate OT
+                const totalOtHrs = empLogs.reduce((acc, curr) => acc + (parseFloat(curr.overtime_hours) || 0), 0);
+                const otTotal = totalOtHrs * otRate;
+
+                // 2. Calculate Snacks (Days = Present Days)
+                const snacksDays = empLogs.length; // Total records = present days
+                const snacksTotal = snacksDays * snacksRate;
+
+                // 3. Total Pay
+                const totalPay = (emp.salary || 0) + otTotal + snacksTotal;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${emp.name}</td>
+                    <td>${emp.designation}</td>
+                    
+                    <!-- OT Cols -->
+                    <td>${totalOtHrs.toFixed(1)}</td>
+                    <td>${otRate}</td>
+                    <td>${otTotal.toFixed(2)}</td>
+                    
+                    <!-- Snacks Cols -->
+                    <td>${snacksDays}</td>
+                    <td>${snacksRate}</td>
+                    <td>${snacksTotal.toFixed(2)}</td>
+                    
+                    <!-- Total Pay -->
+                    <td style="font-weight:bold; color:var(--primary)">${totalPay.toFixed(2)}</td>
+                    
+                    <!-- Sign -->
+                    <td><div class="sign-box"></div></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportSalaryCSV() {
+            const table = document.getElementById("salary-table");
+            if(table.rows.length <= 1) { showToast("No data to export", "error"); return; }
+            
+            // Flatten the complex header for CSV
+            let headers = ["SL", "Name", "Designation", "OT Total Hours", "OT Per Hour", "OT Total", "Snacks Days", "Snacks Per Day", "Snacks Total", "Total Pay"];
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += headers.join(",") + "\r\n";
             
             table.querySelectorAll("tbody tr").forEach(row => {
-                const rowData = [];
-                row.querySelectorAll("td").forEach(td => {
-                    let text = td.innerText.replace(/(\r\n|\n|\r)/gm, " ");
-                    rowData.push('"' + text.replace(/"/g, '""') + '"'); // Escape quotes
-                });
-                csvContent += rowData.join(",") + "\r\n";
+                const tds = row.querySelectorAll("td");
+                // Exclude the last column (Sign box)
+                for(let i=0; i<tds.length-1; i++) {
+                    let text = tds[i].innerText.replace(/(\r\n|\n|\r)/gm, " ");
+                    csvContent += '"' + text.replace(/"/g, '""') + '"';
+                    if(i < tds.length - 2) csvContent += ",";
+                }
+                csvContent += "\r\n";
             });
 
-            const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            const monthVal = document.getElementById('report-month').value || 'report';
-            link.setAttribute("download", `Blucheez_Report_${monthVal}.csv`);
+            link.href = encodeURI(csvContent);
+            link.download = `Salary_Report_${document.getElementById('salary-month').value}.csv`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            showToast("Excel CSV Downloaded!", "success");
+            showToast("Salary Report Downloaded!", "success");
         }
 
         function showToast(message, type = "success") {
