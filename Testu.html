@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoPaint ERP — Inventory & Billing</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:{50:'#FFF7ED',100:'#FFEDD5',200:'#FED7AA',300:'#FDBA74',400:'#FB923C',500:'#F97316',600:'#EA580C',700:'#C2410C',800:'#9A3412',900:'#7C2D12'},sidebar:'#0B1120','sidebar-h':'#14203A'},fontFamily:{outfit:['Outfit','sans-serif']}}}}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Outfit',sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+.dark ::-webkit-scrollbar-thumb{background:#475569}
+
+/* 登录页 */
+#login-screen{min-height:100vh;display:flex}
+.login-left{flex:1;background:linear-gradient(135deg,#0B1120 0%,#1E3A5F 50%,#0B1120 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.login-left::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,.15),transparent 70%);top:-100px;right:-100px}
+.login-left::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,.1),transparent 70%);bottom:-80px;left:-80px}
+.login-right{flex:1;display:flex;align-items:center;justify-content:center;background:#F8FAFC}
+.dark .login-right{background:#0F172A}
+
+/* 侧边栏 */
+#sidebar{width:260px;min-height:100vh;background:#0B1120;position:fixed;left:0;top:0;z-index:40;transition:transform .3s ease;display:flex;flex-direction:column}
+#sidebar .nav-item{display:flex;align-items:center;gap:12px;padding:10px 20px;color:#94A3B8;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;border-radius:8px;margin:2px 12px}
+#sidebar .nav-item:hover{background:#14203A;color:#E2E8F0}
+#sidebar .nav-item.active{background:linear-gradient(135deg,rgba(249,115,22,.15),rgba(249,115,22,.05));color:#FB923C;border-left:3px solid #F97316}
+#sidebar .nav-item i{width:20px;text-align:center;font-size:15px}
+
+/* 主内容 */
+#main-content{margin-left:260px;min-height:100vh;transition:margin .3s ease}
+
+/* 页面切换动画 */
+.page{animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* 卡片悬浮效果 */
+.stat-card{transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.08)}
+.dark .stat-card:hover{box-shadow:0 8px 25px rgba(0,0,0,.3)}
+
+/* 表格 */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{padding:10px 14px;text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#64748B;border-bottom:2px solid #E2E8F0;white-space:nowrap}
+.dark .data-table th{color:#94A3B8;border-color:#334155}
+.data-table td{padding:10px 14px;font-size:13px;border-bottom:1px solid #F1F5F9;color:#334155}
+.dark .data-table td{border-color:#1E293B;color:#CBD5E1}
+.data-table tbody tr{transition:background .15s}
+.data-table tbody tr:hover{background:#F8FAFC}
+.dark .data-table tbody tr:hover{background:#1E293B}
+
+/* 模态框 */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.modal-box{background:#fff;border-radius:16px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.15)}
+.dark .modal-box{background:#1E293B;box-shadow:0 25px 60px rgba(0,0,0,.5)}
+
+/* 输入框 */
+.form-input{width:100%;padding:9px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:'Outfit';transition:border .2s,box-shadow .2s;background:#fff;color:#1E293B;outline:none}
+.form-input:focus{border-color:#F97316;box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.dark .form-input{background:#0F172A;border-color:#334155;color:#E2E8F0}
+.dark .form-input:focus{border-color:#F97316;box-shadow:0 0 0 3px rgba(249,115,22,.15)}
+.form-label{display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.dark .form-label{color:#94A3B8}
+
+/* 按钮 */
+.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Outfit';cursor:pointer;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,#F97316,#EA580C);color:#fff;box-shadow:0 2px 8px rgba(249,115,22,.3)}
+.btn-primary:hover{box-shadow:0 4px 15px rgba(249,115,22,.4)}
+.btn-secondary{background:#F1F5F9;color:#475569;border:1.5px solid #E2E8F0}
+.dark .btn-secondary{background:#334155;color:#CBD5E1;border-color:#475569}
+.btn-secondary:hover{background:#E2E8F0}
+.btn-danger{background:#FEE2E2;color:#DC2626}
+.dark .btn-danger{background:#7F1D1D;color:#FCA5A5}
+.btn-danger:hover{background:#FECACA}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+/* 徽章 */
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block}
+.badge-success{background:#D1FAE5;color:#059669}
+.dark .badge-success{background:#064E3B;color:#6EE7B7}
+.badge-warning{background:#FEF3C7;color:#D97706}
+.dark .badge-warning{background:#78350F;color:#FCD34D}
+.badge-danger{background:#FEE2E2;color:#DC2626}
+.dark .badge-danger{background:#7F1D1D;color:#FCA5A5}
+.badge-info{background:#DBEAFE;color:#2563EB}
+.dark .badge-info{background:#1E3A5F;color:#93C5FD}
+
+/* Toast */
+.toast{padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;color:#fff;display:flex;align-items:center;gap:10px;animation:slideIn .3s ease;box-shadow:0 8px 25px rgba(0,0,0,.15);min-width:280px}
+.toast-success{background:linear-gradient(135deg,#059669,#047857)}
+.toast-error{background:linear-gradient(135deg,#DC2626,#B91C1C)}
+.toast-warning{background:linear-gradient(135deg,#D97706,#B45309)}
+.toast-info{background:linear-gradient(135deg,#2563EB,#1D4ED8)}
+@keyframes slideIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+
+/* POS购物车 */
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F5F9;font-size:13px}
+.dark .cart-item{border-color:#1E293B}
+
+/* 打印样式 */
+#print-area{display:none}
+@media print{
+body *{visibility:hidden}
+#print-area,#print-area *{visibility:visible}
+#print-area{display:block;position:absolute;left:0;top:0;width:100%;padding:30px;font-family:'Outfit',sans-serif}
+#print-area table{width:100%;border-collapse:collapse}
+#print-area th,#print-area td{padding:8px 10px;border:1px solid #333;font-size:12px}
+#print-area th{background:#f0f0f0;font-weight:600}
+}
+
+/* 响应式 */
+@media(max-width:1024px){
+#sidebar{transform:translateX(-100%)}
+#sidebar.open{transform:translateX(0)}
+#main-content{margin-left:0}
+}
+.mobile-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35;display:none}
+.mobile-overlay.show{display:block}
+
+/* 装饰浮动粒子 */
+.float-orb{position:absolute;border-radius:50%;filter:blur(60px);animation:floatOrb 8s ease-in-out infinite;pointer-events:none}
+@keyframes floatOrb{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-30px) scale(1.1)}}
+
+/* 骨架屏 */
+.skeleton{background:linear-gradient(90deg,#E2E8F0 25%,#F1F5F9 50%,#E2E8F0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px}
+.dark .skeleton{background:linear-gradient(90deg,#1E293B 25%,#334155 50%,#1E293B 75%);background-size:200% 100%}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body class="font-outfit bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-200">
+
+<!-- Toast 容器 -->
+<div id="toast-container" class="fixed top-4 right-4 z-[200] flex flex-col gap-2"></div>
+
+<!-- ======================== 登录页面 ======================== -->
+<div id="login-screen">
+  <div class="login-left hidden lg:flex">
+    <div class="float-orb" style="width:300px;height:300px;background:rgba(249,115,22,.08);top:10%;left:10%"></div>
+    <div class="float-orb" style="width:200px;height:200px;background:rgba(59,130,246,.06);bottom:20%;right:15%;animation-delay:-3s"></div>
+    <div class="relative z-10 text-center px-12">
+      <div class="flex items-center justify-center gap-3 mb-6">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i class="fa-solid fa-spray-can-sparkles text-white text-2xl"></i>
+        </div>
+      </div>
+      <h1 class="text-4xl font-900 text-white mb-3 tracking-tight">AutoPaint ERP</h1>
+      <p class="text-slate-400 text-base max-w-sm leading-relaxed">Complete inventory, billing & business management for car paint shops</p>
+      <div class="flex gap-6 mt-10 justify-center">
+        <div class="text-center"><div class="text-2xl font-800 text-brand-400">500+</div><div class="text-xs text-slate-500 mt-1">Paint Products</div></div>
+        <div class="text-center"><div class="text-2xl font-800 text-brand-400">50+</div><div class="text-xs text-slate-500 mt-1">Branches</div></div>
+        <div class="text-center"><div class="text-2xl font-800 text-brand-400">10K+</div><div class="text-xs text-slate-500 mt-1">Invoices</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="w-full max-w-md px-8">
+      <div class="lg:hidden flex items-center gap-3 mb-8 justify-center">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+          <i class="fa-solid fa-spray-can-sparkles text-white text-lg"></i>
+        </div>
+        <span class="text-xl font-800 text-slate-800 dark:text-white">AutoPaint ERP</span>
+      </div>
+      <h2 class="text-2xl font-800 mb-1">Welcome back</h2>
+      <p class="text-slate-500 text-sm mb-8">Sign in to your account to continue</p>
+
+      <div id="supabase-config-section" class="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+        <label class="form-label text-amber-700 dark:text-amber-400">Supabase URL</label>
+        <input id="cfg-url" type="text" placeholder="https://xxx.supabase.co" class="form-input mb-3 text-xs">
+        <label class="form-label text-amber-700 dark:text-amber-400">Supabase Anon Key</label>
+        <input id="cfg-key" type="text" placeholder="eyJ..." class="form-input text-xs">
+        <button onclick="saveSupabaseConfig()" class="btn btn-primary btn-sm mt-3 w-full justify-center">Connect to Supabase</button>
+      </div>
+
+      <div id="login-form-section">
+        <div class="space-y-4">
+          <div>
+            <label class="form-label">Email Address</label>
+            <input id="login-email" type="email" placeholder="admin@autopaint.com" class="form-input" value="admin@autopaint.com">
+          </div>
+          <div>
+            <label class="form-label">Password</label>
+            <input id="login-password" type="password" placeholder="Enter password" class="form-input" value="demo1234">
+          </div>
+          <button onclick="Auth.login()" class="btn btn-primary w-full justify-center py-3 text-base" id="login-btn">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
+          </button>
+        </div>
+        <div class="mt-5 text-center">
+          <button onclick="Auth.demoLogin()" class="text-brand-600 hover:text-brand-700 text-sm font-600 transition">
+            <i class="fa-solid fa-flask mr-1"></i> Enter Demo Mode (No Supabase needed)
+          </button>
+        </div>
+        <div class="mt-4 p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-500 dark:text-slate-400">
+          <strong>Demo credentials:</strong> admin@autopaint.com / demo1234<br>
+          <span class="text-slate-400">Roles: admin, manager, staff — use any email with password demo1234</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== 主应用 ======================== -->
+<div id="app" class="hidden">
+  <!-- 移动端遮罩 -->
+  <div id="mobile-overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- 侧边栏 -->
+  <aside id="sidebar">
+    <div class="p-5 pb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i class="fa-solid fa-spray-can-sparkles text-white text-sm"></i>
+        </div>
+        <div>
+          <div class="text-white font-800 text-sm tracking-tight">AutoPaint ERP</div>
+          <div class="text-slate-500 text-[10px] font-500">v2.0 Pro</div>
+        </div>
+      </div>
+    </div>
+    <div class="px-4 mb-2">
+      <div class="h-px bg-slate-800"></div>
+    </div>
+    <nav class="flex-1 px-1 py-2 overflow-y-auto" id="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</div>
+      <div class="nav-item" data-page="inventory"><i class="fa-solid fa-boxes-stacked"></i>Inventory</div>
+      <div class="nav-item" data-page="sales"><i class="fa-solid fa-cash-register"></i>POS / Sales</div>
+      <div class="nav-item" data-page="purchases"><i class="fa-solid fa-truck"></i>Purchases</div>
+      <div class="nav-item" data-page="customers"><i class="fa-solid fa-users"></i>Customers</div>
+      <div class="nav-item" data-page="suppliers"><i class="fa-solid fa-building"></i>Suppliers</div>
+      <div class="nav-item" data-page="reports"><i class="fa-solid fa-chart-bar"></i>Reports</div>
+      <div class="nav-item" data-page="settings"><i class="fa-solid fa-gear"></i>Settings</div>
+    </nav>
+    <div class="p-4 border-t border-slate-800">
+      <select id="branch-selector" class="form-input text-xs py-2" onchange="App.switchBranch(this.value)">
+        <option value="">All Branches</option>
+      </select>
+      <div class="flex items-center gap-3 mt-3">
+        <div class="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 text-xs font-700" id="user-avatar">A</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-white text-xs font-600 truncate" id="user-name">Admin</div>
+          <div class="text-slate-500 text-[10px] truncate" id="user-role">Administrator</div>
+        </div>
+        <button onclick="Auth.logout()" class="text-slate-500 hover:text-red-400 transition" title="Logout"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 主内容区域 -->
+  <div id="main-content">
+    <!-- 顶部栏 -->
+    <header class="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center gap-4">
+      <button onclick="toggleSidebar()" class="lg:hidden text-slate-600 dark:text-slate-300"><i class="fa-solid fa-bars text-lg"></i></button>
+      <h2 class="text-lg font-700" id="page-title">Dashboard</h2>
+      <div class="flex-1"></div>
+      <button onclick="UI.toggleDark()" class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Toggle dark mode">
+        <i class="fa-solid fa-moon dark:hidden text-sm"></i>
+        <i class="fa-solid fa-sun hidden dark:inline text-sm"></i>
+      </button>
+      <div class="relative">
+        <button onclick="UI.toggleNotifications()" class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative">
+          <i class="fa-solid fa-bell text-sm"></i>
+          <span id="notif-badge" class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-700 rounded-full flex items-center justify-center hidden">0</span>
+        </button>
+        <div id="notif-dropdown" class="hidden absolute right-0 top-11 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+          <div class="p-3 border-b border-slate-100 dark:border-slate-700 font-600 text-sm">Notifications</div>
+          <div id="notif-list" class="max-h-60 overflow-y-auto"></div>
+        </div>
+      </div>
+      <div class="badge badge-info text-[10px] hidden sm:inline-block" id="mode-badge">DEMO</div>
+    </header>
+
+    <!-- 页面容器 -->
+    <div class="p-6" id="page-container">
+
+      <!-- ===== DASHBOARD ===== -->
+      <section id="page-dashboard" class="page">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" id="stat-cards"></div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div class="xl:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-700 text-sm">Monthly Revenue</h3>
+              <select id="chart-period" class="form-input text-xs py-1.5 w-auto" onchange="Dashboard.loadChart()">
+                <option value="6">Last 6 Months</option>
+                <option value="12">Last 12 Months</option>
+              </select>
+            </div>
+            <canvas id="revenue-chart" height="220"></canvas>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
+            <h3 class="font-700 text-sm mb-4">Low Stock Alerts</h3>
+            <div id="low-stock-list" class="space-y-2 max-h-[280px] overflow-y-auto"></div>
+          </div>
+        </div>
+        <div class="mt-6 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
+          <h3 class="font-700 text-sm mb-4">Recent Invoices</h3>
+          <div class="overflow-x-auto">
+            <table class="data-table" id="recent-invoices-table">
+              <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Paid</th><th>Due</th><th>Date</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== INVENTORY ===== -->
+      <section id="page-inventory" class="page hidden">
+        <div class="flex flex-wrap items-center gap-3 mb-5">
+          <input id="inv-search" type="text" placeholder="Search products..." class="form-input w-64" oninput="Inventory.search(this.value)">
+          <select id="inv-cat-filter" class="form-input w-auto" onchange="Inventory.load()">
+            <option value="">All Categories</option>
+            <option>Base Coat</option><option>Clear Coat</option><option>Primer</option><option>Thinner</option><option>Putty</option><option>Accessories</option><option>Polish</option><option>Hardener</option>
+          </select>
+          <div class="flex-1"></div>
+          <button onclick="Inventory.openModal()" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Product</button>
+        </div>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="data-table" id="inventory-table">
+              <thead><tr><th>Product</th><th>Brand</th><th>Color Code</th><th>Category</th><th>Purchase</th><th>Selling</th><th>Stock</th><th>Branch</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== POS / SALES ===== -->
+      <section id="page-sales" class="page hidden">
+        <div class="grid grid-cols-1 xl:grid-cols-5 gap-5">
+          <!-- 产品列表 -->
+          <div class="xl:col-span-3">
+            <div class="flex gap-3 mb-4">
+              <input id="pos-search" type="text" placeholder="Search product by name, brand, or code..." class="form-input flex-1" oninput="Sales.searchProducts(this.value)">
+              <select id="pos-branch" class="form-input w-auto" onchange="Sales.searchProducts(document.getElementById('pos-search').value)"></select>
+            </div>
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div id="pos-products" class="divide-y divide-slate-100 dark:divide-slate-800 max-h-[60vh] overflow-y-auto"></div>
+            </div>
+          </div>
+          <!-- 购物车 -->
+          <div class="xl:col-span-2">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sticky top-20">
+              <h3 class="font-700 text-sm mb-3 flex items-center gap-2"><i class="fa-solid fa-cart-shopping text-brand-500"></i> Current Sale</h3>
+              <!-- 客户选择 -->
+              <div class="mb-3">
+                <select id="pos-customer" class="form-input text-xs">
+                  <option value="">Walk-in Customer</option>
+                </select>
+              </div>
+              <div id="cart-items" class="space-y-1 max-h-[280px] overflow-y-auto mb-3"></div>
+              <div class="h-px bg-slate-100 dark:bg-slate-800 my-3"></div>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between"><span class="text-slate-500">Subtotal</span><span id="cart-subtotal" class="font-600">0.00</span></div>
+                <div class="flex justify-between items-center gap-2"><span class="text-slate-500">Discount</span><input id="cart-discount" type="number" value="0" min="0" class="form-input w-24 text-right text-xs py-1" oninput="Sales.recalcCart()"></div>
+                <div class="flex justify-between items-center gap-2"><span class="text-slate-500">VAT (%)</span><input id="cart-vat" type="number" value="0" min="0" max="100" class="form-input w-24 text-right text-xs py-1" oninput="Sales.recalcCart()"></div>
+                <div class="flex justify-between"><span class="text-slate-500">VAT Amount</span><span id="cart-vat-amt" class="font-600">0.00</span></div>
+                <div class="h-px bg-slate-100 dark:bg-slate-800"></div>
+                <div class="flex justify-between text-base"><span class="font-700">Total</span><span id="cart-total" class="font-800 text-brand-600">0.00</span></div>
+                <div class="flex justify-between items-center gap-2"><span class="text-slate-500">Paid</span><input id="cart-paid" type="number" value="0" min="0" class="form-input w-24 text-right text-xs py-1" oninput="Sales.recalcCart()"></div>
+                <div class="flex justify-between"><span class="text-slate-500">Due</span><span id="cart-due" class="font-700 text-red-500">0.00</span></div>
+              </div>
+              <div class="flex gap-2 mt-4">
+                <button onclick="Sales.clearCart()" class="btn btn-secondary btn-sm flex-1 justify-center"><i class="fa-solid fa-xmark"></i> Clear</button>
+                <button onclick="Sales.createSale()" class="btn btn-primary flex-1 justify-center"><i class="fa-solid fa-receipt"></i> Create Invoice</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PURCHASES ===== -->
+      <section id="page-purchases" class="page hidden">
+        <div class="flex flex-wrap items-center gap-3 mb-5">
+          <input id="pur-search" type="text" placeholder="Search purchases..." class="form-input w-64" oninput="Purchases.load()">
+          <div class="flex-1"></div>
+          <button onclick="Purchases.openModal()" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New Purchase</button>
+        </div>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="data-table" id="purchases-table">
+              <thead><tr><th>ID</th><th>Supplier</th><th>Branch</th><th>Total</th><th>Paid</th><th>Due</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== CUSTOMERS ===== -->
+      <section id="page-customers" class="page hidden">
+        <div class="flex flex-wrap items-center gap-3 mb-5">
+          <input id="cust-search" type="text" placeholder="Search customers..." class="form-input w-64" oninput="Customers.load()">
+          <div class="flex-1"></div>
+          <button onclick="Customers.openModal()" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Customer</button>
+        </div>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="data-table" id="customers-table">
+              <thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Due Amount</th><th>Total Orders</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SUPPLIERS ===== -->
+      <section id="page-suppliers" class="page hidden">
+        <div class="flex flex-wrap items-center gap-3 mb-5">
+          <input id="sup-search" type="text" placeholder="Search suppliers..." class="form-input w-64" oninput="Suppliers.load()">
+          <div class="flex-1"></div>
+          <button onclick="Suppliers.openModal()" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Supplier</button>
+        </div>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="data-table" id="suppliers-table">
+              <thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Total Purchases</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== REPORTS ===== -->
+      <section id="page-reports" class="page hidden">
+        <div class="flex flex-wrap items-center gap-3 mb-5">
+          <select id="rpt-type" class="form-input w-auto" onchange="Reports.load()">
+            <option value="sales">Sales Report</option>
+            <option value="stock">Stock Report</option>
+            <option value="profit">Profit / Loss</option>
+          </select>
+          <input id="rpt-from" type="date" class="form-input w-auto" onchange="Reports.load()">
+          <input id="rpt-to" type="date" class="form-input w-auto" onchange="Reports.load()">
+          <div class="flex-1"></div>
+          <button onclick="Reports.exportCSV()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+          <button onclick="Reports.printReport()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-print"></i> Print</button>
+        </div>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5">
+          <div id="report-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5"></div>
+          <div class="overflow-x-auto">
+            <table class="data-table" id="report-table">
+              <thead></thead><tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SETTINGS ===== -->
+      <section id="page-settings" class="page hidden">
+        <div class="flex gap-2 mb-5 border-b border-slate-200 dark:border-slate-800">
+          <button class="btn btn-sm tab-btn active" data-tab="branches" onclick="Settings.switchTab('branches')"><i class="fa-solid fa-building mr-1"></i> Branches</button>
+          <button class="btn btn-sm tab-btn" data-tab="expenses" onclick="Settings.switchTab('expenses')"><i class="fa-solid fa-wallet mr-1"></i> Expenses</button>
+          <button class="btn btn-sm tab-btn" data-tab="profile" onclick="Settings.switchTab('profile')"><i class="fa-solid fa-user mr-1"></i> Profile</button>
+        </div>
+        <!-- 分支管理 -->
+        <div id="tab-branches" class="tab-content">
+          <div class="flex justify-end mb-4"><button onclick="Settings.openBranchModal()" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Branch</button></div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <table class="data-table" id="branches-table"><thead><tr><th>Name</th><th>Address</th><th>Phone</th><th>Actions</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+        <!-- 费用管理 -->
+        <div id="tab-expenses" class="tab-content hidden">
+          <div class="flex justify-end mb-4"><button onclick="Settings.openExpenseModal()" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Expense</button></div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <table class="data-table" id="expenses-table"><thead><tr><th>Title</th><th>Amount</th><th>Branch</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+        <!-- 个人信息 -->
+        <div id="tab-profile" class="tab-content hidden">
+          <div class="max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+            <div class="text-center mb-5"><div class="w-16 h-16 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-500 text-2xl font-800 mx-auto" id="profile-avatar">A</div></div>
+            <div class="space-y-4">
+              <div><label class="form-label">Name</label><input id="profile-name" class="form-input"></div>
+              <div><label class="form-label">Email</label><input id="profile-email" class="form-input" disabled></div>
+              <div><label class="form-label">Role</label><input id="profile-role" class="form-input" disabled></div>
+              <button onclick="Settings.saveProfile()" class="btn btn-primary w-full justify-center">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- 模态框 -->
+<div id="modal-overlay" class="hidden" onclick="event.target===this&&UI.closeModal()">
+  <div class="modal-box">
+    <div class="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700">
+      <h3 class="font-700 text-base" id="modal-title">Modal</h3>
+      <button onclick="UI.closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div class="p-5" id="modal-body"></div>
+    <div class="flex justify-end gap-2 p-5 border-t border-slate-100 dark:border-slate-700" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- 打印区域 -->
+<div id="print-area"></div>
+
+<script>
+// ==========================================
+// 配置
+// ==========================================
+const CONFIG = {
+  SUPABASE_URL: localStorage.getItem('ap_supabase_url') || '',
+  SUPABASE_ANON_KEY: localStorage.getItem('ap_supabase_key') || '',
+  CURRENCY: '₹',
+  LOW_STOCK_THRESHOLD: 10,
+};
+
+// ==========================================
+// 全局状态
+// ==========================================
+const STATE = {
+  user: null,
+  profile: null,
+  currentPage: 'dashboard',
+  selectedBranch: '',
+  cart: [],
+  revenueChart: null,
+  isDemo: false,
+};
+
+// ==========================================
+// 数据库抽象层
+// ==========================================
+const DB = {
+  _supabase: null,
+
+  init() {
+    if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY) {
+      this._supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+      STATE.isDemo = false;
+    } else {
+      STATE.isDemo = true;
+      DemoDB.init();
+    }
+  },
+
+  // 通用查询
+  async getAll(table, opts = {}) {
+    if (this._supabase) {
+      let q = this._supabase.from(table).select(opts.select || '*');
+      if (opts.eq) Object.entries(opts.eq).forEach(([k, v]) => { q = q.eq(k, v); });
+      if (opts.neq) Object.entries(opts.neq).forEach(([k, v]) => { q = q.neq(k, v); });
+      if (opts.order) q = q.order(opts.order.col, { ascending: opts.order.asc !== false });
+      if (opts.limit) q = q.limit(opts.limit);
+      if (opts.range) q = q.range(opts.range[0], opts.range[1]);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    }
+    return DemoDB.getAll(table, opts);
+  },
+
+  async getById(table, id) {
+    if (this._supabase) {
+      const { data, error } = await this._supabase.from(table).select('*').eq('id', id).single();
+      if (error) throw error;
+      return data;
+    }
+    return DemoDB.getById(table, id);
+  },
+
+  async insert(table, record) {
+    if (this._supabase) {
+      const { data, error } = await this._supabase.from(table).insert(record).select().single();
+      if (error) throw error;
+      return data;
+    }
+    return DemoDB.insert(table, record);
+  },
+
+  async update(table, id, updates) {
+    if (this._supabase) {
+      const { data, error } = await this._supabase.from(table).update(updates).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    }
+    return DemoDB.update(table, id, updates);
+  },
+
+  async remove(table, id) {
+    if (this._supabase) {
+      const { error } = await this._supabase.from(table).delete().eq('id', id);
+      if (error) throw error;
+      return true;
+    }
+    return DemoDB.remove(table, id);
+  },
+
+  async insertMany(table, records) {
+    if (this._supabase) {
+      const { data, error } = await this._supabase.from(table).insert(records).select();
+      if (error) throw error;
+      return data;
+    }
+    return DemoDB.insertMany(table, records);
+  },
+
+  async count(table, opts = {}) {
+    if (this._supabase) {
+      let q = this._supabase.from(table).select('*', { count: 'exact', head: true });
+      if (opts.eq) Object.entries(opts.eq).forEach(([k, v]) => { q = q.eq(k, v); });
+      const { count, error } = await q;
+      if (error) throw error;
+      return count;
+    }
+    return DemoDB.count(table, opts);
+  },
+
+  async raw(sql) {
+    if (this._supabase) {
+      const { data, error } = await this._supabase.rpc('exec_sql', { sql });
+      if (error) throw error;
+      return data;
+    }
+    return [];
+  }
+};
+
+// ==========================================
+// 演示数据库 (localStorage)
+// ==========================================
+const DemoDB = {
+  _data: {},
+
+  init() {
+    const stored = localStorage.getItem('autopaint_data');
+    if (stored) {
+      try { this._data = JSON.parse(stored); } catch { this._seed(); }
+    } else {
+      this._seed();
+    }
+  },
+
+  _save() {
+    localStorage.setItem('autopaint_data', JSON.stringify(this._data));
+  },
+
+  _uuid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  },
+
+  _now() { return new Date().toISOString(); },
+
+  _seed() {
+    const b1 = this._uuid(), b2 = this._uuid();
+    const s1 = this._uuid(), s2 = this._uuid(), s3 = this._uuid(), s4 = this._uuid(), s5 = this._uuid();
+    const c1 = this._uuid(), c2 = this._uuid(), c3 = this._uuid(), c4 = this._uuid(), c5 = this._uuid();
+    const adminId = this._uuid();
+
+    this._data = {
+      profiles: [{
+        id: adminId, name: 'Admin User', role: 'admin', branch_id: b1, created_at: this._now()
+      }],
+      branches: [
+        { id: b1, name: 'Main Branch', address: '123 Industrial Road, Auto Nagar', phone: '9876543210', created_at: this._now() },
+        { id: b2, name: 'Industrial Area Branch', address: '456 Factory Lane, Phase-2', phone: '9876543211', created_at: this._now() }
+      ],
+      suppliers: [
+        { id: s1, name: 'Paint India Distributors', phone: '9800000001', address: 'Mumbai, Maharashtra', created_at: this._now() },
+        { id: s2, name: 'Auto Chemicals Supply', phone: '9800000002', address: 'Delhi NCR', created_at: this._now() },
+        { id: s3, name: '3M Authorized Dealer', phone: '9800000003', address: 'Bangalore, Karnataka', created_at: this._now() },
+        { id: s4, name: 'Kansai Nerolac Depot', phone: '9800000004', address: 'Chennai, Tamil Nadu', created_at: this._now() },
+        { id: s5, name: 'BASF Distribution Center', phone: '9800000005', address: 'Pune, Maharashtra', created_at: this._now() }
+      ],
+      customers: [
+        { id: c1, name: 'Sharma Auto Works', phone: '9900000001', address: 'MG Road, Sector 5', due_amount: 4500, created_at: this._now() },
+        { id: c2, name: 'Singh Car Clinic', phone: '9900000002', address: 'GT Road, Industrial Area', due_amount: 0, created_at: this._now() },
+        { id: c3, name: 'Patel Body Shop', phone: '9900000003', address: 'NH-48 Highway Service Rd', due_amount: 12000, created_at: this._now() },
+        { id: c4, name: 'Kumar Paint Services', phone: '9900000004', address: 'Ring Road, Block C', due_amount: 0, created_at: this._now() },
+        { id: c5, name: 'Royal Motors', phone: '9900000005', address: 'Station Road, Near Bus Stand', due_amount: 7800, created_at: this._now() }
+      ],
+      products: [
+        { id: this._uuid(), name: 'Base Coat White Pearl', brand: 'Nippon Paint', color_code: 'NH-578', category: 'Base Coat', purchase_price: 1800, selling_price: 2500, stock_quantity: 25, branch_id: b1, supplier_id: s1, created_at: this._now() },
+        { id: this._uuid(), name: 'Clear Coat 2K Gloss', brand: 'DuPont', color_code: 'DC3000', category: 'Clear Coat', purchase_price: 2200, selling_price: 3200, stock_quantity: 18, branch_id: b1, supplier_id: s2, created_at: this._now() },
+        { id: this._uuid(), name: 'Primer Surfacer Grey', brand: 'PPG', color_code: 'DP40', category: 'Primer', purchase_price: 1100, selling_price: 1800, stock_quantity: 30, branch_id: b1, supplier_id: s2, created_at: this._now() },
+        { id: this._uuid(), name: 'Thinner RTO Standard', brand: 'BASF', color_code: '852-216', category: 'Thinner', purchase_price: 500, selling_price: 850, stock_quantity: 50, branch_id: b1, supplier_id: s5, created_at: this._now() },
+        { id: this._uuid(), name: 'Premium Putty 1kg', brand: '3M', color_code: 'PN850', category: 'Putty', purchase_price: 380, selling_price: 650, stock_quantity: 40, branch_id: b1, supplier_id: s3, created_at: this._now() },
+        { id: this._uuid(), name: 'Base Coat Silver Metallic', brand: 'Nippon Paint', color_code: 'NH-623M', category: 'Base Coat', purchase_price: 2000, selling_price: 2800, stock_quantity: 8, branch_id: b1, supplier_id: s1, created_at: this._now() },
+        { id: this._uuid(), name: 'Urethane Clear Coat', brand: 'Sherwin-Williams', color_code: 'UCC-200', category: 'Clear Coat', purchase_price: 2400, selling_price: 3500, stock_quantity: 5, branch_id: b1, supplier_id: s2, created_at: this._now() },
+        { id: this._uuid(), name: 'Epoxy Primer 4L', brand: 'AkzoNobel', color_code: 'INTEROX-EP', category: 'Primer', purchase_price: 1400, selling_price: 2100, stock_quantity: 12, branch_id: b1, supplier_id: s5, created_at: this._now() },
+        { id: this._uuid(), name: 'Base Coat Solid Black', brand: 'Kansai', color_code: 'KB-01', category: 'Base Coat', purchase_price: 1600, selling_price: 2400, stock_quantity: 3, branch_id: b1, supplier_id: s4, created_at: this._now() },
+        { id: this._uuid(), name: 'Sandpaper P800 (10pcs)', brand: '3M', color_code: '-', category: 'Accessories', purchase_price: 200, selling_price: 350, stock_quantity: 60, branch_id: b1, supplier_id: s3, created_at: this._now() },
+        { id: this._uuid(), name: 'Masking Tape 24mm (6pcs)', brand: '3M', color_code: '-', category: 'Accessories', purchase_price: 90, selling_price: 180, stock_quantity: 80, branch_id: b1, supplier_id: s3, created_at: this._now() },
+        { id: this._uuid(), name: 'Ultimate Compound 32oz', brand: 'Meguiar\'s', color_code: 'M105', category: 'Polish', purchase_price: 750, selling_price: 1200, stock_quantity: 15, branch_id: b1, supplier_id: s3, created_at: this._now() },
+        { id: this._uuid(), name: 'Hardener 2K Fast', brand: 'DuPont', color_code: '222S', category: 'Hardener', purchase_price: 1200, selling_price: 1900, stock_quantity: 20, branch_id: b1, supplier_id: s2, created_at: this._now() },
+        { id: this._uuid(), name: 'Base Coat Ruby Red', brand: 'PPG', color_code: 'PRC-301', category: 'Base Coat', purchase_price: 1800, selling_price: 2600, stock_quantity: 7, branch_id: b2, supplier_id: s2, created_at: this._now() },
+        { id: this._uuid(), name: 'Base Cobalt Blue', brand: 'BASF', color_code: '69-361', category: 'Base Coat', purchase_price: 1900, selling_price: 2700, stock_quantity: 6, branch_id: b2, supplier_id: s5, created_at: this._now() }
+      ],
+      purchases: [],
+      purchase_items: [],
+      sales: [],
+      sale_items: [],
+      expenses: [],
+      stock_logs: []
+    };
+
+    // 生成一些示例采购记录
+    const now = Date.now();
+    const day = 86400000;
+    [0, -3, -7, -15, -25].forEach((d, i) => {
+      const purId = this._uuid();
+      const branch = i % 2 === 0 ? b1 : b2;
+      const supplier = [s1, s2, s3, s4, s5][i];
+      const total = [15000, 22000, 8500, 31000, 12000][i];
+      const paid = [15000, 20000, 8500, 25000, 10000][i];
+      this._data.purchases.push({
+        id: purId, supplier_id: supplier, branch_id: branch,
+        total_amount: total, paid_amount: paid, due_amount: total - paid,
+        created_at: new Date(now + d * day).toISOString()
+      });
+    });
+
+    // 生成一些示例销售记录
+    const custIds = [c1, c2, c3, c4, c5];
+    [0, -1, -2, -4, -5, -8, -10, -14, -20, -28].forEach((d, i) => {
+      const saleId = this._uuid();
+      const cust = custIds[i % 5];
+      const branch = i % 3 === 0 ? b2 : b1;
+      const subtotal = [4500, 3200, 8700, 2100, 12500, 6800, 3400, 9200, 5600, 15000][i];
+      const discount = [0, 200, 500, 0, 1000, 300, 0, 200, 0, 1500][i];
+      const vatPct = [0, 0, 5, 0, 5, 0, 0, 5, 0, 5][i];
+      const vatAmt = Math.round((subtotal - discount) * vatPct / 100);
+      const finalAmt = subtotal - discount + vatAmt;
+      const paidAmt = [4500, 3200, 5000, 2100, 10000, 6800, 3400, 7000, 5600, 12000][i];
+      this._data.sales.push({
+        id: saleId, customer_id: cust, branch_id: branch,
+        total_amount: subtotal, discount, vat: vatAmt, final_amount: finalAmt,
+        paid_amount: paidAmt, due_amount: finalAmt - paidAmt,
+        created_by: adminId, created_at: new Date(now + d * day).toISOString()
+      });
+      // 生成对应的销售明细
+      const prodIdx = i % this._data.products.length;
+      const prod = this._data.products[prodIdx];
+      const qty = [2, 1, 3, 1, 4, 2, 1, 3, 2, 5][i];
+      this._data.sale_items.push({
+        id: this._uuid(), sale_id: saleId, product_id: prod.id,
+        quantity: qty, price: prod.selling_price
+      });
+    });
+
+    // 示例费用
+    [['Electricity Bill', 8500, b1], ['Shop Rent', 25000, b1], ['Staff Salary', 45000, b1], ['Water Bill', 1200, b2], ['Internet Bill', 1500, b1]].forEach(([t, a, b]) => {
+      this._data.expenses.push({
+        id: this._uuid(), title: t, amount: a, branch_id: b, created_at: this._now()
+      });
+    });
+
+    this._save();
+  },
+
+  getAll(table, opts = {}) {
+    let items = [...(this._data[table] || [])];
+    if (opts.eq) {
+      Object.entries(opts.eq).forEach(([k, v]) => {
+        if (v === '' || v === null || v === undefined) return;
+        items = items.filter(r => String(r[k]) === String(v));
+      });
+    }
+    if (opts.neq) {
+      Object.entries(opts.neq).forEach(([k, v]) => {
+        items = items.filter(r => String(r[k]) !== String(v));
+      });
+    }
+    if (opts.order) {
+      const col = opts.order.col;
+      items.sort((a, b) => {
+        if (a[col] < b[col]) return opts.order.asc !== false ? -1 : 1;
+        if (a[col] > b[col]) return opts.order.asc !== false ? 1 : -1;
+        return 0;
+      });
+    }
+    if (opts.limit) items = items.slice(0, opts.limit);
+    if (opts.range) items = items.slice(opts.range[0], opts.range[1] + 1);
+    return items;
+  },
+
+  getById(table, id) {
+    return (this._data[table] || []).find(r => r.id === id) || null;
+  },
+
+  insert(table, record) {
+    if (!this._data[table]) this._data[table] = [];
+    const rec = { ...record, id: record.id || this._uuid(), created_at: record.created_at || this._now() };
+    this._data[table].push(rec);
+    this._save();
+    return rec;
+  },
+
+  insertMany(table, records) {
+    if (!this._data[table]) this._data[table] = [];
+    const recs = records.map(r => ({ ...r, id: r.id || this._uuid(), created_at: r.created_at || this._now() }));
+    this._data[table].push(...recs);
+    this._save();
+    return recs;
+  },
+
+  update(table, id, updates) {
+    const arr = this._data[table] || [];
+    const idx = arr.findIndex(r => r.id === id);
+    if (idx === -1) throw new Error('Not found');
+    arr[idx] = { ...arr[idx], ...updates };
+    this._save();
+    return arr[idx];
+  },
+
+  remove(table, id) {
+    if (!this._data[table]) return false;
+    this._data[table] = this._data[table].filter(r => r.id !== id);
+    this._save();
+    return true;
+  },
+
+  count(table, opts = {}) {
+    return this.getAll(table, opts).length;
+  }
+};
+
+// ==========================================
+// UI 工具
+// ==========================================
+const UI = {
+  toast(msg, type = 'success') {
+    const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.innerHTML = `<i class="fa-solid ${icons[type]}"></i><span>${msg}</span>`;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(50px)'; el.style.transition = 'all .3s'; setTimeout(() => el.remove(), 300); }, 3500);
+  },
+
+  toggleDark() {
+    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('ap_dark', document.documentElement.classList.contains('dark'));
+  },
+
+  initDark() {
+    if (localStorage.getItem('ap_dark') === 'true') document.documentElement.classList.add('dark');
+  },
+
+  openModal(title, bodyHtml, footerHtml) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').innerHTML = bodyHtml;
+    document.getElementById('modal-footer').innerHTML = footerHtml || '';
+    document.getElementById('modal-overlay').classList.remove('hidden');
+  },
+
+  closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+  },
+
+  toggleNotifications() {
+    document.getElementById('notif-dropdown').classList.toggle('hidden');
+  },
+
+  formatCurrency(n) {
+    return CONFIG.CURRENCY + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  },
+
+  formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  },
+
+  shortId(id) {
+    return id ? id.substring(0, 8).toUpperCase() : '-';
+  },
+
+  confirm(msg) {
+    return new Promise(resolve => {
+      this.openModal('Confirm', `<p class="text-sm text-slate-600 dark:text-slate-300">${msg}</p>`,
+        `<button class="btn btn-secondary btn-sm" onclick="UI.closeModal();resolve(false)">Cancel</button>
+         <button class="btn btn-danger btn-sm" onclick="UI.closeModal();resolve(true)">Confirm</button>`);
+    });
+  },
+
+  skeleton(count = 5) {
+    return Array(count).fill('<tr><td colspan="99"><div class="skeleton h-8 my-2"></div></td></tr>').join('');
+  }
+};
+
+// ==========================================
+// 认证模块
+// ==========================================
+const Auth = {
+  async login() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-password').value;
+    if (!email || !pass) return UI.toast('Please enter email and password', 'warning');
+
+    if (STATE.isDemo) {
+      // 演示模式：模拟登录
+      let role = 'staff';
+      if (email.includes('admin')) role = 'admin';
+      else if (email.includes('manager')) role = 'manager';
+      const profiles = await DB.getAll('profiles');
+      let profile = profiles.find(p => p.name.toLowerCase().includes(role));
+      if (!profile) profile = profiles[0];
+      STATE.user = { id: profile.id, email };
+      STATE.profile = profile;
+      App.enter();
+      return;
+    }
+
+    // Supabase 认证
+    try {
+      const btn = document.getElementById('login-btn');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in...';
+      btn.disabled = true;
+      const { data, error } = await DB._supabase.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+      STATE.user = data.user;
+      const { data: prof } = await DB._supabase.from('profiles').select('*').eq('id', data.user.id).single();
+      STATE.profile = prof;
+      App.enter();
+    } catch (e) {
+      UI.toast(e.message || 'Login failed', 'error');
+    } finally {
+      const btn = document.getElementById('login-btn');
+      btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In';
+      btn.disabled = false;
+    }
+  },
+
+  async demoLogin() {
+    STATE.isDemo = true;
+    DemoDB.init();
+    const profiles = await DB.getAll('profiles');
+    STATE.user = { id: profiles[0].id, email: 'admin@autopaint.com' };
+    STATE.profile = profiles[0];
+    App.enter();
+  },
+
+  async logout() {
+    if (!STATE.isDemo && DB._supabase) {
+      await DB._supabase.auth.signOut();
+    }
+    STATE.user = null;
+    STATE.profile = null;
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('login-screen').classList.remove('hidden');
+    UI.toast('Logged out successfully', 'info');
+  }
+};
+
+// ==========================================
+// 保存 Supabase 配置
+// ==========================================
+function saveSupabaseConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) return UI.toast('Please enter both URL and Key', 'warning');
+  localStorage.setItem('ap_supabase_url', url);
+  localStorage.setItem('ap_supabase_key', key);
+  CONFIG.SUPABASE_URL = url;
+  CONFIG.SUPABASE_ANON_KEY = key;
+  DB.init();
+  UI.toast('Supabase connected! You can now login with real credentials.', 'success');
+}
+
+// ==========================================
+// 应用控制器
+// ==========================================
+const App = {
+  enter() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('mode-badge').textContent = STATE.isDemo ? 'DEMO' : 'LIVE';
+    document.getElementById('mode-badge').className = `badge ${STATE.isDemo ? 'badge-warning' : 'badge-success'} text-[10px] hidden sm:inline-block`;
+
+    // 用户信息
+    const p = STATE.profile;
+    document.getElementById('user-name').textContent = p.name || 'User';
+    document.getElementById('user-role').textContent = p.role || 'staff';
+    document.getElementById('user-avatar').textContent = (p.name || 'U')[0].toUpperCase();
+
+    // 根据角色隐藏菜单
+    if (p.role === 'staff') {
+      document.querySelector('[data-page="settings"]').style.display = 'none';
+      document.querySelector('[data-page="reports"]').style.display = 'none';
+    }
+
+    this.loadBranchSelector();
+    this.navigate('dashboard');
+  },
+
+  async loadBranchSelector() {
+    const branches = await DB.getAll('branches');
+    const sel = document.getElementById('branch-selector');
+    sel.innerHTML = '<option value="">All Branches</option>' +
+      branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
+    // POS分支选择器
+    const posSel = document.getElementById('pos-branch');
+    posSel.innerHTML = '<option value="">All Branches</option>' +
+      branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+  },
+
+  switchBranch(id) {
+    STATE.selectedBranch = id;
+    const page = STATE.currentPage;
+    if (page === 'dashboard') Dashboard.load();
+    else if (page === 'inventory') Inventory.load();
+    else if (page === 'sales') Sales.searchProducts(document.getElementById('pos-search').value);
+    else if (page === 'purchases') Purchases.load();
+    else if (page === 'customers') Customers.load();
+  },
+
+  navigate(page) {
+    STATE.currentPage = page;
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    const target = document.getElementById('page-' + page);
+    if (target) { target.classList.remove('hidden'); target.classList.remove('page'); void target.offsetWidth; target.classList.add('page'); }
+
+    document.querySelectorAll('#sidebar-nav .nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+
+    const titles = { dashboard: 'Dashboard', inventory: 'Inventory', sales: 'POS / Sales', purchases: 'Purchases', customers: 'Customers', suppliers: 'Suppliers', reports: 'Reports', settings: 'Settings' };
+    document.getElementById('page-title').textContent = titles[page] || page;
+
+    // 加载页面数据
+    if (page === 'dashboard') Dashboard.load();
+    else if (page === 'inventory') Inventory.load();
+    else if (page === 'sales') { Sales.loadCustomers(); Sales.searchProducts(''); }
+    else if (page === 'purchases') Purchases.load();
+    else if (page === 'customers') Customers.load();
+    else if (page === 'suppliers') Suppliers.load();
+    else if (page === 'reports') Reports.load();
+    else if (page === 'settings') Settings.load();
+
+    // 关闭移动端侧边栏
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('mobile-overlay').classList.remove('show');
+  }
+};
+
+// 侧边栏导航点击
+document.querySelectorAll('#sidebar-nav .nav-item').forEach(item => {
+  item.addEventListener('click', () => App.navigate(item.dataset.page));
+});
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('mobile-overlay').classList.toggle('show');
+}
+
+// ==========================================
+// 仪表板
+// ==========================================
+const Dashboard = {
+  async load() {
+    const branchFilter = STATE.selectedBranch ? { eq: { branch_id: STATE.selectedBranch } } : {};
+    const today = new Date().toISOString().split('T')[0];
+    const now = Date.now();
+    const monthStart = new Date(now - 30 * 86400000).toISOString();
+
+    // 今日销售
+    const allSales = await DB.getAll('sales', branchFilter);
+    const todaySales = allSales.filter(s => s.created_at && s.created_at.startsWith(today));
+    const todayRevenue = todaySales.reduce((sum, s) => sum + Number(s.final_amount || 0), 0);
+
+    // 月度收入
+    const monthSales = allSales.filter(s => s.created_at >= monthStart);
+    const monthRevenue = monthSales.reduce((sum, s) => sum + Number(s.final_amount || 0), 0);
+
+    // 产品数量
+    const productCount = await DB.count('products', branchFilter);
+
+    // 低库存
+    const products = await DB.getAll('products', branchFilter);
+    const lowStock = products.filter(p => Number(p.stock_quantity) <= CONFIG.LOW_STOCK_THRESHOLD);
+
+    // 总应收
+    const totalDue = allSales.reduce((sum, s) => sum + Number(s.due_amount || 0), 0);
+
+    const cards = [
+      { label: "Today's Sales", value: UI.formatCurrency(todayRevenue), icon: 'fa-receipt', color: 'from-brand-500 to-brand-600', change: `${todaySales.length} invoices` },
+      { label: 'Monthly Revenue', value: UI.formatCurrency(monthRevenue), icon: 'fa-chart-line', color: 'from-emerald-500 to-emerald-600', change: `${monthSales.length} invoices` },
+      { label: 'Total Products', value: productCount, icon: 'fa-boxes-stacked', color: 'from-blue-500 to-blue-600', change: `${lowStock.length} low stock` },
+      { label: 'Receivables', value: UI.formatCurrency(totalDue), icon: 'fa-hand-holding-dollar', color: 'from-violet-500 to-violet-600', change: 'Outstanding dues' }
+    ];
+
+    document.getElementById('stat-cards').innerHTML = cards.map(c => `
+      <div class="stat-card bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${c.color} opacity-10 rounded-bl-full"></div>
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-500 text-slate-500 dark:text-slate-400 mb-1">${c.label}</p>
+            <p class="text-2xl font-800 tracking-tight">${c.value}</p>
+            <p class="text-[11px] text-slate-400 mt-1">${c.change}</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center shadow-lg">
+            <i class="fa-solid ${c.icon} text-white text-sm"></i>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    this.loadChart();
+    this.loadLowStock(lowStock);
+    this.loadRecentInvoices(allSales.slice(0, 8));
+    this.updateNotifBadge(lowStock.length);
+  },
+
+  async loadChart() {
+    const months = 6;
+    const labels = [];
+    const data = [];
+    const now = new Date();
+    const branchFilter = STATE.selectedBranch ? { eq: { branch_id: STATE.selectedBranch } } : {};
+
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const start = d.toISOString();
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString();
+      labels.push(d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }));
+      const sales = await DB.getAll('sales', branchFilter);
+      const monthTotal = sales.filter(s => s.created_at >= start && s.created_at <= end).reduce((sum, s) => sum + Number(s.final_amount || 0), 0);
+      data.push(monthTotal);
+    }
+
+    if (STATE.revenueChart) STATE.revenueChart.destroy();
+    const ctx = document.getElementById('revenue-chart').getContext('2d');
+    const isDark = document.documentElement.classList.contains('dark');
+    STATE.revenueChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Revenue',
+          data,
+          backgroundColor: 'rgba(249,115,22,0.2)',
+          borderColor: '#F97316',
+          borderWidth: 2,
+          borderRadius: 8,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: isDark ? '#1E293B' : '#F1F5F9' }, ticks: { color: isDark ? '#94A3B8' : '#64748B', font: { family: 'Outfit', size: 11 } } },
+          x: { grid: { display: false }, ticks: { color: isDark ? '#94A3B8' : '#64748B', font: { family: 'Outfit', size: 11 } } }
+        }
+      }
+    });
+  },
+
+  loadLowStock(items) {
+    const el = document.getElementById('low-stock-list');
+    if (items.length === 0) {
+      el.innerHTML = '<p class="text-sm text-slate-400 text-center py-6">All stock levels are healthy</p>';
+      return;
+    }
+    el.innerHTML = items.map(p => `
+      <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30">
+        <div>
+          <div class="text-xs font-600">${p.name}</div>
+          <div class="text-[10px] text-slate-400">${p.brand} · ${p.color_code}</div>
+        </div>
+        <span class="badge badge-danger text-[10px]">${p.stock_quantity} left</span>
+      </div>
+    `).join('');
+  },
+
+  async loadRecentInvoices(sales) {
+    const tbody = document.querySelector('#recent-invoices-table tbody');
+    if (sales.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-400 py-6">No invoices yet</td></tr>'; return; }
+
+    const customerMap = {};
+    (await DB.getAll('customers')).forEach(c => customerMap[c.id] = c);
+
+    tbody.innerHTML = sales.map(s => {
+      const cust = customerMap[s.customer_id] || { name: 'Walk-in' };
+      const dueClass = Number(s.due_amount) > 0 ? 'text-red-500 font-600' : 'text-emerald-500';
+      return `<tr>
+        <td class="font-600 text-xs">${UI.shortId(s.id)}</td>
+        <td class="text-xs">${cust.name}</td>
+        <td class="font-600">${UI.formatCurrency(s.final_amount)}</td>
+        <td>${UI.formatCurrency(s.paid_amount)}</td>
+        <td class="${dueClass}">${UI.formatCurrency(s.due_amount)}</td>
+        <td class="text-xs text-slate-400">${UI.formatDate(s.created_at)}</td>
+      </tr>`;
+    }).join('');
+  },
+
+  updateNotifBadge(count) {
+    const badge = document.getElementById('notif-badge');
+    if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); }
+    else badge.classList.add('hidden');
+
+    document.getElementById('notif-list').innerHTML = count > 0
+      ? `<div class="p-3 text-xs text-red-500"><i class="fa-solid fa-triangle-exclamation mr-1"></i> ${count} product(s) below minimum stock level</div>`
+      : '<div class="p-4 text-xs text-slate-400 text-center">No notifications</div>';
+  }
+};
+
+// ==========================================
+// 库存管理
+// ==========================================
+const Inventory = {
+  async load() {
+    const tbody = document.querySelector('#inventory-table tbody');
+    tbody.innerHTML = UI.skeleton(6);
+
+    const opts = { order: { col: 'created_at', asc: false } };
+    if (STATE.selectedBranch) opts.eq = { branch_id: STATE.selectedBranch };
+    const cat = document.getElementById('inv-cat-filter').value;
+    if (cat) { opts.eq = opts.eq || {}; opts.eq.category = cat; }
+
+    const products = await DB.getAll('products', opts);
+    const branchMap = {};
+    (await DB.getAll('branches')).forEach(b => branchMap[b.id] = b);
+
+    if (products.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-slate-400 py-8">No products found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = products.map(p => {
+      const stockClass = Number(p.stock_quantity) <= CONFIG.LOW_STOCK_THRESHOLD ? 'badge-danger' : 'badge-success';
+      const branch = branchMap[p.branch_id];
+      return `<tr>
+        <td class="font-600">${p.name}</td>
+        <td class="text-xs">${p.brand}</td>
+        <td><code class="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">${p.color_code || '-'}</code></td>
+        <td><span class="badge badge-info">${p.category}</span></td>
+        <td>${UI.formatCurrency(p.purchase_price)}</td>
+        <td class="font-600">${UI.formatCurrency(p.selling_price)}</td>
+        <td><span class="badge ${stockClass}">${p.stock_quantity}</span></td>
+        <td class="text-xs">${branch ? branch.name : '-'}</td>
+        <td>
+          <div class="flex gap-1">
+            <button onclick="Inventory.openModal('${p.id}')" class="btn btn-secondary btn-sm py-1 px-2" title="Edit"><i class="fa-solid fa-pen text-[10px]"></i></button>
+            <button onclick="Inventory.deleteProduct('${p.id}')" class="btn btn-danger btn-sm py-1 px-2" title="Delete"><i class="fa-solid fa-trash text-[10px]"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  },
+
+  search(term) { /* 重新加载并过滤 */
+    clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => this.load(), 300);
+  },
+
+  async openModal(editId) {
+    const branches = await DB.getAll('branches');
+    const suppliers = await DB.getAll('suppliers');
+    let product = null;
+    if (editId) product = await DB.getById('products', editId);
+
+    const p = product || {};
+    const html = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="form-label">Product Name</label><input id="f-name" class="form-input" value="${p.name || ''}" placeholder="e.g. Base Coat White Pearl"></div>
+        <div><label class="form-label">Brand</label><input id="f-brand" class="form-input" value="${p.brand || ''}" placeholder="e.g. Nippon Paint"></div>
+        <div><label class="form-label">Color Code</label><input id="f-code" class="form-input" value="${p.color_code || ''}" placeholder="e.g. NH-578"></div>
+        <div><label class="form-label">Category</label>
+          <select id="f-cat" class="form-input">
+            <option value="">Select...</option>
+            ${['Base Coat','Clear Coat','Primer','Thinner','Putty','Accessories','Polish','Hardener'].map(c => `<option ${p.category===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div><label class="form-label">Purchase Price</label><input id="f-pp" type="number" class="form-input" value="${p.purchase_price || ''}" placeholder="0"></div>
+        <div><label class="form-label">Selling Price</label><input id="f-sp" type="number" class="form-input" value="${p.selling_price || ''}" placeholder="0"></div>
+        <div><label class="form-label">Stock Quantity</label><input id="f-stock" type="number" class="form-input" value="${p.stock_quantity || 0}" placeholder="0"></div>
+        <div><label class="form-label">Branch</label>
+          <select id="f-branch" class="form-input">
+            <option value="">Select...</option>
+            ${branches.map(b => `<option value="${b.id}" ${p.branch_id===b.id?'selected':''}>${b.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="md:col-span-2"><label class="form-label">Supplier</label>
+          <select id="f-supplier" class="form-input">
+            <option value="">Select...</option>
+            ${suppliers.map(s => `<option value="${s.id}" ${p.supplier_id===s.id?'selected':''}>${s.name}</option>`).join('')}
+          </select>
+        </div>
+      </div>`;
+
+    const footer = `<button class="btn btn-secondary btn-sm" onclick="UI.closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="Inventory.save('${editId || ''}')">${editId ? 'Update' : 'Add Product'}</button>`;
+
+    UI.openModal(editId ? 'Edit Product' : 'Add Product', html, footer);
+  },
+
+  async save(editId) {
+    const data = {
+      name: document.getElementById('f-name').value.trim(),
+      brand: document.getElementById('f-brand').value.trim(),
+      color_code: document.getElementById('f-code').value.trim(),
+      category: document.getElementById('f-cat').value,
+      purchase_price: Number(document.getElementById('f-pp').value) || 0,
+      selling_price: Number(document.getElementById('f-sp').value) || 0,
+      stock_quantity: Number(document.getElementById('f-stock').value) || 0,
+      branch_id: document.getElementById('f-branch').value,
+      supplier_id: document.getElementById('f-supplier').value,
+    };
+
+    if (!data.name || !data.brand) return UI.toast('Name and Brand are required', 'warning');
+
+    try {
+      if (editId) await DB.update('products', editId, data);
+      else await DB.insert('products', data);
+      UI.closeModal();
+      UI.toast(editId ? 'Product updated' : 'Product added', 'success');
+      this.load();
+    } catch (e) { UI.toast(e.message, 'error'); }
+  },
+
+  async deleteProduct(id) {
+    const ok = await UI.confirm('Are you sure you want to delete this product?');
+    if (!ok) return;
+    try { await DB.remove('products', id); UI.toast('Product deleted', 'success'); this.load(); }
+    catch (e) { UI.toast(e.message, 'error'); }
+  }
+};
+
+// ==========================================
+// POS / 销售模块
+// ==========================================
+const Sales = {
+  cart: [],
+
+  async loadCustomers() {
+    const custs = await DB.getAll('customers');
+    const sel = document.getElementById('pos-customer');
+    sel.innerHTML = '<option value="">Walk-in Customer</option>' +
+      custs.map(c => `<option value="${c.id}">${c.name} (${c.phone})</option>`).join('');
+  },
+
+  async searchProducts(term) {
+    const el = document.getElementById('pos-products');
+    el.innerHTML = UI.skeleton(5);
+
+    const opts = { order: { col: 'name', asc: true } };
+    const branchId = document.getElementById('pos-branch').value;
+    if (branchId) opts.eq = { branch_id: branchId };
+    const products = await DB.getAll('products', opts);
+
+    const filtered = term
+      ? products.filter(p => p.name.toLowerCase().includes(term.toLowerCase()) || p.brand.toLowerCase().includes(term.toLowerCase()) || (p.color_code || '').toLowerCase().includes(term.toLowerCase()))
+      : products;
+
+    if (filtered.length === 0) {
+      el.innerHTML = '<div class="p-8 text-center text-slate-400 text-sm">No products found</div>';
+      return;
+    }
+
+    el.innerHTML = filtered.map(p => {
+      const inCart = this.cart.find(c => c.product_id === p.id);
+      const stockOk = Number(p.stock_quantity) > 0;
+      return `<div class="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer ${!stockOk ? 'opacity-50' : ''}" onclick="${stockOk ? `Sales.addToCart('${p.id}')` : ''}">
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-600 truncate">${p.name}</div>
+          <div class="text-[11px] text-slate-400">${p.brand} · <code class="bg-slate-100 dark:bg-slate-800 px-1 rounded">${p.color_code || '-'}</code> · Stock: <span class="${Number(p.stock_quantity) <= CONFIG.LOW_STOCK_THRESHOLD ? 'text-red-500 font-600' : ''}">${p.stock_quantity}</span></div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="font-700 text-sm text-brand-600">${UI.formatCurrency(p.selling_price)}</span>
+          ${inCart ? `<span class="w-6 h-6 rounded-full bg-brand-500 text-white text-[10px] font-700 flex items-center justify-center">${inCart.qty}</span>` : `<i class="fa-solid fa-plus text-slate-300 dark:text-slate-600"></i>`}
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  async addToCart(productId) {
+    const product = await DB.getById('products', productId);
+    if (!product) return;
+    const existing = this.cart.find(c => c.product_id === productId);
+    if (existing) {
+      if (existing.qty >= Number(product.stock_quantity)) return UI.toast('Not enough stock', 'warning');
+      existing.qty++;
+    } else {
+      this.cart.push({ product_id: productId, name: product.name, price: Number(product.selling_price), qty: 1, maxStock: Number(product.stock_quantity) });
+    }
+    this.renderCart();
+    this.searchProducts(document.getElementById('pos-search').value);
+  },
+
+  removeFromCart(idx) {
+    this.cart.splice(idx, 1);
+    this.renderCart();
+    this.searchProducts(document.getElementById('pos-search').value);
+  },
+
+  updateQty(idx, delta) {
+    const item = this.cart[idx];
+    const newQty = item.qty + delta;
+    if (newQty < 1) return this.removeFromCart(idx);
+    if (newQty > item.maxStock) return UI.toast('Not enough stock', 'warning');
+    item.qty = newQty;
+    this.renderCart();
+  },
+
+  recalcCart() {
+    this.renderCart();
+  },
+
+  renderCart() {
+    const el = document.getElementById('cart-items');
+    if (this.cart.length === 0) {
+      el.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Cart is empty</p>';
+    } else {
+      el.innerHTML = this.cart.map((item, i) => `
+        <div class="cart-item">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-600 truncate">${item.name}</div>
+            <div class="text-[11px] text-slate-400">${UI.formatCurrency(item.price)} each</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="Sales.updateQty(${i},-1)" class="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs hover:bg-slate-200 dark:hover:bg-slate-700">-</button>
+            <span class="text-sm font-600 w-6 text-center">${item.qty}</span>
+            <button onclick="Sales.updateQty(${i},1)" class="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs hover:bg-slate-200 dark:hover:bg-slate-700">+</button>
+            <span class="text-xs font-600 w-20 text-right">${UI.formatCurrency(item.price * item.qty)}</span>
+            <button onclick="Sales.removeFromCart(${i})" class="text-red-400 hover:text-red-600 ml-1"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const subtotal = this.cart.reduce((s, i) => s + i.price * i.qty, 0);
+    const discount = Number(document.getElementById('cart-discount').value) || 0;
+    const vatPct = Number(document.getElementById('cart-vat').value) || 0;
+    const vatAmt = Math.round((subtotal - discount) * vatPct / 100);
+    const total = subtotal - discount + vatAmt;
+    const paid = Number(document.getElementById('cart-paid').value) || 0;
+    const due = total - paid;
+
+    document.getElementById('cart-subtotal').textContent = UI.formatCurrency(subtotal);
+    document.getElementById('cart-vat-amt').textContent = UI.formatCurrency(vatAmt);
+    document.getElementById('cart-total').textContent = UI.formatCurrency(total);
+    document.getElementById('cart-due').textContent = UI.formatCurrency(Math.max(0, due));
+    document.getElementById('cart-due').className = `font-700 ${due > 0 ? 'text-red-500' : 'text-emerald-500'}`;
+  },
+
+  clearCart() {
+    this.cart = [];
+    document.getElementById('cart-discount').value = 0;
+    document.getElementById('cart-vat').value = 0;
+    document.getElementById('cart-paid').value = 0;
+    this.renderCart();
+    this.searchProducts(document.getElementById('pos-search').value);
+  },
+
+  async createSale() {
+    if (this.cart.length === 0) return UI.toast('Cart is empty', 'warning');
+
+    const subtotal = this.cart.reduce((s, i) => s + i.price * i.qty, 0);
+    const discount = Number(document.getElementById('cart-discount').value) || 0;
+    const vatPct = Number(document.getElementById('cart-vat').value) || 0;
+    const vatAmt = Math.round((subtotal - discount) * vatPct / 100);
+    const total = subtotal - discount + vatAmt;
+    const paid = Number(document.getElementById('cart-paid').value) || 0;
+
+    const customerId = document.getElementById('pos-customer').value || null;
+    const branchId = document.getElementById('pos-branch').value || STATE.profile.branch_id || (await DB.getAll('branches'))[0]?.id;
+
+    try {
+      // 创建销售记录
+      const sale = await DB.insert('sales', {
+        customer_id: customerId,
+        branch_id: branchId,
+        total_amount: subtotal,
+        discount,
+        vat: vatAmt,
+        final_amount: total,
+        paid_amount: paid,
+        due_amount: total - paid,
+        created_by: STATE.user.id
+      });
+
+      // 创建销售明细
+      const items = this.cart.map(c => ({
+        sale_id: sale.id,
+        product_id: c.product_id,
+        quantity: c.qty,
+        price: c.price
+      }));
+      await DB.insertMany('sale_items', items);
+
+      // 扣减库存
+      for (const c of this.cart) {
+        const prod = await DB.getById('products', c.product_id);
+        if (prod) {
+          await DB.update('products', c.product_id, { stock_quantity: Number(prod.stock_quantity) - c.qty });
+          await DB.insert('stock_logs', {
+            product_id: c.product_id,
+            change_type: 'out',
+            quantity: c.qty,
+            reference: `Sale ${UI.shortId(sale.id)}`
+          });
+        }
+      }
+
+      // 更新客户欠款
+      if (customerId && (total - paid) > 0) {
+        const cust = await DB.getById('customers', customerId);
+        if (cust) {
+          await DB.update('customers', customerId, { due_amount: Number(cust.due_amount || 0) + (total - paid) });
+        }
+      }
+
+      UI.toast('Invoice created successfully!', 'success');
+      this.printInvoice(sale.id, items);
+      this.clearCart();
+    } catch (e) { UI.toast(e.message, 'error'); }
+  },
+
+  async printInvoice(saleId, items) {
+    const sale = await DB.getById('sales', saleId);
+    if (!sale) return;
+
+    let customer = { name: 'Walk-in Customer', phone: '-', address: '-' };
+    if (sale.customer_id) {
+      const c = await DB.getById('customers', sale.customer_id);
+      if (c) customer = c;
+    }
+
+    const branch = sale.branch_id ? await DB.getById('branches', sale.branch_id) : { name: 'Main Branch', phone: '-', address: '-' };
+
+    let itemRows = '';
+    if (items) {
+      for (const item of items) {
+        const prod = await DB.getById('products', item.product_id);
+        itemRows += `<tr><td>${prod ? prod.name : 'Unknown'}</td><td style="text-align:center">${item.quantity}</td><td style="text-align:right">${UI.formatCurrency(item.price)}</td><td style="text-align:right">${UI.formatCurrency(item.price * item.quantity)}</td></tr>`;
+      }
+    } else {
+      const saleItems = await DB.getAll('sale_items', { eq: { sale_id: saleId } });
+      for (const item of saleItems) {
+        const prod = await DB.getById('products', item.product_id);
+        itemRows += `<tr><td>${prod ? prod.name : 'Unknown'}</td><td style="text-align:center">${item.quantity}</td><td style="text-align:right">${UI.formatCurrency(item.price)}</td><td style="text-align:right">${UI.formatCurrency(item.price * item.quantity)}</td></tr>`;
+      }
+    }
+
+    const printEl = document.getElementById('print-area');
+    printEl.innerHTML = `
+      <div style="max-width:700px;margin:0 auto;font-family:Outfit,sans-serif">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:30px">
+          <div>
+            <h1 style="font-size:24px;font-weight:800;margin:0">AutoPaint ERP</h1>
+            <p style="color:#666;font-size:12px;margin:4px 0 0">${branch.name || ''}</p>
+            <p style="color:#666;font-size:12px;margin:2px 0 0">${branch.address || ''} · ${branch.phone || ''}</p>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:20px;font-weight:800;color:#F97316">INVOICE</div>
+            <p style="color:#666;font-size:12px;margin:4px 0 0">#${UI.shortId(sale.id)}</p>
+            <p style="color:#666;font-size:12px;margin:2px 0 0">${UI.formatDate(sale.created_at)}</p>
+          </div>
+        </div>
+        <div style="background:#f8f8f8;padding:12px 16px;border-radius:8px;margin-bottom:20px">
+          <p style="font-size:11px;color:#888;text-transform:uppercase;font-weight:600;margin:0 0 4px">Bill To</p>
+          <p style="font-size:14px;font-weight:600;margin:0">${customer.name}</p>
+          <p style="font-size:12px;color:#666;margin:2px 0 0">${customer.phone} · ${customer.address}</p>
+        </div>
+        <table>
+          <thead><tr><th style="text-align:left">Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody>${itemRows}</tbody>
+        </table>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end">
+          <div style="width:250px">
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:#666">Subtotal</span><span>${UI.formatCurrency(sale.total_amount)}</span></div>
+            ${Number(sale.discount) > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:#666">Discount</span><span>-${UI.formatCurrency(sale.discount)}</span></div>` : ''}
+            ${Number(sale.vat) > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:#666">VAT</span><span>${UI.formatCurrency(sale.vat)}</span></div>` : ''}
+            <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:16px;font-weight:800;border-top:2px solid #333;margin-top:4px"><span>Total</span><span>${UI.formatCurrency(sale.final_amount)}</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:#666">Paid</span><span style="color:green">${UI.formatCurrency(sale.paid_amount)}</span></div>
+            ${Number(sale.due_amount) > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:#666">Due</span><span style="color:red;font-weight:600">${UI.formatCurrency(sale.due_amount)}</span></div>` : ''}
+          </div>
+        </div>
+        <p style="text-align:center;color:#999;font-size:11px;margin-top:40px">Thank you for your business!</p>
+      </div>`;
+
+    window.print();
+  }
+};
+
+// ==========================================
+// 采购模块
+// ==========================================
+const Purchases = {
+  _items: [],
+
+  async load() {
+    const tbody = document.querySelector('#purchases-table tbody');
+    tbody.innerHTML = UI.skeleton(5);
+
+    const opts = { order: { col: 'created_at', asc: false } };
+    if (STATE.selectedBranch) opts.eq = { branch_id: STATE.selectedBranch };
+    const purchases = await DB.getAll('purchases', opts);
+
+    const supplierMap = {};
+    (await DB.getAll('suppliers')).forEach(s => supplierMap[s.id] = s);
+    const branchMap = {};
+    (await DB.getAll('branches')).forEach(b => branchMap[b.id] = b);
+
+    if (purchases.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-slate-400 py-8">No purchases yet</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = purchases.map(p => {
+      const sup = supplierMap[p.supplier_id] || { name: '-' };
+      const branch = branchMap[p.branch_id] || { name: '-' };
+      return `<tr>
+        <td class="font-600 text-xs">${UI.shortId(p.id)}</td>
+        <td>${sup.name}</td>
+        <td class="text-xs">${branch.name}</td>
+        <td class="font-600">${UI.formatCurrency(p.total_amount)}</td>
+        <td>${UI.formatCurrency(p.paid_amount)}</td>
+        <td class="${Number(p.due_amount) > 0 ? 'text-red-500 font-600' : 'text-emerald-500'}">${UI.formatCurrency(p.due_amount)}</td>
+        <td class="text-xs text-slate-400">${UI.formatDate(p.created_at)}</td>
+        <td><button onclick="Purchases.viewItems('${p.id}')" class="btn btn-secondary btn-sm py-1 px-2"><i class="fa-solid fa-eye text-[10px]"></i></button></td>
+      </tr>`;
+    }).join('');
+  },
+
+  async openModal() {
+    const suppliers = await DB.getAll('suppliers');
+    const branches = await DB.getAll('branches');
+    this._items = [];
+
+    const html = `
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div><label class="form-label">Supplier</label><select id="pur-supplier" class="form-input">
+          <option value="">Select...</option>${suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+        </select></div>
+        <div><label class="form-label">Branch</label><select id="pur-branch" class="form-input">
+          <option value="">Select...</option>${branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('')}
+        </select></div>
+        <div><label class="form-label">Paid Amount</label><input id="pur-paid" type="number" class="form-input" value="0"></div>
+      </div>
+      <div class="mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="form-label mb-0">Items</span>
+          <button onclick="Purchases.addItemRow()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-plus"></i> Add Item</button>
+        </div>
+        <div id="pur-items-list" class="space-y-2"></div>
+      </div>
+      <div class="text-right text-sm font-700">Total: <span id="pur-total">0.00</span></div>`;
+
+    const footer = `<button class="btn btn-secondary btn-sm" onclick="UI.closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="Purchases.save()">Create Purchase</button>`;
+
+    UI.openModal('New Purchase', html, footer);
+    this.addItemRow();
+  },
+
+  async addItemRow() {
+    const products = await DB.getAll('products', { order: { col: 'name', asc: true } });
+    const idx = this._items.length;
+    this._items.push({ product_id: '', quantity: 1, price: 0 });
+    const list = document.getElementById('pur-items-list');
+    const row = document.createElement('div');
+    row.className = 'flex gap-2 items-center';
+    row.id = `pur-row-${idx}`;
+    row.innerHTML = `
+      <select class="form-input flex-1 text-xs pur-product" data-idx="${idx}" onchange="Purchases.updateItem(${idx})">
+        <option value="">Select product...</option>
+        ${products.map(p => `<option value="${p.id}" data-pp="${p.purchase_price}">${p.name} (${p.brand})</option>`).join('')}
+      </select>
+      <input type="number" class="form-input w-20 text-xs pur-qty" data-idx="${idx}" value="1" min="1" oninput="Purchases.updateItem(${idx})">
+      <input type="number" class="form-input w-24 text-xs pur-price" data-idx="${idx}" value="0" oninput="Purchases.updateItem(${idx})">
+      <button onclick="document.getElementById('pur-row-${idx}').remove()" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>`;
+    list.appendChild(row);
+  },
+
+  updateItem(idx) {
+    const sel = document.querySelector(`.pur-product[data-idx="${idx}"]`);
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.dataset.pp && !document.querySelector(`.pur-price[data-idx="${idx}"]`).value) {
+      document.querySelector(`.pur-price[data-idx="${idx}"]`).value = opt.dataset.pp;
+    }
+    this._items[idx].product_id = sel.value;
+    this._items[idx].quantity = Number(document.querySelector(`.pur-qty[data-idx="${idx}"]`).value) || 0;
+    this._items[idx].price = Number(document.querySelector(`.pur-price[data-idx="${idx}"]`).value) || 0;
+    this._recalcTotal();
+  },
+
+  _recalcTotal() {
+    const total = this._items.reduce((s, i) => s + i.quantity * i.price, 0);
+    const el = document.getElementById('pur-total');
+    if (el) el.textContent = UI.formatCurrency(total);
+  },
+
+  async save() {
+    const supplierId = document.getElementById('pur-supplier').value;
+    const branchId = document.getElementById('pur-branch').value;
+    const paid = Number(document.getElementById('pur-paid').value) || 0;
+    if (!supplierId || !branchId) return UI.toast('Select supplier and branch', 'warning');
+
+    const validItems = this._items.filter(i => i.product_id && i.quantity > 0);
+    if (validItems.length === 0) return UI.toast('Add at least one item', 'warning');
+
+    const total = validItems.reduce((s, i) => s + i.quantity * i.price, 0);
+
+    try {
+      const purchase = await DB.insert('purchases', {
+        supplier_id: supplierId, branch_id: branchId,
+        total_amount: total, paid_amount: paid, due_amount: total - paid
+      });
+
+      const pItems = validItems.map(i => ({
+        purchase_id: purchase.id, product_id: i.product_id,
+        quantity: i.quantity, price: i.price
+      }));
+      await DB.insertMany('purchase_items', pItems);
+
+      // 增加库存
+      for (const item of validItems) {
+        const prod = await DB.getById('products', item.product_id);
+        if (prod) {
+          await DB.update('products', item.product_id, { stock_quantity: Number(prod.stock_quantity) + item.quantity });
+          await DB.insert('stock_logs', {
+            product_id: item.product_id, change_type: 'in', quantity: item.quantity,
+            reference: `Purchase ${UI.shortId(purchase.id)}`
+          });
+        }
+      }
+
+      UI.closeModal();
+      UI.toast('Purchase created, stock updated', 'success');
+      this.load();
+    } catch (e) { UI.toast(e.message, 'error'); }
+  },
+
+  async viewItems(purchaseId) {
+    const items = await DB.getAll('purchase_items', { eq: { purchase_id: purchaseId } });
+    let rows = '';
+    for (const item of items) {
+      const prod = await DB.getById('products', item.product_id);
+      rows += `<tr><td>${prod ? prod.name : 'Unknown'}</td><td>${item.quantity}</td><td>${UI.formatCurrency(item.price)}</td><td class="font-600">${UI.formatCurrency(item.quantity * item.price)}</td></tr>`;
+    }
+    UI.openModal('Purchase Items', `<table class="data-table"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="text-center text-slate-400 py-4">No items</td></tr>'}</tbody></table>`, '<button class="btn btn-secondary btn-sm" onclick="UI.closeModal()">Close</button>');
+  }
+};
+
+// ==========================================
+// 客户管理
+// ==========================================
+const Customers = {
+  async load() {
+    const tbody = document.querySelector('#customers-table tbody');
+    tbody.innerHTML = UI.skeleton(5);
+
+    const customers = await DB.getAll('customers', { order: { col: 'created_at', asc: false } });
+    const search = document.getElementById('cust-search').value.toLowerCase();
+    const filtered = search ? customers.filter(c => c.name.toLowerCase().includes(search) || c.phone.includes(search)) : customers;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-400 py-8">No customers found</td></tr>';
+      return;
+    }
+
+    // 计算每个客户的订单数
+    const sales = await DB.getAll('sales');
+    const orderCounts = {};
+    sales.forEach(s => { if (s.customer_id) orderCounts[s.customer_id] = (orderCounts[s.customer_id] || 0) + 1; });
+
+    tbody.innerHTML = filtered.map(c => 
