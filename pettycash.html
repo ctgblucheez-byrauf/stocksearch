@@ -109,7 +109,7 @@
             background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: hidden;
         }
         
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; } /* min-width is for screen only */
         
         thead { background-color: #f8fafc; border-bottom: 2px solid var(--border); }
         
@@ -148,7 +148,7 @@
         .toast.show { transform: translateY(0); opacity: 1; }
 
         /* =========================================
-           PDF PRINT MODE (FITTED TO A4)
+           PDF PRINT MODE (PERFECT FIT FIX)
            ========================================= */
         .pdf-mode {
             background: white !important;
@@ -173,24 +173,39 @@
             padding: 0 !important;
         }
 
-        /* --- Table Layout Fixes --- */
+        /* --- Container Fix --- */
+        .pdf-mode .table-card {
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            width: 100% !important; /* Force 100% */
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        /* --- Table Core Styling --- */
         .pdf-mode table {
             width: 100% !important;
-            table-layout: fixed !important; /* ENFORCES WIDTHS */
+            max-width: 100% !important;
+            min-width: 0 !important; /* CRITICAL FIX: Removes screen restriction causing squeeze */
+            table-layout: fixed !important; /* ENFORCES width percentages */
             border: 1px solid #000000 !important; 
             border-collapse: collapse !important;
             font-family: 'Times New Roman', Times, serif !important; 
             font-size: 10pt !important; 
             color: #000 !important;
+            display: table !important; /* Force table display */
         }
 
+        /* --- Cell Styling --- */
         .pdf-mode th, .pdf-mode td {
             border: 1px solid #000000 !important; 
-            padding: 6px 8px !important; 
+            padding: 6px 6px !important; /* Reduced padding slightly for more space */
             color: #000 !important;
-            vertical-align: top !important; /* Align top for multi-line descriptions */
+            vertical-align: top !important; 
             box-sizing: border-box !important;
-            word-wrap: break-word !important;
+            word-break: break-word !important; /* Wrap long text */
+            overflow-wrap: break-word !important;
+            hyphens: auto !important;
         }
 
         /* --- Headers --- */
@@ -209,7 +224,7 @@
             vertical-align: middle !important;
         }
 
-        /* --- Column Widths (Total 100%) --- */
+        /* --- STRICT COLUMN WIDTHS (Total 100%) --- */
         /* 1: SL */
         .pdf-mode th:nth-child(1), .pdf-mode td:nth-child(1) { width: 5% !important; text-align: center; }
         
@@ -219,7 +234,7 @@
         /* 3: Category */
         .pdf-mode th:nth-child(3), .pdf-mode td:nth-child(3) { width: 15% !important; font-weight: bold; vertical-align: middle !important;}
         
-        /* 4: Description (Expanded) */
+        /* 4: Description */
         .pdf-mode th:nth-child(4), .pdf-mode td:nth-child(4) { width: 53% !important; text-align: left; }
         
         /* 5: Amount */
@@ -578,7 +593,7 @@
             XLSX.writeFile(wb, `Bluecheez_PettyCash_${monthName.replace(' ', '_')}.xlsx`);
         }
 
-        // --- EXPORT PDF (FIXED LAYOUT) ---
+        // --- EXPORT PDF (DEEP FIX) ---
         function exportToPDF() {
             if (entriesData.length === 0) return showToast("No data to export", "error");
 
@@ -589,12 +604,12 @@
             element.classList.add('pdf-mode');
 
             // 2. Configuration
-            // Margins: Top=35mm (header), Left=10mm, Right=10mm (Max width for table), Bottom=20mm
+            // Margins: Top=35mm (header), Left=8mm, Right=8mm (max width for table = 194mm), Bottom=20mm
             const opt = {
-                margin:       [35, 10, 20, 10], 
+                margin:       [35, 8, 20, 8], 
                 filename:     `Bluecheez_PettyCash_${monthName.replace(' ', '_')}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2.5, useCORS: true }, // Scale 2.5 for sharper text
+                html2canvas:  { scale: 2, useCORS: true }, // Scale 2 for sharpness without massive file size
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
@@ -632,15 +647,15 @@
                     // Header Line
                     pdf.setDrawColor(0, 0, 0); 
                     pdf.setLineWidth(0.5);
-                    pdf.line(10, 36, pageWidth - 10, 36); // Line matches 10mm margin
+                    pdf.line(8, 36, pageWidth - 8, 36); // Line matches 8mm margin
 
                     // --- FOOTER ---
                     pdf.setFont("helvetica", "normal");
                     pdf.setFontSize(8);
                     pdf.setTextColor(100, 100, 100);
                     
-                    pdf.text("Generated by: Stock Search System | Dev By: Maruf Mohammadi", 10, pageHeight - 10);
-                    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - 10, pageHeight - 10, { align: "right" });
+                    pdf.text("Generated by: Stock Search System | Dev By: Maruf Mohammadi", 8, pageHeight - 10);
+                    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - 8, pageHeight - 10, { align: "right" });
                 }
             }).save().then(() => {
                 // 4. Cleanup
