@@ -148,7 +148,7 @@
         .toast.show { transform: translateY(0); opacity: 1; }
 
         /* =========================================
-           PDF PRINT MODE (PROFESSIONAL OFFICIAL STYLE)
+           PDF PRINT MODE (FITTED TO A4)
            ========================================= */
         .pdf-mode {
             background: white !important;
@@ -173,60 +173,61 @@
             padding: 0 !important;
         }
 
-        /* --- Table Layout --- */
+        /* --- Table Layout Fixes --- */
         .pdf-mode table {
             width: 100% !important;
-            table-layout: fixed !important; 
-            border: 1px solid #000000 !important; /* Black Border for Official Look */
+            table-layout: fixed !important; /* ENFORCES WIDTHS */
+            border: 1px solid #000000 !important; 
             border-collapse: collapse !important;
-            font-family: 'Times New Roman', Times, serif !important; /* Serif Font for Reports */
+            font-family: 'Times New Roman', Times, serif !important; 
             font-size: 10pt !important; 
             color: #000 !important;
         }
 
-        /* --- Cell Styling --- */
         .pdf-mode th, .pdf-mode td {
-            border: 1px solid #000000 !important; /* Crisp Black Grid */
+            border: 1px solid #000000 !important; 
             padding: 6px 8px !important; 
             color: #000 !important;
-            vertical-align: middle !important;
+            vertical-align: top !important; /* Align top for multi-line descriptions */
+            box-sizing: border-box !important;
+            word-wrap: break-word !important;
         }
 
-        /* --- Header Styling --- */
+        /* --- Headers --- */
         .pdf-mode thead tr {
             background-color: #f2f2f2 !important;
         }
-
         .pdf-mode th {
             background-color: #f2f2f2 !important;
             color: #000 !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
             font-size: 9pt !important;
-            text-align: center !important; /* Center Headers */
-            font-family: 'Arial', sans-serif !important; /* Sans for Header is cleaner */
+            text-align: center !important; 
+            font-family: 'Arial', sans-serif !important; 
             padding: 8px 4px !important;
+            vertical-align: middle !important;
         }
 
-        /* --- Column Widths & Hiding --- */
-        /* 1: Sl (5%) */
-        .pdf-mode th:nth-child(1), .pdf-mode td:nth-child(1) { width: 5%; text-align: center; }
+        /* --- Column Widths (Total 100%) --- */
+        /* 1: SL */
+        .pdf-mode th:nth-child(1), .pdf-mode td:nth-child(1) { width: 5% !important; text-align: center; }
         
-        /* 2: Date (12%) */
-        .pdf-mode th:nth-child(2), .pdf-mode td:nth-child(2) { width: 12%; text-align: center; font-size: 9pt;}
+        /* 2: Date */
+        .pdf-mode th:nth-child(2), .pdf-mode td:nth-child(2) { width: 12% !important; text-align: center; font-size: 9pt;}
         
-        /* 3: Category (15%) */
-        .pdf-mode th:nth-child(3), .pdf-mode td:nth-child(3) { width: 15%; font-weight: bold; }
+        /* 3: Category */
+        .pdf-mode th:nth-child(3), .pdf-mode td:nth-child(3) { width: 15% !important; font-weight: bold; vertical-align: middle !important;}
         
-        /* 4: Description (53%) - Fills space of Remarks */
-        .pdf-mode th:nth-child(4), .pdf-mode td:nth-child(4) { width: 53%; }
+        /* 4: Description (Expanded) */
+        .pdf-mode th:nth-child(4), .pdf-mode td:nth-child(4) { width: 53% !important; text-align: left; }
         
-        /* 5: Amount (15%) */
-        .pdf-mode th:nth-child(5), .pdf-mode td:nth-child(5) { width: 15%; text-align: right; font-family: 'Courier New', monospace !important; }
+        /* 5: Amount */
+        .pdf-mode th:nth-child(5), .pdf-mode td:nth-child(5) { width: 15% !important; text-align: right; font-family: 'Courier New', monospace !important; }
         
         /* 6: Remarks - HIDDEN */
         .pdf-mode th:nth-child(6), .pdf-mode td:nth-child(6) { display: none !important; }
-
+        
         /* 7: Action - HIDDEN */
         .pdf-mode th:nth-child(7), .pdf-mode td:nth-child(7) { display: none !important; }
 
@@ -241,6 +242,7 @@
             background-color: #ffffff !important;
             font-weight: 800 !important;
             border-top: 2px solid #000000 !important;
+            vertical-align: middle !important;
         }
 
         /* Prevent Row Breaking */
@@ -576,7 +578,7 @@
             XLSX.writeFile(wb, `Bluecheez_PettyCash_${monthName.replace(' ', '_')}.xlsx`);
         }
 
-        // --- EXPORT PDF (PROFESSIONAL FORMAT) ---
+        // --- EXPORT PDF (FIXED LAYOUT) ---
         function exportToPDF() {
             if (entriesData.length === 0) return showToast("No data to export", "error");
 
@@ -587,11 +589,12 @@
             element.classList.add('pdf-mode');
 
             // 2. Configuration
+            // Margins: Top=35mm (header), Left=10mm, Right=10mm (Max width for table), Bottom=20mm
             const opt = {
-                margin:       [40, 15, 25, 15], // Top margin increased to 40mm for header space
+                margin:       [35, 10, 20, 10], 
                 filename:     `Bluecheez_PettyCash_${monthName.replace(' ', '_')}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
+                html2canvas:  { scale: 2.5, useCORS: true }, // Scale 2.5 for sharper text
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
             };
@@ -608,7 +611,7 @@
 
                     // --- HEADER ---
                     pdf.setFillColor(255, 255, 255);
-                    pdf.rect(0, 0, pageWidth, 40, 'F');
+                    pdf.rect(0, 0, pageWidth, 35, 'F');
 
                     // Company Name
                     pdf.setFont("helvetica", "bold");
@@ -627,17 +630,17 @@
                     pdf.text(`For the Month of ${monthName}`, pageWidth / 2, 32, { align: "center" });
 
                     // Header Line
-                    pdf.setDrawColor(0, 0, 0); // Black line
+                    pdf.setDrawColor(0, 0, 0); 
                     pdf.setLineWidth(0.5);
-                    pdf.line(15, 36, pageWidth - 15, 36);
+                    pdf.line(10, 36, pageWidth - 10, 36); // Line matches 10mm margin
 
                     // --- FOOTER ---
                     pdf.setFont("helvetica", "normal");
                     pdf.setFontSize(8);
                     pdf.setTextColor(100, 100, 100);
                     
-                    pdf.text("Generated by: Stock Search System | Dev By: Maruf Mohammadi", 15, pageHeight - 10);
-                    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: "right" });
+                    pdf.text("Generated by: Stock Search System | Dev By: Maruf Mohammadi", 10, pageHeight - 10);
+                    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - 10, pageHeight - 10, { align: "right" });
                 }
             }).save().then(() => {
                 // 4. Cleanup
