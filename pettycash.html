@@ -192,13 +192,18 @@
             word-wrap: break-word;
         }
 
-        /* Column Widths (Prevents Overflow) */
+        /* Column Widths */
         .pdf-mode th:nth-child(1), .pdf-mode td:nth-child(1) { width: 5%; } /* Sl */
         .pdf-mode th:nth-child(2), .pdf-mode td:nth-child(2) { width: 12%; } /* Date */
         .pdf-mode th:nth-child(3), .pdf-mode td:nth-child(3) { width: 15%; } /* Category */
-        .pdf-mode th:nth-child(4), .pdf-mode td:nth-child(4) { width: 33%; } /* Description */
+        
+        /* Description: Expanded to fill space left by Remarks (33% + 20% = 53%) */
+        .pdf-mode th:nth-child(4), .pdf-mode td:nth-child(4) { width: 53%; } /* Description */
+        
         .pdf-mode th:nth-child(5), .pdf-mode td:nth-child(5) { width: 15%; text-align: right; } /* Amount */
-        .pdf-mode th:nth-child(6), .pdf-mode td:nth-child(6) { width: 20%; } /* Remarks */
+        
+        /* Remarks: Hidden in PDF */
+        .pdf-mode th:nth-child(6), .pdf-mode td:nth-child(6) { display: none !important; }
 
         .pdf-mode th {
             background-color: #f9f9f9 !important; /* Very subtle gray header */
