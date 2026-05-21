@@ -124,7 +124,7 @@
             background: white; 
             width: 95%; 
             max-width: 1200px; 
-            height: 85vh; /* Fixed height for better split pane */
+            height: 85vh; 
             border-radius: 16px; 
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); 
             overflow: hidden; 
@@ -140,18 +140,17 @@
             flex-shrink: 0;
         }
 
-        /* The Resizable Container */
         .modal-body { 
             display: flex;
             flex-direction: row;
-            overflow: hidden; /* Important for split pane */
+            overflow: hidden; 
             position: relative;
             flex-grow: 1;
         }
 
         /* Left Side: Form */
         .form-pane {
-            width: 50%; /* Initial width */
+            width: 50%; 
             min-width: 350px;
             padding: 25px;
             overflow-y: auto;
@@ -175,9 +174,7 @@
             transition: background 0.2s;
             z-index: 10;
         }
-        .resizer:hover, .resizer.resizing {
-            background: var(--accent);
-        }
+        .resizer:hover, .resizer.resizing { background: var(--accent); }
         .resizer::after {
             content: '';
             width: 2px;
@@ -189,7 +186,7 @@
 
         /* Right Side: History */
         .history-pane {
-            flex: 1; /* Takes remaining space */
+            flex: 1; 
             min-width: 300px;
             background-color: #f8fafc;
             display: flex;
@@ -207,12 +204,21 @@
             flex-shrink: 0;
         }
         .history-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
-        .badge { background: #e0e7ff; color: var(--accent); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
 
         .history-list {
             flex: 1;
             overflow-y: auto;
             padding: 0;
+        }
+
+        /* Highlight Latest Entry */
+        .latest-entry-row {
+            background-color: #eff6ff !important; /* Light blue */
+            border-left: 4px solid var(--accent) !important; /* Blue Accent */
+        }
+        .latest-entry-row td {
+            font-weight: 600;
+            color: var(--primary);
         }
 
         /* Better Form Styling */
@@ -427,15 +433,15 @@
                             <div class="history-title">
                                 <i class="fas fa-history"></i> Entry History
                             </div>
-                            <span class="badge" id="history-count">0 entries</span>
+                            <span class="badge" style="background: #e2e8f0; color: #475569;">Latest 10</span>
                         </div>
                         <div class="history-list">
                             <table class="mini-table">
                                 <thead>
                                     <tr>
-                                        <th style="width: 25%;">Date</th>
-                                        <th style="width: 30%;">Category</th>
-                                        <th style="width: 25%;">Description</th>
+                                        <th style="width: 20%;">Date</th>
+                                        <th style="width: 25%;">Category</th>
+                                        <th style="width: 35%;">Description</th>
                                         <th style="width: 20%; text-align: right;">Amount</th>
                                     </tr>
                                 </thead>
@@ -576,30 +582,34 @@
             totalEl.textContent = total.toFixed(2);
         }
 
-        // --- 5. LATEST HISTORY LOGIC (ALL ENTRIES) ---
+        // --- 5. LATEST HISTORY LOGIC (LIMIT 10) ---
         async function fetchLatestHistory() {
             const tbody = document.getElementById('history-table-body');
             const emptyState = document.getElementById('history-empty');
-            const countBadge = document.getElementById('history-count');
             tbody.innerHTML = '';
             
-            // Fetch ALL entries, ordered by newest first
-            const { data, error, count } = await sbClient
+            // Fetch ONLY latest 10 entries
+            const { data, error } = await sbClient
                 .from('petty_cash_entries')
-                .select('*', { count: 'exact', head: false })
-                .order('created_at', { ascending: false });
+                .select('*')
+                .order('created_at', { ascending: false }) // Newest first
+                .limit(10);
 
             if (error || !data || data.length === 0) {
                 emptyState.style.display = 'block';
-                countBadge.textContent = "0 entries";
                 return;
             }
 
             emptyState.style.display = 'none';
-            countBadge.textContent = `${data.length} entries`;
 
-            data.forEach(row => {
+            data.forEach((row, index) => {
                 const tr = document.createElement('tr');
+                
+                // Highlight the most latest entry (index 0)
+                if (index === 0) {
+                    tr.classList.add('latest-entry-row');
+                }
+
                 tr.innerHTML = `
                     <td>${new Date(row.entry_date).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}</td>
                     <td>${row.category}</td>
@@ -620,30 +630,22 @@
             let leftWidth = 0;
 
             const mouseDownHandler = function(e) {
-                // Get the current mouse position
                 x = e.clientX;
-                
-                // Get the current width of the left pane
                 const rect = leftSide.getBoundingClientRect();
                 leftWidth = rect.width;
 
-                // Attach listeners to document
                 document.addEventListener('mousemove', mouseMoveHandler);
                 document.addEventListener('mouseup', mouseUpHandler);
                 
                 resizer.classList.add('resizing');
                 document.body.style.cursor = 'col-resize';
-                // Disable text selection during drag
                 document.body.style.userSelect = 'none';
             };
 
             const mouseMoveHandler = function(e) {
-                // How far the mouse has been moved
                 const dx = e.clientX - x;
-                
                 const newLeftWidth = ((leftWidth + dx) * 100) / container.getBoundingClientRect().width;
                 
-                // Constraints (min 30%, max 70%)
                 if(newLeftWidth > 30 && newLeftWidth < 70) {
                     leftSide.style.width = `${newLeftWidth}%`;
                 }
