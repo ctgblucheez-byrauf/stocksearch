@@ -32,7 +32,7 @@
         body { background-color: var(--bg-body); color: var(--text-main); padding: 20px; min-height: 100vh; }
         .container { max-width: 1280px; margin: 0 auto; }
 
-        /* --- Header Section (Screen Only) --- */
+        /* --- Header Section --- */
         .report-header {
             text-align: center;
             margin-bottom: 30px;
@@ -103,18 +103,9 @@
         }
         
         table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        
         thead { background-color: #f8fafc; border-bottom: 2px solid var(--border); }
-        
-        th, td { 
-            padding: 14px 16px; text-align: left; font-size: 0.95rem; vertical-align: middle; 
-        }
-        
-        th { 
-            font-weight: 700; color: var(--primary); text-transform: uppercase; 
-            font-size: 0.8rem; letter-spacing: 0.5px; 
-        }
-
+        th, td { padding: 14px 16px; text-align: left; font-size: 0.95rem; vertical-align: middle; }
+        th { font-weight: 700; color: var(--primary); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
         tr:not(:last-child) { border-bottom: 1px solid #e2e8f0; }
         tr:hover { background-color: #f8fafc; }
 
@@ -122,16 +113,65 @@
         .total-row { background-color: #f1f5f9; font-weight: 800; font-size: 1.1rem; color: var(--primary); border-top: 2px solid var(--border); }
         .total-label { text-align: right !important; }
 
-        /* --- Modal --- */
+        /* --- Modal (Redesigned for Split View) --- */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
             display: none; justify-content: center; align-items: center; z-index: 1000;
         }
         .modal-overlay.active { display: flex; }
-        .modal-card { background: white; width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; }
-        .modal-header { padding: 20px 25px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
-        .modal-body { padding: 25px; }
-        .modal-footer { padding: 15px 25px; background: #f8fafc; display: flex; justify-content: flex-end; gap: 10px; }
+
+        .modal-card { 
+            background: white; 
+            width: 90%; 
+            max-width: 1000px; /* Wider to accommodate split view */
+            border-radius: 12px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); 
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh; /* Prevent full screen overflow */
+        }
+
+        .modal-header { 
+            padding: 20px 25px; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: #f8fafc; 
+            flex-shrink: 0;
+        }
+
+        .modal-body { 
+            padding: 25px; 
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: 3fr 2fr; /* 60% Form, 40% History */
+            gap: 30px;
+        }
+
+        /* Mobile Stack */
+        @media (max-width: 768px) {
+            .modal-body { grid-template-columns: 1fr; }
+            .history-panel { order: 2; } /* Put history below on mobile */
+        }
+
+        .form-section { display: flex; flex-direction: column; gap: 15px; }
+        .history-section { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; height: 100%; display: flex; flex-direction: column; }
+        .history-title { font-size: 0.9rem; font-weight: 700; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        
+        /* Mini History Table */
+        .mini-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .mini-table th { background: #e2e8f0; padding: 6px; text-align: left; font-weight: 600; font-size: 0.75rem; color: #475569; }
+        .mini-table td { padding: 6px; border-bottom: 1px solid #e2e8f0; color: #334155; vertical-align: middle; }
+        .mini-table tr:last-child td { border-bottom: none; }
+        .mini-amount { font-family: 'Courier Prime', monospace; font-weight: 600; text-align: right !important; color: var(--accent); }
+
+        .modal-footer { 
+            padding: 15px 25px; 
+            background: #f8fafc; 
+            border-top: 1px solid var(--border); 
+            display: flex; justify-content: flex-end; gap: 10px; 
+            flex-shrink: 0;
+        }
 
         /* --- Toast --- */
         .toast {
@@ -140,66 +180,40 @@
         }
         .toast.show { transform: translateY(0); opacity: 1; }
 
-        /* =========================================
-           PDF PRINT MODE
-           ========================================= */
+        /* --- PDF Mode --- */
         .pdf-mode {
-            background: white !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            border-radius: 0 !important;
+            background: white !important; padding: 0 !important; margin: 0 !important;
+            box-shadow: none !important; border-radius: 0 !important;
         }
-
-        .pdf-mode .no-print, 
-        .pdf-mode .filter-bar,
-        .pdf-mode .modal-overlay,
-        .pdf-mode .action-col { display: none !important; }
-
+        .pdf-mode .no-print, .pdf-mode .filter-bar, .pdf-mode .modal-overlay, .pdf-mode .action-col { display: none !important; }
         .pdf-mode .report-header { display: none !important; margin-bottom: 0 !important; padding: 0 !important; }
-
         .pdf-mode table {
-            width: 100% !important;
-            table-layout: fixed !important;
-            border: 1px solid #ddd !important;
-            border-collapse: collapse !important;
-            font-family: 'Helvetica', 'Arial', sans-serif !important;
-            font-size: 9pt !important;
-            color: #333 !important;
+            width: 100% !important; table-layout: fixed !important; border: 1px solid #ddd !important;
+            border-collapse: collapse !important; font-family: 'Helvetica', 'Arial', sans-serif !important;
+            font-size: 9pt !important; color: #333 !important;
         }
-
         .pdf-mode th, .pdf-mode td {
-            border: 1px solid #ddd !important;
-            padding: 5px 8px !important;
-            color: #000 !important;
-            word-wrap: break-word;
+            border: 1px solid #ddd !important; padding: 5px 8px !important; color: #000 !important; word-wrap: break-word;
         }
-
         .pdf-mode th:nth-child(1), .pdf-mode td:nth-child(1) { width: 5%; }
         .pdf-mode th:nth-child(2), .pdf-mode td:nth-child(2) { width: 12%; }
         .pdf-mode th:nth-child(3), .pdf-mode td:nth-child(3) { width: 15%; }
         .pdf-mode th:nth-child(4), .pdf-mode td:nth-child(4) { width: 33%; }
         .pdf-mode th:nth-child(5), .pdf-mode td:nth-child(5) { width: 15%; text-align: right; }
         .pdf-mode th:nth-child(6), .pdf-mode td:nth-child(6) { width: 20%; }
-
         .pdf-mode th {
-            background-color: #f9f9f9 !important;
-            color: #000 !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            font-size: 8pt !important;
+            background-color: #f9f9f9 !important; color: #000 !important; font-weight: 700 !important;
+            text-transform: uppercase !important; font-size: 8pt !important;
         }
-
         .pdf-mode .amount-col { font-family: 'Courier New', monospace !important; text-align: right !important; }
         .pdf-mode tr { page-break-inside: avoid !important; }
         .pdf-mode .total-row { background-color: #f2f2f2 !important; font-weight: 800 !important; border-top: 2px solid #bbb !important; }
-
     </style>
 </head>
 <body>
 
     <div class="container" id="printable-area">
-        <!-- Header (Visible on Screen, Hidden in PDF) -->
+        <!-- Header -->
         <div class="report-header">
             <h1 class="company-name">Bluecheez Chattogram</h1>
             <p class="report-subtitle">Petty Cash Report for <span id="display-month-name">...</span></p>
@@ -207,29 +221,23 @@
 
         <!-- Filter & Controls -->
         <div class="filter-bar no-print">
-            
-            <!-- Left: Month Picker & Date Filters -->
             <div class="date-filter-group">
                 <label>Report Period:</label>
-                <!-- MONTH PICKER REPLACEMENT -->
                 <input type="month" id="month-picker" class="form-control" onchange="updateDateRangeFromMonth()">
 
                 <label>From:</label>
                 <input type="date" id="date-from" class="form-control">
-                
                 <label>To:</label>
                 <input type="date" id="date-to" class="form-control">
                 
-                <!-- Buttons -->
-                <button class="btn btn-primary" onclick="fetchEntries()" title="Search within selected dates">
+                <button class="btn btn-primary" onclick="fetchEntries()" title="Search">
                     <i class="fas fa-search"></i> Search
                 </button>
-                <button class="btn btn-secondary" onclick="resetFilters()" title="Reset to selected month">
+                <button class="btn btn-secondary" onclick="resetFilters()" title="Reset">
                     <i class="fas fa-undo"></i> Reset
                 </button>
             </div>
 
-            <!-- Right: Quick Actions -->
             <div style="display: flex; gap: 10px; align-items: center;">
                 <button class="btn btn-secondary" onclick="setToday()" title="Show today's entries only">
                     <i class="fas fa-calendar-day"></i> Today
@@ -249,7 +257,7 @@
             </div>
         </div>
 
-        <!-- Table -->
+        <!-- Main Table -->
         <div class="table-card">
             <table>
                 <thead>
@@ -263,9 +271,7 @@
                         <th class="action-col no-print" style="width: 130px;">Action</th>
                     </tr>
                 </thead>
-                <tbody id="table-body">
-                    <!-- Data rows -->
-                </tbody>
+                <tbody id="table-body"></tbody>
                 <tfoot>
                     <tr class="total-row">
                         <td colspan="4" class="total-label">Total:</td>
@@ -283,53 +289,85 @@
         </div>
     </div>
 
-    <!-- Modal Form -->
+    <!-- Modal Form (Split View: Form | History) -->
     <div class="modal-overlay" id="entry-modal">
         <div class="modal-card">
             <div class="modal-header">
                 <h3 style="font-weight: 700;">Add Petty Cash Entry</h3>
                 <button onclick="closeModal()" style="background:none; border:none; font-size: 1.2rem; cursor: pointer;">&times;</button>
             </div>
+            
             <form id="entry-form" onsubmit="handleFormSubmit(event)">
-                <input type="hidden" id="inp-id">
                 <div class="modal-body">
-                    <div style="margin-bottom: 15px;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Date</label>
-                        <input type="date" id="inp-date" class="form-control" style="width:100%;" required>
+                    <!-- Left: Input Form -->
+                    <div class="form-section">
+                        <input type="hidden" id="inp-id">
+                        
+                        <div>
+                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Date</label>
+                            <input type="date" id="inp-date" class="form-control" style="width:100%;" required>
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Category</label>
+                            <select id="inp-category" class="form-control" style="width:100%;" required>
+                                <option value="" disabled selected>Select Category</option>
+                                <option value="Conveyance">Conveyance</option>
+                                <option value="Others">Others</option>
+                                <option value="Stationary">Stationary</option>
+                                <option value="Official Receipt">Official Receipt</option>
+                                <option value="Courier">Courier</option>
+                                <option value="Mobile Bill">Mobile Bill</option>
+                                <option value="Alter">Alter</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Description</label>
+                            <input type="text" id="inp-desc" class="form-control" style="width:100%;" placeholder="Details..." required>
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Amount</label>
+                            <input type="number" id="inp-amount" class="form-control" style="width:100%;" placeholder="0.00" step="0.01" min="0" required>
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Remarks</label>
+                            <textarea id="inp-remarks" class="form-control" style="width:100%;" rows="2"></textarea>
+                        </div>
                     </div>
 
-                    <div style="margin-bottom: 15px;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Category</label>
-                        <select id="inp-category" class="form-control" style="width:100%;" required>
-                            <option value="" disabled selected>Select Category</option>
-                            <option value="Conveyance">Conveyance</option>
-                            <option value="Others">Others</option>
-                            <option value="Stationary">Stationary</option>
-                            <option value="Official Receipt">Official Receipt</option>
-                            <option value="Courier">Courier</option>
-                            <option value="Mobile Bill">Mobile Bill</option>
-                            <option value="Alter">Alter</option>
-                        </select>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Description</label>
-                        <input type="text" id="inp-desc" class="form-control" style="width:100%;" placeholder="Details..." required>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Amount</label>
-                        <input type="number" id="inp-amount" class="form-control" style="width:100%;" placeholder="0.00" step="0.01" min="0" required>
-                    </div>
-
-                    <div style="margin-bottom: 0;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Remarks</label>
-                        <textarea id="inp-remarks" class="form-control" style="width:100%;" rows="2"></textarea>
+                    <!-- Right: Latest History -->
+                    <div class="history-section">
+                        <div class="history-title">
+                            <i class="fas fa-history"></i> Latest 6 Entries
+                        </div>
+                        <div style="flex-grow: 1; overflow-y: auto;">
+                            <table class="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th style="text-align:right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                            <div id="history-empty" style="text-align:center; padding: 20px; color: #94a3b8; font-size: 0.8rem; display:none;">
+                                No recent entries
+                            </div>
+                        </div>
                     </div>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="btn-save">Save Entry</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save">
+                        <i class="fas fa-check"></i> Save Entry
+                    </button>
                 </div>
             </form>
         </div>
@@ -348,18 +386,13 @@
 
         // --- 2. INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Set default to Current Month in Picker
             const now = new Date();
             const currentMonthVal = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
             document.getElementById('month-picker').value = currentMonthVal;
-            
-            // DEFAULT BEHAVIOR: Show only Today's entries
             setToday();
-            
             document.getElementById('inp-date').valueAsDate = new Date();
         });
 
-        // Helper: Convert YYYY-MM to "January 2026"
         function getMonthNameFromValue(val) {
             if (!val) return "";
             const [y, m] = val.split('-');
@@ -368,40 +401,26 @@
         }
 
         // --- 3. FILTER LOGIC ---
-
-        // Action: Set Dates to Today
         function setToday() {
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
-            
-            // Update Date Inputs
             document.getElementById('date-from').value = todayStr;
             document.getElementById('date-to').value = todayStr;
-
-            // Also update the Month Picker to match today's month
             const currentMonthVal = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2, '0')}`;
             document.getElementById('month-picker').value = currentMonthVal;
-
             fetchEntries();
         }
 
-        // Action: Reset to Selected Month (from Month Picker)
-        function resetFilters() {
-            updateDateRangeFromMonth();
-        }
+        function resetFilters() { updateDateRangeFromMonth(); }
 
-        // Helper: Update inputs based on Month Picker
         function updateDateRangeFromMonth() {
             const val = document.getElementById('month-picker').value;
             if (!val) return;
-
             const [year, month] = val.split('-').map(Number);
             const firstDay = new Date(year, month - 1, 1);
             const lastDay = new Date(year, month, 0);
-
             document.getElementById('date-from').value = firstDay.toISOString().split('T')[0];
             document.getElementById('date-to').value = lastDay.toISOString().split('T')[0];
-            
             fetchEntries();
         }
 
@@ -411,7 +430,6 @@
             const toDate = document.getElementById('date-to').value;
             const monthPickerVal = document.getElementById('month-picker').value;
 
-            // Header is LOCKED to the Month Picker value
             const headerEl = document.getElementById('display-month-name');
             headerEl.textContent = `the Month of ${getMonthNameFromValue(monthPickerVal)}`;
 
@@ -437,7 +455,6 @@
             const tbody = document.getElementById('table-body');
             const emptyState = document.getElementById('empty-state');
             const totalEl = document.getElementById('grand-total');
-            
             tbody.innerHTML = '';
             let total = 0;
 
@@ -465,17 +482,48 @@
                 `;
                 tbody.appendChild(tr);
             });
-
             totalEl.textContent = total.toFixed(2);
         }
 
-        // --- 5. MODAL & CRUD ---
+        // --- 5. LATEST HISTORY LOGIC (NEW) ---
+        async function fetchLatestHistory() {
+            const tbody = document.getElementById('history-table-body');
+            const emptyState = document.getElementById('history-empty');
+            tbody.innerHTML = '';
+
+            const { data, error } = await sbClient
+                .from('petty_cash_entries')
+                .select('*')
+                .order('created_at', { ascending: false }) // Get newest first
+                .limit(6);
+
+            if (error || !data || data.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${new Date(row.entry_date).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</td>
+                    <td>${row.category}</td>
+                    <td class="mini-amount">${parseFloat(row.amount).toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- 6. MODAL & CRUD ---
         function openModal() {
             document.getElementById('entry-modal').classList.add('active');
             document.getElementById('entry-form').reset();
             document.getElementById('inp-id').value = '';
             document.getElementById('btn-save').innerHTML = '<i class="fas fa-check"></i> Save Entry';
             document.getElementById('inp-date').valueAsDate = new Date();
+            
+            // Fetch History to show beside form
+            fetchLatestHistory();
         }
 
         function closeModal() {
@@ -507,6 +555,9 @@
             } else {
                 showToast(id ? "Entry Updated" : "Entry Saved", "success");
                 fetchEntries();
+                // Refresh History Panel
+                fetchLatestHistory();
+                
                 if (!id) {
                     document.getElementById('entry-form').reset();
                     document.getElementById('inp-date').valueAsDate = new Date();
@@ -527,6 +578,7 @@
             document.getElementById('inp-remarks').value = row.remarks || '';
             document.getElementById('btn-save').innerHTML = '<i class="fas fa-sync"></i> Update';
             document.getElementById('entry-modal').classList.add('active');
+            fetchLatestHistory(); // Update history when opening edit
         }
 
         async function deleteEntry(id) {
@@ -538,7 +590,7 @@
             }
         }
 
-        // --- 6. EXPORTS ---
+        // --- 7. EXPORTS ---
         function exportToExcel() {
             if (entriesData.length === 0) return showToast("No data to export", "error");
             const headerText = document.getElementById('display-month-name').textContent;
