@@ -81,16 +81,9 @@
         .form-control {
             padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
             font-size: 0.95rem; outline: none; color: var(--text-main);
+            background-color: white;
         }
         .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
-
-        select.month-select {
-            padding: 8px 30px 8px 12px; font-weight: 600; cursor: pointer;
-            background-color: #f8fafc; border: 1px solid var(--primary);
-            color: var(--primary); appearance: none;
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%230f172a%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat; background-position: right 10px top 50%; background-size: 10px auto;
-        }
 
         /* --- Buttons --- */
         .btn {
@@ -215,12 +208,11 @@
         <!-- Filter & Controls -->
         <div class="filter-bar no-print">
             
-            <!-- Left: Month & Date Filters -->
+            <!-- Left: Month Picker & Date Filters -->
             <div class="date-filter-group">
-                <label>Filter:</label>
-                <select id="month-select" class="month-select form-control" onchange="updateDateRangeFromMonth()">
-                    <!-- Populated by JS -->
-                </select>
+                <label>Report Period:</label>
+                <!-- MONTH PICKER REPLACEMENT -->
+                <input type="month" id="month-picker" class="form-control" onchange="updateDateRangeFromMonth()">
 
                 <label>From:</label>
                 <input type="date" id="date-from" class="form-control">
@@ -228,7 +220,7 @@
                 <label>To:</label>
                 <input type="date" id="date-to" class="form-control">
                 
-                <!-- New Buttons -->
+                <!-- Buttons -->
                 <button class="btn btn-primary" onclick="fetchEntries()" title="Search within selected dates">
                     <i class="fas fa-search"></i> Search
                 </button>
@@ -356,12 +348,10 @@
 
         // --- 2. INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
-            populateMonthDropdown();
-            
-            // Set default to Current Month in Dropdown
+            // Set default to Current Month in Picker
             const now = new Date();
             const currentMonthVal = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
-            document.getElementById('month-select').value = currentMonthVal;
+            document.getElementById('month-picker').value = currentMonthVal;
             
             // DEFAULT BEHAVIOR: Show only Today's entries
             setToday();
@@ -369,42 +359,40 @@
             document.getElementById('inp-date').valueAsDate = new Date();
         });
 
-        function populateMonthDropdown() {
-            const select = document.getElementById('month-select');
-            const now = new Date();
-            const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
-            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            
-            select.innerHTML = "";
-            years.forEach(year => {
-                months.forEach((m, idx) => {
-                    const opt = document.createElement('option');
-                    const val = `${year}-${String(idx + 1).padStart(2, '0')}`;
-                    opt.value = val;
-                    opt.text = `${m} ${year}`;
-                    select.appendChild(opt);
-                });
-            });
+        // Helper: Convert YYYY-MM to "January 2026"
+        function getMonthNameFromValue(val) {
+            if (!val) return "";
+            const [y, m] = val.split('-');
+            const date = new Date(y, m - 1);
+            return date.toLocaleString('default', { month: 'long', year: 'numeric' });
         }
 
         // --- 3. FILTER LOGIC ---
 
         // Action: Set Dates to Today
         function setToday() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('date-from').value = today;
-            document.getElementById('date-to').value = today;
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            // Update Date Inputs
+            document.getElementById('date-from').value = todayStr;
+            document.getElementById('date-to').value = todayStr;
+
+            // Also update the Month Picker to match today's month
+            const currentMonthVal = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2, '0')}`;
+            document.getElementById('month-picker').value = currentMonthVal;
+
             fetchEntries();
         }
 
-        // Action: Reset to Selected Month (from Dropdown)
+        // Action: Reset to Selected Month (from Month Picker)
         function resetFilters() {
             updateDateRangeFromMonth();
         }
 
-        // Helper: Update inputs based on Dropdown
+        // Helper: Update inputs based on Month Picker
         function updateDateRangeFromMonth() {
-            const val = document.getElementById('month-select').value;
+            const val = document.getElementById('month-picker').value;
             if (!val) return;
 
             const [year, month] = val.split('-').map(Number);
@@ -421,18 +409,11 @@
         async function fetchEntries() {
             const fromDate = document.getElementById('date-from').value;
             const toDate = document.getElementById('date-to').value;
-            const monthSelectText = document.getElementById('month-select').options[document.getElementById('month-select').selectedIndex].text;
+            const monthPickerVal = document.getElementById('month-picker').value;
 
-            // Dynamic Header Logic
+            // Header is LOCKED to the Month Picker value
             const headerEl = document.getElementById('display-month-name');
-            if (fromDate === toDate) {
-                // If single day selected (e.g. Today), show specific date
-                const dateObj = new Date(fromDate);
-                headerEl.textContent = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            } else {
-                // If range selected, show Month Name
-                headerEl.textContent = `the Month of ${monthSelectText}`;
-            }
+            headerEl.textContent = `the Month of ${getMonthNameFromValue(monthPickerVal)}`;
 
             if (!fromDate || !toDate) return;
 
