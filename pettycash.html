@@ -79,19 +79,19 @@
         .date-filter-group label { font-weight: 600; color: var(--primary); font-size: 0.9rem; }
 
         .form-control {
-            padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+            padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
             font-size: 0.95rem; outline: none; color: var(--text-main);
-            background-color: white;
+            background-color: white; transition: border-color 0.2s;
         }
-        .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+        .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
 
         /* --- Buttons --- */
         .btn {
-            display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
             font-weight: 600; font-size: 0.9rem; transition: all 0.2s; text-decoration: none;
         }
-        .btn-primary { background-color: var(--accent); color: white; }
-        .btn-primary:hover { background-color: #1d4ed8; }
+        .btn-primary { background-color: var(--accent); color: white; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
+        .btn-primary:hover { background-color: #1d4ed8; transform: translateY(-1px); }
         .btn-secondary { background-color: white; color: var(--text-main); border: 1px solid var(--border); }
         .btn-secondary:hover { background-color: #f1f5f9; }
         .btn-danger { background-color: #fee2e2; color: var(--danger); padding: 6px 12px; }
@@ -113,23 +113,23 @@
         .total-row { background-color: #f1f5f9; font-weight: 800; font-size: 1.1rem; color: var(--primary); border-top: 2px solid var(--border); }
         .total-label { text-align: right !important; }
 
-        /* --- Modal (Redesigned for Split View) --- */
+        /* --- Modal (Split Pane & Resizable) --- */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
             display: none; justify-content: center; align-items: center; z-index: 1000;
         }
         .modal-overlay.active { display: flex; }
 
         .modal-card { 
             background: white; 
-            width: 90%; 
-            max-width: 1000px; /* Wider to accommodate split view */
-            border-radius: 12px; 
+            width: 95%; 
+            max-width: 1200px; 
+            height: 85vh; /* Fixed height for better split pane */
+            border-radius: 16px; 
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); 
             overflow: hidden; 
             display: flex;
             flex-direction: column;
-            max-height: 90vh; /* Prevent full screen overflow */
         }
 
         .modal-header { 
@@ -140,30 +140,97 @@
             flex-shrink: 0;
         }
 
+        /* The Resizable Container */
         .modal-body { 
-            padding: 25px; 
+            display: flex;
+            flex-direction: row;
+            overflow: hidden; /* Important for split pane */
+            position: relative;
+            flex-grow: 1;
+        }
+
+        /* Left Side: Form */
+        .form-pane {
+            width: 50%; /* Initial width */
+            min-width: 350px;
+            padding: 25px;
             overflow-y: auto;
-            display: grid;
-            grid-template-columns: 3fr 2fr; /* 60% Form, 40% History */
-            gap: 30px;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        /* Mobile Stack */
-        @media (max-width: 768px) {
-            .modal-body { grid-template-columns: 1fr; }
-            .history-panel { order: 2; } /* Put history below on mobile */
+        /* The Drag Handle */
+        .resizer {
+            width: 8px;
+            background: #f1f5f9;
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            cursor: col-resize;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+        .resizer:hover, .resizer.resizing {
+            background: var(--accent);
+        }
+        .resizer::after {
+            content: '';
+            width: 2px;
+            height: 20px;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        .resizer:hover::after { background: white; }
+
+        /* Right Side: History */
+        .history-pane {
+            flex: 1; /* Takes remaining space */
+            min-width: 300px;
+            background-color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--border);
         }
 
-        .form-section { display: flex; flex-direction: column; gap: 15px; }
-        .history-section { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; height: 100%; display: flex; flex-direction: column; }
-        .history-title { font-size: 0.9rem; font-weight: 700; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .history-header {
+            padding: 15px 20px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .history-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .badge { background: #e0e7ff; color: var(--accent); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        /* Better Form Styling */
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-label { font-size: 0.9rem; font-weight: 600; color: #475569; }
         
         /* Mini History Table */
-        .mini-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        .mini-table th { background: #e2e8f0; padding: 6px; text-align: left; font-weight: 600; font-size: 0.75rem; color: #475569; }
-        .mini-table td { padding: 6px; border-bottom: 1px solid #e2e8f0; color: #334155; vertical-align: middle; }
-        .mini-table tr:last-child td { border-bottom: none; }
-        .mini-amount { font-family: 'Courier Prime', monospace; font-weight: 600; text-align: right !important; color: var(--accent); }
+        .mini-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .mini-table th { 
+            background: #f1f5f9; padding: 10px 15px; text-align: left; font-weight: 600; font-size: 0.75rem; 
+            color: #64748b; position: sticky; top: 0; z-index: 1; border-bottom: 1px solid #e2e8f0; 
+        }
+        .mini-table td { 
+            padding: 12px 15px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; 
+            background: #fff; 
+        }
+        .mini-table tr:hover td { background: #f8fafc; }
+        .mini-amount { font-family: 'Courier Prime', monospace; font-weight: 700; text-align: right !important; color: var(--accent); }
 
         .modal-footer { 
             padding: 15px 25px; 
@@ -289,75 +356,96 @@
         </div>
     </div>
 
-    <!-- Modal Form (Split View: Form | History) -->
+    <!-- Modal Form (Resizable Split Pane) -->
     <div class="modal-overlay" id="entry-modal">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 style="font-weight: 700;">Add Petty Cash Entry</h3>
-                <button onclick="closeModal()" style="background:none; border:none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+                <h3 style="font-weight: 700;">Petty Cash Management</h3>
+                <button onclick="closeModal()" style="background:none; border:none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
             </div>
             
             <form id="entry-form" onsubmit="handleFormSubmit(event)">
                 <div class="modal-body">
-                    <!-- Left: Input Form -->
-                    <div class="form-section">
+                    <!-- Left: Entry Form -->
+                    <div class="form-pane" id="form-pane">
                         <input type="hidden" id="inp-id">
                         
-                        <div>
-                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Date</label>
-                            <input type="date" id="inp-date" class="form-control" style="width:100%;" required>
+                        <h4 style="color: var(--primary); margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">
+                            <i class="fas fa-edit"></i> Entry Details
+                        </h4>
+
+                        <div class="input-group">
+                            <label class="input-label">Date</label>
+                            <div style="position: relative;">
+                                <i class="fas fa-calendar-alt" style="position: absolute; left: 12px; top: 12px; color: #94a3b8;"></i>
+                                <input type="date" id="inp-date" class="form-control" style="padding-left: 38px; width: 100%;" required>
+                            </div>
                         </div>
 
-                        <div>
-                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Category</label>
-                            <select id="inp-category" class="form-control" style="width:100%;" required>
-                                <option value="" disabled selected>Select Category</option>
-                                <option value="Conveyance">Conveyance</option>
-                                <option value="Others">Others</option>
-                                <option value="Stationary">Stationary</option>
-                                <option value="Official Receipt">Official Receipt</option>
-                                <option value="Courier">Courier</option>
-                                <option value="Mobile Bill">Mobile Bill</option>
-                                <option value="Alter">Alter</option>
-                            </select>
+                        <div class="input-group">
+                            <label class="input-label">Category</label>
+                            <div style="position: relative;">
+                                <i class="fas fa-tags" style="position: absolute; left: 12px; top: 12px; color: #94a3b8;"></i>
+                                <select id="inp-category" class="form-control" style="padding-left: 38px; width: 100%;" required>
+                                    <option value="" disabled selected>Select Category</option>
+                                    <option value="Conveyance">Conveyance</option>
+                                    <option value="Others">Others</option>
+                                    <option value="Stationary">Stationary</option>
+                                    <option value="Official Receipt">Official Receipt</option>
+                                    <option value="Courier">Courier</option>
+                                    <option value="Mobile Bill">Mobile Bill</option>
+                                    <option value="Alter">Alter</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div>
-                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Description</label>
-                            <input type="text" id="inp-desc" class="form-control" style="width:100%;" placeholder="Details..." required>
+                        <div class="input-group">
+                            <label class="input-label">Description</label>
+                            <input type="text" id="inp-desc" class="form-control" style="width:100%;" placeholder="e.g. Taxi fare to office" required>
                         </div>
 
-                        <div>
-                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Amount</label>
-                            <input type="number" id="inp-amount" class="form-control" style="width:100%;" placeholder="0.00" step="0.01" min="0" required>
+                        <div class="input-group">
+                            <label class="input-label">Amount</label>
+                            <div style="position: relative;">
+                                <i class="fas fa-dollar-sign" style="position: absolute; left: 12px; top: 12px; color: #94a3b8;"></i>
+                                <input type="number" id="inp-amount" class="form-control" style="padding-left: 38px; width:100%;" placeholder="0.00" step="0.01" min="0" required>
+                            </div>
                         </div>
 
-                        <div>
-                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Remarks</label>
-                            <textarea id="inp-remarks" class="form-control" style="width:100%;" rows="2"></textarea>
+                        <div class="input-group">
+                            <label class="input-label">Remarks (Optional)</label>
+                            <textarea id="inp-remarks" class="form-control" style="width:100%; min-height: 80px;" rows="3" placeholder="Additional notes..."></textarea>
                         </div>
                     </div>
 
+                    <!-- The Draggable Handle -->
+                    <div class="resizer" id="drag-handle"></div>
+
                     <!-- Right: Latest History -->
-                    <div class="history-section">
-                        <div class="history-title">
-                            <i class="fas fa-history"></i> Latest 6 Entries
+                    <div class="history-pane" id="history-pane">
+                        <div class="history-header">
+                            <div class="history-title">
+                                <i class="fas fa-history"></i> Entry History
+                            </div>
+                            <span class="badge" id="history-count">0 entries</span>
                         </div>
-                        <div style="flex-grow: 1; overflow-y: auto;">
+                        <div class="history-list">
                             <table class="mini-table">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Category</th>
-                                        <th style="text-align:right">Amount</th>
+                                        <th style="width: 25%;">Date</th>
+                                        <th style="width: 30%;">Category</th>
+                                        <th style="width: 25%;">Description</th>
+                                        <th style="width: 20%; text-align: right;">Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody id="history-table-body">
                                     <!-- Populated by JS -->
                                 </tbody>
                             </table>
-                            <div id="history-empty" style="text-align:center; padding: 20px; color: #94a3b8; font-size: 0.8rem; display:none;">
-                                No recent entries
+                            <div id="history-empty" style="text-align:center; padding: 40px 20px; color: #94a3b8; font-size: 0.9rem; display:none;">
+                                <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                                No entries found
                             </div>
                         </div>
                     </div>
@@ -365,8 +453,8 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="btn-save">
-                        <i class="fas fa-check"></i> Save Entry
+                    <button type="submit" class="btn btn-primary" id="btn-save" style="padding: 10px 30px;">
+                        <i class="fas fa-save"></i> Save Entry
                     </button>
                 </div>
             </form>
@@ -391,6 +479,9 @@
             document.getElementById('month-picker').value = currentMonthVal;
             setToday();
             document.getElementById('inp-date').valueAsDate = new Date();
+            
+            // Initialize Resizer Logic
+            initResizer();
         });
 
         function getMonthNameFromValue(val) {
@@ -485,44 +576,100 @@
             totalEl.textContent = total.toFixed(2);
         }
 
-        // --- 5. LATEST HISTORY LOGIC (NEW) ---
+        // --- 5. LATEST HISTORY LOGIC (ALL ENTRIES) ---
         async function fetchLatestHistory() {
             const tbody = document.getElementById('history-table-body');
             const emptyState = document.getElementById('history-empty');
+            const countBadge = document.getElementById('history-count');
             tbody.innerHTML = '';
-
-            const { data, error } = await sbClient
+            
+            // Fetch ALL entries, ordered by newest first
+            const { data, error, count } = await sbClient
                 .from('petty_cash_entries')
-                .select('*')
-                .order('created_at', { ascending: false }) // Get newest first
-                .limit(6);
+                .select('*', { count: 'exact', head: false })
+                .order('created_at', { ascending: false });
 
             if (error || !data || data.length === 0) {
                 emptyState.style.display = 'block';
+                countBadge.textContent = "0 entries";
                 return;
             }
 
             emptyState.style.display = 'none';
+            countBadge.textContent = `${data.length} entries`;
+
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${new Date(row.entry_date).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</td>
+                    <td>${new Date(row.entry_date).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}</td>
                     <td>${row.category}</td>
+                    <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${row.description}</td>
                     <td class="mini-amount">${parseFloat(row.amount).toFixed(2)}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // --- 6. MODAL & CRUD ---
+        // --- 6. RESIZABLE SPLIT PANE LOGIC ---
+        function initResizer() {
+            const resizer = document.getElementById('drag-handle');
+            const leftSide = document.getElementById('form-pane');
+            const container = document.querySelector('.modal-body');
+            
+            let x = 0;
+            let leftWidth = 0;
+
+            const mouseDownHandler = function(e) {
+                // Get the current mouse position
+                x = e.clientX;
+                
+                // Get the current width of the left pane
+                const rect = leftSide.getBoundingClientRect();
+                leftWidth = rect.width;
+
+                // Attach listeners to document
+                document.addEventListener('mousemove', mouseMoveHandler);
+                document.addEventListener('mouseup', mouseUpHandler);
+                
+                resizer.classList.add('resizing');
+                document.body.style.cursor = 'col-resize';
+                // Disable text selection during drag
+                document.body.style.userSelect = 'none';
+            };
+
+            const mouseMoveHandler = function(e) {
+                // How far the mouse has been moved
+                const dx = e.clientX - x;
+                
+                const newLeftWidth = ((leftWidth + dx) * 100) / container.getBoundingClientRect().width;
+                
+                // Constraints (min 30%, max 70%)
+                if(newLeftWidth > 30 && newLeftWidth < 70) {
+                    leftSide.style.width = `${newLeftWidth}%`;
+                }
+            };
+
+            const mouseUpHandler = function() {
+                resizer.classList.remove('resizing');
+                document.body.style.removeProperty('cursor');
+                document.body.style.removeProperty('user-select');
+                
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+            };
+
+            resizer.addEventListener('mousedown', mouseDownHandler);
+        }
+
+        // --- 7. MODAL & CRUD ---
         function openModal() {
             document.getElementById('entry-modal').classList.add('active');
             document.getElementById('entry-form').reset();
             document.getElementById('inp-id').value = '';
-            document.getElementById('btn-save').innerHTML = '<i class="fas fa-check"></i> Save Entry';
+            document.getElementById('btn-save').innerHTML = '<i class="fas fa-save"></i> Save Entry';
             document.getElementById('inp-date').valueAsDate = new Date();
             
-            // Fetch History to show beside form
+            // Fetch History
             fetchLatestHistory();
         }
 
@@ -576,9 +723,9 @@
             document.getElementById('inp-desc').value = row.description;
             document.getElementById('inp-amount').value = row.amount;
             document.getElementById('inp-remarks').value = row.remarks || '';
-            document.getElementById('btn-save').innerHTML = '<i class="fas fa-sync"></i> Update';
+            document.getElementById('btn-save').innerHTML = '<i class="fas fa-sync"></i> Update Entry';
             document.getElementById('entry-modal').classList.add('active');
-            fetchLatestHistory(); // Update history when opening edit
+            fetchLatestHistory();
         }
 
         async function deleteEntry(id) {
@@ -590,7 +737,7 @@
             }
         }
 
-        // --- 7. EXPORTS ---
+        // --- 8. EXPORTS ---
         function exportToExcel() {
             if (entriesData.length === 0) return showToast("No data to export", "error");
             const headerText = document.getElementById('display-month-name').textContent;
