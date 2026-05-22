@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blucheez ERP | Auto-Target System</title>
+    <title>Employee Targets | Auto-Target System</title>
     <!-- FontAwesome 6 (Free) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS Library -->
@@ -134,6 +134,7 @@
             background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 6px; 
             cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 0.9rem; 
             display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+            text-decoration: none;
         }
         button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         button:active { transform: translateY(0); }
@@ -146,7 +147,7 @@
         /* Tables */
         .table-container { background: var(--white); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-top: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; min-width: 1000px; } 
-        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; white-space: nowrap; }
         th { background: #f8fafc; font-weight: 600; color: var(--text-light); position: sticky; top: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
         tr:hover { background: #f8fafc; }
         tr:last-child td { border-bottom: none; }
@@ -196,7 +197,7 @@
 <!-- Sidebar -->
 <aside id="sidebar">
     <div class="brand">
-        <i class="fa-solid fa-shirt"></i> Blucheez ERP
+        <i class="fa-solid fa-shirt"></i> Employee Targets
     </div>
     <nav class="nav-menu">
         <div class="nav-item active" onclick="showSection('dashboard', this)">
@@ -391,7 +392,6 @@
         <h3 style="margin-bottom:15px;">Monthly Target List <span id="monthly-list-subtitle" style="font-size:0.8rem; font-weight:normal; color:var(--text-light); margin-left:10px;">(Calculated from Daily Targets)</span></h3>
         <div class="filter-bar">
              <div style="flex:1; max-width:200px">
-                <!-- CHANGED: Select to Input type="month" -->
                 <label>Select Month</label>
                 <input type="month" id="summary-month-monthly" onchange="loadMonthlyTargets()">
             </div>
@@ -472,11 +472,8 @@
                     </select>
                 </div>
                 <div class="form-group"><label>ID No (Auto)</label><input type="text" id="sale-emp-id" readonly></div>
-                <!-- CHANGED: Customer Name Optional -->
                 <div class="form-group"><label>Customer Name</label><input type="text" id="sale-cust-name"></div>
-                <!-- CHANGED: Customer Phone Optional -->
                 <div class="form-group"><label>Customer Phone</label><input type="tel" id="sale-cust-phone"></div>
-                <!-- CHANGED: Invoice No Manual Entry & Optional (Removed readonly, required, and special styling) -->
                 <div class="form-group"><label>Invoice No (Manual)</label><input type="text" id="sale-invoice"></div>
                 <div class="form-group"><label>Amount</label><input type="number" id="sale-amount" min="0" step="0.01" required></div>
                 <div class="form-group" style="display:flex; align-items:flex-end"><button type="submit"><i class="fa-solid fa-paper-plane"></i> Post Sale</button></div>
@@ -516,9 +513,12 @@
 
     <!-- 6. SUMMARY REPORT -->
     <section id="summary">
-        <div class="filter-bar" style="background:transparent; padding:0; margin-bottom:20px; border:none;">
-            <input type="text" id="summary-search" placeholder="Search employee..." onkeyup="renderSummaryReport()" style="max-width:250px;">
-            <select id="summary-month" onchange="renderSummaryReport()" style="width:200px;"></select>
+        <div class="filter-bar" style="background:transparent; padding:0; margin-bottom:20px; border:none; justify-content: space-between; align-items: flex-end;">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; flex: 1;">
+                <input type="text" id="summary-search" placeholder="Search employee..." onkeyup="renderSummaryReport()" style="max-width:250px;">
+                <select id="summary-month" onchange="renderSummaryReport()" style="width:200px;"></select>
+            </div>
+            <button class="secondary" onclick="exportTableToCSV('summary-table', 'Summary_Report.csv')"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
         </div>
         <div class="table-container">
             <table id="summary-table">
@@ -546,7 +546,10 @@
                 <div class="form-group"><label>Employee</label><select id="det-emp"><option value="">All Employees</option></select></div>
                 <div class="form-group"><label>From Date</label><input type="date" id="det-from"></div>
                 <div class="form-group"><label>To Date</label><input type="date" id="det-to"></div>
-                <div class="form-group" style="display:flex; align-items:flex-end"><button onclick="renderDetailedReport()"><i class="fa-solid fa-magnifying-glass"></i> Generate Report</button></div>
+                <div class="form-group" style="display:flex; align-items:flex-end; gap:10px;">
+                    <button onclick="renderDetailedReport()"><i class="fa-solid fa-magnifying-glass"></i> Generate Report</button>
+                    <button class="secondary" onclick="exportTableToCSV('detailed-table', 'Detailed_Report.csv')"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+                </div>
             </div>
         </div>
         <div class="table-container">
@@ -586,7 +589,7 @@
 
     // State
     let employeesCache = [];
-    let isManualMonthlyMode = false; // Default FALSE (Calculated Mode)
+    let isManualMonthlyMode = false; 
     
     // USE LOCAL DATE STRING (YYYY-MM-DD) based on browser timezone
     const getLocalDateStr = () => new Date().toLocaleDateString('en-CA'); 
@@ -627,7 +630,6 @@
         if(sectionId === 'dashboard') loadDashboard();
         if(sectionId === 'employees') loadEmployees();
         if(sectionId === 'monthly') { 
-            // Populate date for month picker
             const el = document.getElementById('summary-month-monthly');
             if(el) el.value = currentMonthStr; 
             loadMonthlyTargets(); 
@@ -654,9 +656,13 @@
         return days[new Date(dateStr).getDay()];
     }
 
-    // Toggle Logic
+    // Toggle Logic WITH PERSISTENCE
     function toggleMonthlyMode() {
         isManualMonthlyMode = document.getElementById('monthly-mode-toggle').checked;
+        
+        // Save to LocalStorage
+        localStorage.setItem('isManualMonthlyMode', isManualMonthlyMode);
+
         const formContainer = document.getElementById('monthly-form-container');
         const subtitle = document.getElementById('monthly-list-subtitle');
         const dashSub = document.getElementById('dash-month-target-sub');
@@ -675,7 +681,7 @@
 
     // Settings Menu Logic
     function toggleSettingsMenu(e) {
-        if(e) e.stopPropagation(); // Prevent window click from firing immediately
+        if(e) e.stopPropagation(); 
         document.getElementById('settings-menu').classList.toggle('show');
     }
 
@@ -688,17 +694,30 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('current-date').innerText = new Date().toDateString();
-        // Ensure toggle is unchecked on load
-        document.getElementById('monthly-mode-toggle').checked = false;
+        
+        // Load Saved Toggle State
+        const savedMode = localStorage.getItem('isManualMonthlyMode');
+        if (savedMode === 'true') {
+            isManualMonthlyMode = true;
+            document.getElementById('monthly-mode-toggle').checked = true;
+            const formContainer = document.getElementById('monthly-form-container');
+            const subtitle = document.getElementById('monthly-list-subtitle');
+            const dashSub = document.getElementById('dash-month-target-sub');
+            formContainer.classList.remove('hidden');
+            subtitle.innerText = "(Using Manual Targets)";
+            dashSub.innerText = "Using Manual Targets";
+        } else {
+            isManualMonthlyMode = false;
+            document.getElementById('monthly-mode-toggle').checked = false;
+        }
+
         await loadEmployees();
         loadDashboard();
     });
 
     // --- 3. CORE: GET MONTHLY TARGET (Calculated or Manual) ---
-    // Returns arrays of raw DB data for direct summation
     async function getMonthlyTargetData(monthStr) {
         const start = monthStr + '-01';
-        // Safe end date: first day of next month
         const nextMonthDate = new Date(monthStr.slice(0,4), parseInt(monthStr.slice(5,7)), 1);
         const end = nextMonthDate.toISOString().slice(0, 10); 
 
@@ -717,30 +736,25 @@
 
     // --- 4. DASHBOARD LOGIC ---
     async function loadDashboard() {
-        // Get Raw Data Arrays
         const { dTargets, mTargets } = await getMonthlyTargetData(currentMonthStr);
 
-        // --- CALCULATE TOTALS DIRECTLY FROM DATA ---
-        
-        // 1. Today's Target (Sum of daily_targets where date == today)
+        // 1. Today's Target
         const { data: todayTargets } = await sbClient.from('daily_targets').select('*').eq('date', todayStr);
         const totalDayTarget = todayTargets ? todayTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0) : 0;
 
         // 2. Month's Target
         let totalMonthTarget = 0;
         if(isManualMonthlyMode) {
-            // Sum all manual targets for the month
             if(mTargets) totalMonthTarget = mTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0);
         } else {
-            // Sum all daily targets for the month
             if(dTargets) totalMonthTarget = dTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0);
         }
 
-        // 3. Today's Achievement (Sum of sales where date == today)
+        // 3. Today's Achievement
         const { data: daySales } = await sbClient.from('sales').select('amount').eq('date', todayStr);
         const totalDaySales = daySales ? daySales.reduce((a,b) => a + parseFloat(b.amount), 0) : 0;
         
-        // 4. Month's Achievement (Sum of sales where date is in month)
+        // 4. Month's Achievement
         const nextMonthDate = new Date(currentMonthStr.slice(0,4), parseInt(currentMonthStr.slice(5,7)), 1);
         const monthEnd = nextMonthDate.toISOString().slice(0, 10);
 
@@ -760,12 +774,10 @@
         const tbody = document.querySelector('#ranking-table tbody');
         tbody.innerHTML = '';
         
-        // Fetch all sales for month for ranking
         const { data: allMonthSales } = await sbClient.from('sales').select('*').gte('date', currentMonthStr+'-01').lt('date', monthEnd);
         
         let rankings = [];
 
-        // Map Targets for quick lookup
         const dailyMap = {};
         if(dTargets) dTargets.forEach(t => {
             if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
@@ -778,7 +790,6 @@
         });
 
         employeesCache.forEach(emp => {
-            // Determine Target (Prioritize Manual if ON)
             let finalTarget = 0;
             if(isManualMonthlyMode && manualMap[emp.employee_id]) {
                 finalTarget = manualMap[emp.employee_id];
@@ -786,11 +797,8 @@
                 finalTarget = dailyMap[emp.employee_id];
             }
 
-            // Determine Sales
             const mSales = allMonthSales?.filter(s => s.employee_id === emp.employee_id).reduce((sum, s) => sum + parseFloat(s.amount), 0) || 0;
             const dSales = allMonthSales?.filter(s => s.employee_id === emp.employee_id && s.date === todayStr).reduce((sum, s) => sum + parseFloat(s.amount), 0) || 0;
-            
-            // Get Day Target for Today
             const dTarget = todayTargets?.find(t => t.employee_id === emp.employee_id)?.target_amount || 0;
 
             const mPct = finalTarget > 0 ? (mSales/finalTarget)*100 : 0;
@@ -807,22 +815,10 @@
 
         rankings.forEach((r, index) => {
             let rankClass = '', rankIconHtml = '';
-            // Using FontAwesome icons for ranks
-            if(index === 0) { 
-                rankClass = 'rank-1'; 
-                rankIconHtml = '<i class="fa-solid fa-trophy rank-icon"></i>'; 
-            }
-            else if(index === 1) { 
-                rankClass = 'rank-2'; 
-                rankIconHtml = '<i class="fa-solid fa-medal rank-icon"></i>'; 
-            }
-            else if(index === 2) { 
-                rankClass = 'rank-3'; 
-                rankIconHtml = '<i class="fa-solid fa-medal rank-icon"></i>'; 
-            }
-            else {
-                rankIconHtml = `<span style="font-weight:bold; color:#94a3b8;">#${index + 1}</span>`;
-            }
+            if(index === 0) { rankClass = 'rank-1'; rankIconHtml = '<i class="fa-solid fa-trophy rank-icon"></i>'; }
+            else if(index === 1) { rankClass = 'rank-2'; rankIconHtml = '<i class="fa-solid fa-medal rank-icon"></i>'; }
+            else if(index === 2) { rankClass = 'rank-3'; rankIconHtml = '<i class="fa-solid fa-medal rank-icon"></i>'; }
+            else { rankIconHtml = `<span style="font-weight:bold; color:#94a3b8;">#${index + 1}</span>`; }
 
             tbody.innerHTML += `
                 <tr class="${rankClass}">
@@ -844,10 +840,7 @@
     // --- 5. OTHER MODULES ---
     async function loadEmployees() {
         const { data, error } = await sbClient.from('target_employees').select('*').order('id', { ascending: true });
-        if (error) {
-            console.error("Error loading employees:", error);
-            return;
-        }
+        if (error) { console.error("Error loading employees:", error); return; }
         employeesCache = data;
         const tbody = document.querySelector('#employee-table tbody');
         tbody.innerHTML = '';
@@ -860,14 +853,8 @@
         e.preventDefault();
         const newEmp = { name: document.getElementById('emp-name').value, phone: document.getElementById('emp-phone').value, employee_id: document.getElementById('emp-id-no').value, designation: document.getElementById('emp-designation').value, joining_date: document.getElementById('emp-join-date').value };
         const { data, error } = await sbClient.from('target_employees').insert([newEmp]);
-        if (error) {
-            console.error("Full Error:", error);
-            alert("Error adding employee: " + error.message);
-        } else { 
-            showToast("Employee Added!"); 
-            e.target.reset(); 
-            loadEmployees(); 
-        }
+        if (error) { console.error("Full Error:", error); alert("Error adding employee: " + error.message); } 
+        else { showToast("Employee Added!"); e.target.reset(); loadEmployees(); }
     }
     async function deleteEmployee(id) { 
         if(!confirm("Delete?")) return; 
@@ -878,14 +865,10 @@
     // SALES
     async function initSalesForm() {
         document.getElementById('sale-date').value = todayStr; populateEmployeeDropdowns();
-        // REMOVED: Auto-generation of Invoice No
-        // User requested Manual Entry & Optional, so we leave it blank or whatever the user types.
     }
     async function handleSaleSubmit(e) {
         e.preventDefault();
         const saleData = { 
-            // If invoice is empty, DB might insert NULL or empty string depending on column config.
-            // Since we made it optional in HTML, we send the value (which could be empty).
             invoice_no: document.getElementById('sale-invoice').value, 
             date: document.getElementById('sale-date').value, 
             employee_id: document.getElementById('sale-emp-id').value, 
@@ -941,7 +924,6 @@
         
         const tbody = document.querySelector('#monthly-table tbody'); tbody.innerHTML = '';
         
-        // Create maps
         const dailyMap = {};
         if(dTargets) dTargets.forEach(t => {
             if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
@@ -954,7 +936,6 @@
         for(const emp of employeesCache) {
             const finalTarget = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0);
             
-            // Get Achievement
             const nextMonthDate = new Date(month.slice(0,4), parseInt(month.slice(5,7)), 1);
             const monthEnd = nextMonthDate.toISOString().slice(0, 10);
 
@@ -974,7 +955,33 @@
         else { showToast("Manual Target Saved!"); loadMonthlyTargets(); loadDashboard(); }
     }
 
-    // REPORTS
+    // --- 6. EXPORT FUNCTION ---
+    function exportTableToCSV(tableId, filename) {
+        const table = document.getElementById(tableId);
+        const rows = Array.from(table.querySelectorAll('tr'));
+        
+        const csv = [];
+        for (const row of rows) {
+            const cols = Array.from(row.querySelectorAll('th, td'));
+            const rowData = cols.map(col => {
+                let data = col.innerText.replace(/(\r\n|\n|\r)/gm, ""); // Remove newlines
+                data = '"' + data + '"'; // Quote data
+                return data;
+            });
+            csv.push(rowData.join(","));
+        }
+
+        const csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+        const downloadLink = document.createElement("a");
+        downloadLink.download = filename;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+
+    // --- 7. REPORTS ---
     async function renderSummaryReport() {
         const month = document.getElementById('summary-month').value || currentMonthStr;
         const search = document.getElementById('summary-search').value.toLowerCase();
@@ -1005,47 +1012,144 @@
     }
 
     async function renderDetailedReport() {
-        const empId = document.getElementById('det-emp').value, fromDate = document.getElementById('det-from').value, toDate = document.getElementById('det-to').value;
-        const tbody = document.querySelector('#detailed-table tbody'); tbody.innerHTML = '';
+        const empId = document.getElementById('det-emp').value;
+        const fromDate = document.getElementById('det-from').value;
+        const toDate = document.getElementById('det-to').value;
         
-        const startM = fromDate.slice(0, 7); 
-        const { dTargets, mTargets } = await getMonthlyTargetData(startM); 
+        if(!fromDate || !toDate) { alert("Please select date range."); return; }
 
+        const tbody = document.querySelector('#detailed-table tbody'); 
+        tbody.innerHTML = '';
+        
+        // 1. Fetch Targets within range
         let dQuery = sbClient.from('daily_targets').select('*');
-        if(fromDate) dQuery = dQuery.gte('date', fromDate); if(toDate) dQuery = dQuery.lte('date', toDate);
+        dQuery = dQuery.gte('date', fromDate).lte('date', toDate);
+        if(empId) dQuery = dQuery.eq('employee_id', empId);
         const { data: dTargetsList } = await dQuery;
 
+        // 2. Fetch ALL Sales within the selected range (for Day Sales calculation)
         let sQuery = sbClient.from('sales').select('*');
-        if(fromDate) sQuery = sQuery.gte('date', fromDate); if(toDate) sQuery = sQuery.lte('date', toDate);
-        const { data: allSales } = await sQuery;
+        sQuery = sQuery.gte('date', fromDate).lte('date', toDate);
+        if(empId) sQuery = sQuery.eq('employee_id', empId);
+        const { data: rangeSales } = await sQuery;
 
-        const dailyMap = {};
-        if(dTargets) dTargets.forEach(t => {
-            if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
-            dailyMap[t.employee_id] += parseFloat(t.target_amount);
-        });
+        // 3. Calculate Monthly Targets for the months present in the range
+        const monthSet = new Set();
+        dTargetsList.forEach(t => monthSet.add(t.date.slice(0, 7)));
+        
+        const monthlyTargetMap = {}; // key: employee_id_month, value: target amount
+
+        for (const m of monthSet) {
+            // Get targets for this month
+            const startM = m + '-01';
+            const nextMonthDate = new Date(m.slice(0,4), parseInt(m.slice(5,7)), 1);
+            const endM = nextMonthDate.toISOString().slice(0, 10);
+
+            // Fetch Daily Targets for the month to sum up (if auto) or Manual Targets (if manual)
+            const { dTargets, mTargets } = await getMonthlyTargetData(m);
+
+            // Helper to get target for an emp in this month
+            const getMonthTargetForEmp = (eId) => {
+                if(isManualMonthlyMode) {
+                    const manual = mTargets.find(mt => mt.employee_id === eId);
+                    return manual ? parseFloat(manual.target_amount) : 0;
+                } else {
+                    const sum = dTargets
+                        .filter(dt => dt.employee_id === eId)
+                        .reduce((acc, curr) => acc + parseFloat(curr.target_amount), 0);
+                    return sum;
+                }
+            };
+
+            // We need to know which employees are involved in this report for this month
+            // Employees involved can be from Targets OR Sales
+            const involvedEmpIds = new Set();
+            dTargetsList.forEach(t => {
+                if(t.date.startsWith(m)) involvedEmpIds.add(t.employee_id);
+            });
+            rangeSales.forEach(s => {
+                if(s.date.startsWith(m)) involvedEmpIds.add(s.employee_id);
+            });
+
+            involvedEmpIds.forEach(eId => {
+                monthlyTargetMap[`${eId}_${m}`] = getMonthTargetForEmp(eId);
+            });
+        }
 
         let rows = [];
+        
+        // Pre-calc range sales for performance
+        // Map: empId -> Array of sales
+        const empSalesMap = {};
+        rangeSales.forEach(s => {
+            if(!empSalesMap[s.employee_id]) empSalesMap[s.employee_id] = [];
+            empSalesMap[s.employee_id].push(s);
+        });
+
         dTargetsList.forEach(t => {
-            if(empId && t.employee_id !== empId) return;
             const emp = employeesCache.find(e => e.employee_id === t.employee_id);
             const empName = emp ? emp.name : t.employee_id;
-            const dSales = allSales.filter(s => s.employee_id === t.employee_id && s.date === t.date).reduce((sum, s) => sum + parseFloat(s.amount), 0);
-            const dPct = t.target_amount > 0 ? ((dSales/t.target_amount)*100).toFixed(1) : 0;
-            const diff = dSales - t.target_amount;
             
-            const mStr = t.date.slice(0, 7);
-            const mTarget = (dailyMap[t.employee_id] || 0); 
-            
-            const mtdSales = allSales.filter(s => s.employee_id === t.employee_id && s.date <= t.date && s.date.startsWith(mStr)).reduce((sum, s) => sum + parseFloat(s.amount), 0);
-            const mtdPct = mTarget > 0 ? ((mtdSales/mTarget)*100).toFixed(1) : 0;
+            // Day Target
+            const dt = parseFloat(t.target_amount);
 
-            rows.push({ m: mStr, d: t.date, day: getDayName(t.date), dt: t.target_amount, ds: dSales, dp: dPct, diff: diff, en: empName, mt: mTarget, ms: mtdSales, mp: mtdPct });
+            // Day Sales (Sum of sales for this employee on this specific date)
+            const daySalesList = (empSalesMap[t.employee_id] || []).filter(s => s.date === t.date);
+            const ds = daySalesList.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+
+            // Day %
+            const dp = dt > 0 ? ((ds/dt)*100).toFixed(1) : "0.0";
+
+            // Short / Excess
+            const diff = ds - dt;
+
+            const mStr = t.date.slice(0, 7); // YYYY-MM
+            
+            // Total Mth Target (from our calculated map)
+            const mt = monthlyTargetMap[`${t.employee_id}_${mStr}`] || 0;
+
+            // Total Mth Ach. (Total sales for employee in selected range)
+            const totalRangeSales = (empSalesMap[t.employee_id] || [])
+                .filter(s => s.date >= fromDate && s.date <= toDate)
+                .reduce((sum, s) => sum + parseFloat(s.amount), 0);
+            
+            // Total Mth %
+            const mp = mt > 0 ? ((totalRangeSales/mt)*100).toFixed(1) : "0.0";
+
+            rows.push({ 
+                m: mStr, 
+                d: t.date, 
+                day: getDayName(t.date), 
+                dt: dt, 
+                ds: ds, 
+                dp: dp, 
+                diff: diff, 
+                en: empName, 
+                mt: mt, 
+                ms: totalRangeSales, 
+                mp: mp 
+            });
         });
+
+        // Sort by date descending
         rows.sort((a,b) => new Date(b.d) - new Date(a.d));
+
         rows.forEach(r => {
             const diffStyle = r.diff >= 0 ? 'color:var(--success); font-weight:600;' : 'color:var(--danger); font-weight:600;';
-            tbody.innerHTML += `<tr><td>${r.m}</td><td>${r.d}</td><td>${r.day}</td><td class="text-right">${formatNumber(r.dt)}</td><td class="text-right">${formatNumber(r.ds)}</td><td class="text-right">${r.dp}%</td><td class="text-right" style="${diffStyle}">${formatNumber(r.diff)}</td><td>${r.en}</td><td class="text-right">${formatNumber(r.mt)}</td><td class="text-right">${formatNumber(r.ms)}</td><td class="text-right">${r.mp}%</td></tr>`;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${r.m}</td>
+                    <td>${r.d}</td>
+                    <td>${r.day}</td>
+                    <td class="text-right">${formatNumber(r.dt)}</td>
+                    <td class="text-right">${formatNumber(r.ds)}</td>
+                    <td class="text-right">${r.dp}%</td>
+                    <td class="text-right" style="${diffStyle}">${formatNumber(r.diff)}</td>
+                    <td>${r.en}</td>
+                    <td class="text-right">${formatNumber(r.mt)}</td>
+                    <td class="text-right">${formatNumber(r.ms)}</td>
+                    <td class="text-right">${r.mp}%</td>
+                </tr>`;
         });
     }
 
