@@ -695,7 +695,7 @@
     async function handleAddEmployee(e) {
         e.preventDefault();
         const newEmp = { name: document.getElementById('emp-name').value, phone: document.getElementById('emp-phone').value, employee_id: document.getElementById('emp-id-no').value, designation: document.getElementById('emp-designation').value, joining_date: document.getElementById('emp-join-date').value };
-        const { error } = await sbClient.from('employees').insert([newEmp]);
+        const { error } = await sbClient.from('target_employees').insert([newEmp]);
         if (error) showToast("Error adding employee."); else { showToast("Employee Added!"); e.target.reset(); loadEmployees(); }
     }
     async function deleteEmployee(id) { if(!confirm("Delete?")) return; await sbClient.from('employees').delete().eq('id', id); loadEmployees(); }
