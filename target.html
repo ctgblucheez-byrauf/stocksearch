@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Targets | Auto-Target System</title>
+    <title>Blucheez ERP | Auto-Target System</title>
     <!-- FontAwesome 6 (Free) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS Library -->
@@ -143,11 +143,13 @@
         button.secondary:hover { background: #f8fafc; border-color: var(--text-light); }
         button.danger { background: var(--danger); color: white; }
         button.danger:hover { background: #dc2626; }
+        
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         /* Tables */
         .table-container { background: var(--white); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-top: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; min-width: 1000px; } 
-        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; white-space: nowrap; }
+        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; white-space: nowrap; }
         th { background: #f8fafc; font-weight: 600; color: var(--text-light); position: sticky; top: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
         tr:hover { background: #f8fafc; }
         tr:last-child td { border-bottom: none; }
@@ -170,6 +172,13 @@
         .rank-1 .rank-icon { color: var(--gold); }
         .rank-2 .rank-icon { color: var(--silver); }
         .rank-3 .rank-icon { color: var(--bronze); }
+
+        /* Pagination */
+        .pagination-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; }
+        .page-btn { padding: 6px 12px; border: 1px solid var(--border); background: var(--white); border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        .page-btn:hover:not(:disabled) { background: #f1f5f9; border-color: var(--text-light); }
+        .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Toast */
         #toast { visibility: hidden; min-width: 280px; background-color: #1e293b; color: #fff; text-align: center; border-radius: 8px; padding: 14px 20px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 0.95rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: flex; align-items: center; gap: 10px; justify-content: center; }
@@ -197,7 +206,7 @@
 <!-- Sidebar -->
 <aside id="sidebar">
     <div class="brand">
-        <i class="fa-solid fa-shirt"></i> Employee Targets
+        <i class="fa-solid fa-shirt"></i> Blucheez ERP
     </div>
     <nav class="nav-menu">
         <div class="nav-item active" onclick="showSection('dashboard', this)">
@@ -278,7 +287,7 @@
             <div class="card today">
                 <div class="card-label">Today's Achievement</div>
                 <div class="stat-value" id="dash-today-achieve">0</div>
-                <div class="sub-text">Total sales today</div>
+                <div class="sub-text">Total sales today (All Employees)</div>
             </div>
             <div class="card today">
                 <div class="card-label">Today's Ach. %</div>
@@ -365,7 +374,6 @@
 
     <!-- 3. MONTHLY TARGET -->
     <section id="monthly">
-        <!-- Form Hidden by Default, shown via Toggle -->
         <div id="monthly-form-container" class="form-container hidden">
             <h3><i class="fa-solid fa-calendar-pen" style="color:var(--warning)"></i> Set Manual Monthly Target</h3>
             <p style="margin-bottom:15px; color:var(--text-light); font-size:0.9rem; display:flex; align-items:center; gap:6px;">
@@ -515,8 +523,16 @@
     <section id="summary">
         <div class="filter-bar" style="background:transparent; padding:0; margin-bottom:20px; border:none; justify-content: space-between; align-items: flex-end;">
             <div style="display: flex; gap: 15px; flex-wrap: wrap; flex: 1;">
-                <input type="text" id="summary-search" placeholder="Search employee..." onkeyup="renderSummaryReport()" style="max-width:250px;">
-                <select id="summary-month" onchange="renderSummaryReport()" style="width:200px;"></select>
+                <div style="flex:1; max-width:250px;">
+                    <label>Employee</label>
+                    <select id="summary-emp-select" onchange="renderSummaryReport()">
+                        <option value="">All Employees</option>
+                    </select>
+                </div>
+                <div style="flex:1; max-width:200px;">
+                    <label>Month</label>
+                    <input type="month" id="summary-month" onchange="renderSummaryReport()">
+                </div>
             </div>
             <button class="secondary" onclick="exportTableToCSV('summary-table', 'Summary_Report.csv')"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
         </div>
@@ -524,6 +540,7 @@
             <table id="summary-table">
                 <thead>
                     <tr>
+                        <th>Month</th>
                         <th>#</th>
                         <th>Staff Name</th>
                         <th>Phone</th>
@@ -553,24 +570,33 @@
             </div>
         </div>
         <div class="table-container">
-            <table id="detailed-table" style="min-width: 1200px;">
+            <table id="detailed-table" style="min-width: 1900px;">
                 <thead>
                     <tr>
-                        <th>Month</th>
-                        <th>Date</th>
-                        <th>Day</th>
-                        <th>Day Target</th>
-                        <th>Day Sales</th>
-                        <th>Day %</th>
-                        <th>Short / Excess</th>
                         <th>Employee</th>
-                        <th>Total Mth Target</th>
-                        <th>Total Mth Ach.</th>
-                        <th>Total Mth %</th>
+                        <th>Month</th>
+                        <th>Daily Target Date</th>
+                        <th>Daily Target Day</th>
+                        <th class="text-right">Day Target</th>
+                        <th>Daily Sale Date</th>
+                        <th>Daily Sale Day</th>
+                        <th class="text-right">Day Sales</th>
+                        <th class="text-right">Day %</th>
+                        <th class="text-right">Daily Short / Excess</th>
+                        <th class="text-right">Total Mth Target</th>
+                        <th class="text-right">Total Mth Ach</th>
+                        <th class="text-right">Total Mth %</th>
+                        <th class="text-right">Month Short / Excess</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
+        </div>
+        <!-- PAGINATION CONTROLS -->
+        <div id="pagination-container" class="pagination-container hidden">
+            <button id="prev-page" class="page-btn" onclick="changePage(-1)"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+            <span id="page-info" style="font-weight: 600; font-size: 0.9rem;">Page 1</span>
+            <button id="next-page" class="page-btn" onclick="changePage(1)">Next <i class="fa-solid fa-chevron-right"></i></button>
         </div>
     </section>
 
@@ -580,41 +606,44 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+    var SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+    var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
     
-    let sbClient;
+    var sbClient;
     if (window.supabase) sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     else alert("Supabase library failed to load.");
 
     // State
-    let employeesCache = [];
-    let isManualMonthlyMode = false; 
+    var employeesCache = [];
+    var isManualMonthlyMode = false; 
     
-    // USE LOCAL DATE STRING (YYYY-MM-DD) based on browser timezone
-    const getLocalDateStr = () => new Date().toLocaleDateString('en-CA'); 
-    const todayStr = getLocalDateStr(); 
-    const currentMonthStr = todayStr.slice(0, 7); 
+    // Pagination State
+    var detailedReportData = [];
+    var currentPage = 1;
+    var rowsPerPage = 50;
+
+    var getLocalDateStr = function() { return new Date().toLocaleDateString('en-CA'); };
+    var todayStr = getLocalDateStr(); 
+    var currentMonthStr = todayStr.slice(0, 7); 
 
     // --- 2. UTILITY FUNCTIONS ---
     function showToast(msg) {
-        const t = document.getElementById("toast");
+        var t = document.getElementById("toast");
         document.getElementById('toast-msg').innerText = msg;
         t.className = "show";
-        setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        setTimeout(function() { t.className = t.className.replace("show", ""); }, 3000);
     }
     function formatNumber(amount) {
         return parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     function showSection(sectionId, navEl) {
-        document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('section').forEach(function(s) { s.classList.remove('active'); });
         document.getElementById(sectionId).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
         if(navEl) navEl.classList.add('active');
         
-        // Update Header Icon based on section
-        const headerTitle = document.getElementById('page-title');
-        let iconClass = 'fa-solid fa-chart-pie';
+        var headerTitle = document.getElementById('page-title');
+        var iconClass = 'fa-solid fa-chart-pie';
         if(sectionId === 'employees') iconClass = 'fa-solid fa-users';
         if(sectionId === 'monthly') iconClass = 'fa-solid fa-calendar-days';
         if(sectionId === 'daily') iconClass = 'fa-solid fa-calendar-check';
@@ -622,15 +651,14 @@
         if(sectionId === 'summary') iconClass = 'fa-solid fa-file-invoice';
         if(sectionId === 'detailed') iconClass = 'fa-solid fa-chart-line';
         
-        headerTitle.innerHTML = `<i class="${iconClass}" style="color:var(--primary)"></i> ${navEl ? navEl.innerText.trim() : sectionId}`;
+        headerTitle.innerHTML = '<i class="' + iconClass + '" style="color:var(--primary)"></i> ' + (navEl ? navEl.innerText.trim() : sectionId);
 
-        // Close settings menu when navigating
         document.getElementById('settings-menu').classList.remove('show');
 
         if(sectionId === 'dashboard') loadDashboard();
         if(sectionId === 'employees') loadEmployees();
         if(sectionId === 'monthly') { 
-            const el = document.getElementById('summary-month-monthly');
+            var el = document.getElementById('summary-month-monthly');
             if(el) el.value = currentMonthStr; 
             loadMonthlyTargets(); 
         }
@@ -641,31 +669,33 @@
             loadDailyTargetList();
         }
         if(sectionId === 'sales') { initSalesForm(); loadSalesList(); }
-        if(sectionId === 'summary') { populateMonthSelector('summary-month'); renderSummaryReport(); }
+        if(sectionId === 'summary') { 
+            var monthEl = document.getElementById('summary-month');
+            if(monthEl) monthEl.value = currentMonthStr;
+            renderSummaryReport(); 
+        }
         if(sectionId === 'detailed') populateEmployeeDropdowns();
         document.getElementById('sidebar').classList.remove('open');
     }
     function calculateDaysWorked(joinDate) {
-        const oneDay = 24 * 60 * 60 * 1000;
-        const today = new Date();
-        const join = new Date(joinDate);
+        var oneDay = 24 * 60 * 60 * 1000;
+        var today = new Date();
+        var join = new Date(joinDate);
         return Math.round(Math.abs((today - join) / oneDay));
     }
     function getDayName(dateStr) {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         return days[new Date(dateStr).getDay()];
     }
 
-    // Toggle Logic WITH PERSISTENCE
+    // Toggle Logic
     function toggleMonthlyMode() {
         isManualMonthlyMode = document.getElementById('monthly-mode-toggle').checked;
-        
-        // Save to LocalStorage
         localStorage.setItem('isManualMonthlyMode', isManualMonthlyMode);
 
-        const formContainer = document.getElementById('monthly-form-container');
-        const subtitle = document.getElementById('monthly-list-subtitle');
-        const dashSub = document.getElementById('dash-month-target-sub');
+        var formContainer = document.getElementById('monthly-form-container');
+        var subtitle = document.getElementById('monthly-list-subtitle');
+        var dashSub = document.getElementById('dash-month-target-sub');
         
         if(isManualMonthlyMode) {
             formContainer.classList.remove('hidden');
@@ -676,36 +706,30 @@
             subtitle.innerText = "(Calculated from Daily Targets)";
             dashSub.innerText = "Calculated from Daily Targets";
         }
-        loadDashboard(); // Refresh to show correct data
+        loadDashboard();
     }
 
-    // Settings Menu Logic
     function toggleSettingsMenu(e) {
         if(e) e.stopPropagation(); 
         document.getElementById('settings-menu').classList.toggle('show');
     }
 
-    // Close menu when clicking outside
     window.onclick = function(event) {
         if (!event.target.closest('.settings-wrapper')) {
             document.getElementById('settings-menu').classList.remove('show');
         }
     }
 
-    window.addEventListener('DOMContentLoaded', async () => {
+    window.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('current-date').innerText = new Date().toDateString();
         
-        // Load Saved Toggle State
-        const savedMode = localStorage.getItem('isManualMonthlyMode');
+        var savedMode = localStorage.getItem('isManualMonthlyMode');
         if (savedMode === 'true') {
             isManualMonthlyMode = true;
             document.getElementById('monthly-mode-toggle').checked = true;
-            const formContainer = document.getElementById('monthly-form-container');
-            const subtitle = document.getElementById('monthly-list-subtitle');
-            const dashSub = document.getElementById('dash-month-target-sub');
-            formContainer.classList.remove('hidden');
-            subtitle.innerText = "(Using Manual Targets)";
-            dashSub.innerText = "Using Manual Targets";
+            document.getElementById('monthly-form-container').classList.remove('hidden');
+            document.getElementById('monthly-list-subtitle').innerText = "(Using Manual Targets)";
+            document.getElementById('dash-month-target-sub').innerText = "Using Manual Targets";
         } else {
             isManualMonthlyMode = false;
             document.getElementById('monthly-mode-toggle').checked = false;
@@ -715,53 +739,52 @@
         loadDashboard();
     });
 
-    // --- 3. CORE: GET MONTHLY TARGET (Calculated or Manual) ---
+    // --- 3. CORE: GET MONTHLY TARGET ---
     async function getMonthlyTargetData(monthStr) {
-        const start = monthStr + '-01';
-        const nextMonthDate = new Date(monthStr.slice(0,4), parseInt(monthStr.slice(5,7)), 1);
-        const end = nextMonthDate.toISOString().slice(0, 10); 
+        var start = monthStr + '-01';
+        var nextMonthDate = new Date(parseInt(monthStr.slice(0,4)), parseInt(monthStr.slice(5,7)), 1);
+        var end = nextMonthDate.toISOString().slice(0, 10); 
 
-        // 1. Fetch Daily Targets for the month
-        const { data: dTargets } = await sbClient.from('daily_targets').select('*').gte('date', start).lt('date', end);
+        var res1 = await sbClient.from('daily_targets').select('*').gte('date', start).lt('date', end);
+        var dTargets = res1.data || [];
         
-        // 2. If Manual Mode, Fetch Manual Overrides
-        let mTargets = [];
+        var mTargets = [];
         if(isManualMonthlyMode) {
-            const { data: mData } = await sbClient.from('monthly_targets').select('*').eq('month', monthStr);
-            if(mData) mTargets = mData;
+            var res2 = await sbClient.from('monthly_targets').select('*').eq('month', monthStr);
+            if(res2.data) mTargets = res2.data;
         }
 
-        return { dTargets, mTargets };
+        return { dTargets: dTargets, mTargets: mTargets };
     }
 
     // --- 4. DASHBOARD LOGIC ---
     async function loadDashboard() {
-        const { dTargets, mTargets } = await getMonthlyTargetData(currentMonthStr);
+        var result = await getMonthlyTargetData(currentMonthStr);
+        var dTargets = result.dTargets;
+        var mTargets = result.mTargets;
 
-        // 1. Today's Target
-        const { data: todayTargets } = await sbClient.from('daily_targets').select('*').eq('date', todayStr);
-        const totalDayTarget = todayTargets ? todayTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0) : 0;
+        var resToday = await sbClient.from('daily_targets').select('*').eq('date', todayStr);
+        var todayTargets = resToday.data || [];
+        var totalDayTarget = todayTargets.reduce(function(a,b) { return a + parseFloat(b.target_amount); }, 0);
 
-        // 2. Month's Target
-        let totalMonthTarget = 0;
+        var totalMonthTarget = 0;
         if(isManualMonthlyMode) {
-            if(mTargets) totalMonthTarget = mTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0);
+            totalMonthTarget = mTargets.reduce(function(a,b) { return a + parseFloat(b.target_amount); }, 0);
         } else {
-            if(dTargets) totalMonthTarget = dTargets.reduce((a,b) => a + parseFloat(b.target_amount), 0);
+            totalMonthTarget = dTargets.reduce(function(a,b) { return a + parseFloat(b.target_amount); }, 0);
         }
 
-        // 3. Today's Achievement
-        const { data: daySales } = await sbClient.from('sales').select('amount').eq('date', todayStr);
-        const totalDaySales = daySales ? daySales.reduce((a,b) => a + parseFloat(b.amount), 0) : 0;
+        var resDaySales = await sbClient.from('sales').select('amount').eq('date', todayStr);
+        var daySalesData = resDaySales.data || [];
+        var totalDaySales = daySalesData.reduce(function(a,b) { return a + parseFloat(b.amount); }, 0);
         
-        // 4. Month's Achievement
-        const nextMonthDate = new Date(currentMonthStr.slice(0,4), parseInt(currentMonthStr.slice(5,7)), 1);
-        const monthEnd = nextMonthDate.toISOString().slice(0, 10);
+        var nextMonthDate = new Date(parseInt(currentMonthStr.slice(0,4)), parseInt(currentMonthStr.slice(5,7)), 1);
+        var monthEnd = nextMonthDate.toISOString().slice(0, 10);
 
-        const { data: monthSales } = await sbClient.from('sales').select('amount').gte('date', currentMonthStr + '-01').lt('date', monthEnd);
-        const totalMonthSales = monthSales ? monthSales.reduce((a,b) => a + parseFloat(b.amount), 0) : 0;
+        var resMonthSales = await sbClient.from('sales').select('amount').gte('date', currentMonthStr + '-01').lt('date', monthEnd);
+        var monthSalesData = resMonthSales.data || [];
+        var totalMonthSales = monthSalesData.reduce(function(a,b) { return a + parseFloat(b.amount); }, 0);
 
-        // Update Cards
         document.getElementById('dash-today-target').innerText = formatNumber(totalDayTarget);
         document.getElementById('dash-today-achieve').innerText = formatNumber(totalDaySales);
         document.getElementById('dash-today-pct').innerText = totalDayTarget > 0 ? ((totalDaySales/totalDayTarget)*100).toFixed(1) + '%' : '0%';
@@ -770,39 +793,44 @@
         document.getElementById('dash-month-achieve').innerText = formatNumber(totalMonthSales);
         document.getElementById('dash-month-pct').innerText = totalMonthTarget > 0 ? ((totalMonthSales/totalMonthTarget)*100).toFixed(1) + '%' : '0%';
 
-        // Ranking Table
-        const tbody = document.querySelector('#ranking-table tbody');
+        var tbody = document.querySelector('#ranking-table tbody');
         tbody.innerHTML = '';
         
-        const { data: allMonthSales } = await sbClient.from('sales').select('*').gte('date', currentMonthStr+'-01').lt('date', monthEnd);
+        var resAllMonthSales = await sbClient.from('sales').select('*').gte('date', currentMonthStr+'-01').lt('date', monthEnd);
+        var allMonthSales = resAllMonthSales.data || [];
         
-        let rankings = [];
+        var rankings = [];
 
-        const dailyMap = {};
-        if(dTargets) dTargets.forEach(t => {
+        var dailyMap = {};
+        dTargets.forEach(function(t) {
             if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
             dailyMap[t.employee_id] += parseFloat(t.target_amount);
         });
         
-        const manualMap = {};
-        if(mTargets) mTargets.forEach(t => {
+        var manualMap = {};
+        mTargets.forEach(function(t) {
             manualMap[t.employee_id] = parseFloat(t.target_amount);
         });
 
-        employeesCache.forEach(emp => {
-            let finalTarget = 0;
+        employeesCache.forEach(function(emp) {
+            var finalTarget = 0;
             if(isManualMonthlyMode && manualMap[emp.employee_id]) {
                 finalTarget = manualMap[emp.employee_id];
             } else if(dailyMap[emp.employee_id]) {
                 finalTarget = dailyMap[emp.employee_id];
             }
 
-            const mSales = allMonthSales?.filter(s => s.employee_id === emp.employee_id).reduce((sum, s) => sum + parseFloat(s.amount), 0) || 0;
-            const dSales = allMonthSales?.filter(s => s.employee_id === emp.employee_id && s.date === todayStr).reduce((sum, s) => sum + parseFloat(s.amount), 0) || 0;
-            const dTarget = todayTargets?.find(t => t.employee_id === emp.employee_id)?.target_amount || 0;
+            var empMonthSales = allMonthSales.filter(function(s) { return s.employee_id === emp.employee_id; });
+            var mSales = empMonthSales.reduce(function(sum, s) { return sum + parseFloat(s.amount); }, 0);
 
-            const mPct = finalTarget > 0 ? (mSales/finalTarget)*100 : 0;
-            const dPct = dTarget > 0 ? (dSales/dTarget)*100 : 0;
+            var empDaySales = empMonthSales.filter(function(s) { return s.date === todayStr; });
+            var dSales = empDaySales.reduce(function(sum, s) { return sum + parseFloat(s.amount); }, 0);
+
+            var dTargetObj = todayTargets.find(function(t) { return t.employee_id === emp.employee_id; });
+            var dTarget = dTargetObj ? dTargetObj.target_amount : 0;
+
+            var mPct = finalTarget > 0 ? (mSales/finalTarget)*100 : 0;
+            var dPct = dTarget > 0 ? (dSales/dTarget)*100 : 0;
 
             rankings.push({
                 name: emp.name, desig: emp.designation, id: emp.employee_id,
@@ -811,49 +839,63 @@
             });
         });
 
-        rankings.sort((a,b) => b.mPct - a.mPct);
+        rankings.sort(function(a,b) { return b.mPct - a.mPct; });
 
-        rankings.forEach((r, index) => {
-            let rankClass = '', rankIconHtml = '';
+        rankings.forEach(function(r, index) {
+            var rankClass = '', rankIconHtml = '';
             if(index === 0) { rankClass = 'rank-1'; rankIconHtml = '<i class="fa-solid fa-trophy rank-icon"></i>'; }
             else if(index === 1) { rankClass = 'rank-2'; rankIconHtml = '<i class="fa-solid fa-medal rank-icon"></i>'; }
             else if(index === 2) { rankClass = 'rank-3'; rankIconHtml = '<i class="fa-solid fa-medal rank-icon"></i>'; }
-            else { rankIconHtml = `<span style="font-weight:bold; color:#94a3b8;">#${index + 1}</span>`; }
+            else { rankIconHtml = '<span style="font-weight:bold; color:#94a3b8;">#' + (index + 1) + '</span>'; }
 
-            tbody.innerHTML += `
-                <tr class="${rankClass}">
-                    <td>${todayStr}</td>
-                    <td>${rankIconHtml}</td>
-                    <td><b>${r.name}</b></td>
-                    <td>${r.desig}</td>
-                    <td class="text-right">${formatNumber(r.dTarget)}</td>
-                    <td class="text-right">${formatNumber(r.dSales)}</td>
-                    <td class="text-right">${r.dPct.toFixed(1)}%</td>
-                    <td class="text-right">${formatNumber(r.mTarget)}</td>
-                    <td class="text-right">${formatNumber(r.mSales)}</td>
-                    <td class="text-right"><b>${r.mPct.toFixed(1)}%</b></td>
-                </tr>
-            `;
+            var row = '<tr class="' + rankClass + '">';
+            row += '<td>' + todayStr + '</td>';
+            row += '<td>' + rankIconHtml + '</td>';
+            row += '<td><b>' + r.name + '</b></td>';
+            row += '<td>' + r.desig + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.dTarget) + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.dSales) + '</td>';
+            row += '<td class="text-right">' + r.dPct.toFixed(1) + '%</td>';
+            row += '<td class="text-right">' + formatNumber(r.mTarget) + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.mSales) + '</td>';
+            row += '<td class="text-right"><b>' + r.mPct.toFixed(1) + '%</b></td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
         });
     }
 
     // --- 5. OTHER MODULES ---
     async function loadEmployees() {
-        const { data, error } = await sbClient.from('target_employees').select('*').order('id', { ascending: true });
-        if (error) { console.error("Error loading employees:", error); return; }
-        employeesCache = data;
-        const tbody = document.querySelector('#employee-table tbody');
+        var res = await sbClient.from('target_employees').select('*').order('id', { ascending: true });
+        if (res.error) { console.error("Error loading employees:", res.error); return; }
+        employeesCache = res.data || [];
+        var tbody = document.querySelector('#employee-table tbody');
         tbody.innerHTML = '';
-        data.forEach(emp => {
-            tbody.innerHTML += `<tr><td>${emp.name}</td><td>${emp.phone}</td><td>${emp.employee_id}</td><td>${emp.designation}</td><td>${emp.joining_date}</td><td><b>${calculateDaysWorked(emp.joining_date)}</b></td><td><button class="danger" style="padding:6px 12px; font-size:0.8rem; border-radius:4px;" onclick="deleteEmployee(${emp.id})"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+        employeesCache.forEach(function(emp) {
+            var row = '<tr>';
+            row += '<td>' + emp.name + '</td>';
+            row += '<td>' + emp.phone + '</td>';
+            row += '<td>' + emp.employee_id + '</td>';
+            row += '<td>' + emp.designation + '</td>';
+            row += '<td>' + emp.joining_date + '</td>';
+            row += '<td><b>' + calculateDaysWorked(emp.joining_date) + '</b></td>';
+            row += '<td><button class="danger" style="padding:6px 12px; font-size:0.8rem; border-radius:4px;" onclick="deleteEmployee(' + emp.id + ')"><i class="fa-solid fa-trash"></i></button></td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
         });
         populateEmployeeDropdowns();
     }
     async function handleAddEmployee(e) {
         e.preventDefault();
-        const newEmp = { name: document.getElementById('emp-name').value, phone: document.getElementById('emp-phone').value, employee_id: document.getElementById('emp-id-no').value, designation: document.getElementById('emp-designation').value, joining_date: document.getElementById('emp-join-date').value };
-        const { data, error } = await sbClient.from('target_employees').insert([newEmp]);
-        if (error) { console.error("Full Error:", error); alert("Error adding employee: " + error.message); } 
+        var newEmp = { 
+            name: document.getElementById('emp-name').value, 
+            phone: document.getElementById('emp-phone').value, 
+            employee_id: document.getElementById('emp-id-no').value, 
+            designation: document.getElementById('emp-designation').value, 
+            joining_date: document.getElementById('emp-join-date').value 
+        };
+        var res = await sbClient.from('target_employees').insert([newEmp]);
+        if (res.error) { console.error("Full Error:", res.error); alert("Error adding employee: " + res.error.message); } 
         else { showToast("Employee Added!"); e.target.reset(); loadEmployees(); }
     }
     async function deleteEmployee(id) { 
@@ -864,11 +906,12 @@
 
     // SALES
     async function initSalesForm() {
-        document.getElementById('sale-date').value = todayStr; populateEmployeeDropdowns();
+        document.getElementById('sale-date').value = todayStr; 
+        populateEmployeeDropdowns();
     }
     async function handleSaleSubmit(e) {
         e.preventDefault();
-        const saleData = { 
+        var saleData = { 
             invoice_no: document.getElementById('sale-invoice').value, 
             date: document.getElementById('sale-date').value, 
             employee_id: document.getElementById('sale-emp-id').value, 
@@ -876,103 +919,162 @@
             phone: document.getElementById('sale-cust-phone').value, 
             amount: parseFloat(document.getElementById('sale-amount').value) 
         };
-        const { error } = await sbClient.from('sales').insert([saleData]);
-        if (error) { console.error(error); alert("Error: " + error.message); } 
+        var res = await sbClient.from('sales').insert([saleData]);
+        if (res.error) { console.error(res.error); alert("Error: " + res.error.message); } 
         else { showToast("Sale Posted!"); e.target.reset(); initSalesForm(); loadSalesList(); }
     }
     async function loadSalesList() {
-        const empId = document.getElementById('sales-list-emp').value, dateVal = document.getElementById('sales-list-date').value;
-        const tbody = document.querySelector('#sales-list-table tbody'); tbody.innerHTML = '';
-        let query = sbClient.from('sales').select('*').order('date', { ascending: false });
-        if(empId) query = query.eq('employee_id', empId); if(dateVal) query = query.eq('date', dateVal);
-        const { data } = await query;
-        if(!data) return;
-        data.forEach(s => { const emp = employeesCache.find(e => e.employee_id === s.employee_id); tbody.innerHTML += `<tr><td>${s.invoice_no}</td><td>${s.date}</td><td>${emp ? emp.name : s.employee_id}</td><td>${s.customer_name}</td><td class="text-right font-bold">${formatNumber(s.amount)}</td><td><button class="danger" style="padding:4px 8px; font-size:0.75rem; border-radius:4px;" onclick="deleteSale(${s.id})"><i class="fa-solid fa-times"></i></button></td></tr>`; });
+        var empId = document.getElementById('sales-list-emp').value;
+        var dateVal = document.getElementById('sales-list-date').value;
+        var tbody = document.querySelector('#sales-list-table tbody'); 
+        tbody.innerHTML = '';
+        var query = sbClient.from('sales').select('*').order('date', { ascending: false });
+        if(empId) query = query.eq('employee_id', empId); 
+        if(dateVal) query = query.eq('date', dateVal);
+        var res = await query;
+        var data = res.data || [];
+        data.forEach(function(s) { 
+            var emp = employeesCache.find(function(e) { return e.employee_id === s.employee_id; });
+            var row = '<tr>';
+            row += '<td>' + (s.invoice_no || '-') + '</td>';
+            row += '<td>' + s.date + '</td>';
+            row += '<td>' + (emp ? emp.name : s.employee_id) + '</td>';
+            row += '<td>' + (s.customer_name || '-') + '</td>';
+            row += '<td class="text-right font-bold">' + formatNumber(s.amount) + '</td>';
+            row += '<td><button class="danger" style="padding:4px 8px; font-size:0.75rem; border-radius:4px;" onclick="deleteSale(' + s.id + ')"><i class="fa-solid fa-times"></i></button></td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
+        });
     }
     async function deleteSale(id) { if(!confirm("Delete?")) return; await sbClient.from('sales').delete().eq('id', id); loadSalesList(); }
     function resetSalesFilters() { document.getElementById('sales-list-emp').value = ""; document.getElementById('sales-list-date').value = ""; loadSalesList(); }
 
     // DAILY TARGET
-    function updateMonthFromDay() { const v = document.getElementById('day-date').value; if(v) document.getElementById('day-month').value = v.slice(0, 7); }
+    function updateMonthFromDay() { 
+        var v = document.getElementById('day-date').value; 
+        if(v) document.getElementById('day-month').value = v.slice(0, 7); 
+    }
     async function handleDailyTarget(e) {
         e.preventDefault();
-        const d = { employee_id: document.getElementById('day-emp-id').value, date: document.getElementById('day-date').value, month: document.getElementById('day-month').value, target_amount: parseFloat(document.getElementById('day-target').value) };
-        const { error } = await sbClient.from('daily_targets').upsert(d, { onConflict: 'employee_id,date' });
-        if (error) { console.error(error); alert("Error: " + error.message); }
-        else { showToast("Saved!"); e.target.reset(); document.getElementById('day-date').valueAsDate = new Date(); updateMonthFromDay(); if(d.date === document.getElementById('daily-list-date').value) loadDailyTargetList(); }
+        var d = { 
+            employee_id: document.getElementById('day-emp-id').value, 
+            date: document.getElementById('day-date').value, 
+            month: document.getElementById('day-month').value, 
+            target_amount: parseFloat(document.getElementById('day-target').value) 
+        };
+        var res = await sbClient.from('daily_targets').upsert(d, { onConflict: 'employee_id,date' });
+        if (res.error) { console.error(res.error); alert("Error: " + res.error.message); }
+        else { 
+            showToast("Saved!"); 
+            e.target.reset(); 
+            document.getElementById('day-date').value = todayStr; 
+            updateMonthFromDay(); 
+            if(d.date === document.getElementById('daily-list-date').value) loadDailyTargetList(); 
+        }
     }
     async function loadDailyTargetList() {
-        const d = document.getElementById('daily-list-date').value; if(!d) return;
-        const { data: targets } = await sbClient.from('daily_targets').select('*').eq('date', d);
-        const tbody = document.querySelector('#daily-list-table tbody'); tbody.innerHTML = ''; let tt = 0;
-        const { data: daySales } = await sbClient.from('sales').select('*').eq('date', d);
-        if(!targets || targets.length === 0) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-light);">No targets set for this date.</td></tr>';
-        targets.forEach(t => {
+        var d = document.getElementById('daily-list-date').value; 
+        if(!d) return;
+        var resTargets = await sbClient.from('daily_targets').select('*').eq('date', d);
+        var targets = resTargets.data || [];
+        var tbody = document.querySelector('#daily-list-table tbody'); 
+        tbody.innerHTML = ''; 
+        var tt = 0;
+        var resSales = await sbClient.from('sales').select('*').eq('date', d);
+        var daySales = resSales.data || [];
+        if(targets.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-light);">No targets set for this date.</td></tr>';
+        }
+        targets.forEach(function(t) {
             tt += parseFloat(t.target_amount);
-            const emp = employeesCache.find(e => e.employee_id === t.employee_id);
-            const ach = daySales?.filter(s => s.employee_id === t.employee_id).reduce((sum, s) => sum + parseFloat(s.amount), 0) || 0;
-            const pct = t.target_amount > 0 ? ((ach/t.target_amount)*100).toFixed(1) : 0;
-            tbody.innerHTML += `<tr><td>${emp?emp.name:'Unknown'}</td><td>${t.employee_id}</td><td class="text-right">${formatNumber(t.target_amount)}</td><td class="text-right">${formatNumber(ach)}</td><td class="text-right">${pct}%</td></tr>`;
+            var emp = employeesCache.find(function(e) { return e.employee_id === t.employee_id; });
+            var empSales = daySales.filter(function(s) { return s.employee_id === t.employee_id; });
+            var ach = empSales.reduce(function(sum, s) { return sum + parseFloat(s.amount); }, 0);
+            var pct = t.target_amount > 0 ? ((ach/t.target_amount)*100).toFixed(1) : 0;
+            var row = '<tr>';
+            row += '<td>' + (emp ? emp.name : 'Unknown') + '</td>';
+            row += '<td>' + t.employee_id + '</td>';
+            row += '<td class="text-right">' + formatNumber(t.target_amount) + '</td>';
+            row += '<td class="text-right">' + formatNumber(ach) + '</td>';
+            row += '<td class="text-right">' + pct + '%</td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
         });
         document.getElementById('total-day-target-display').innerText = formatNumber(tt);
     }
 
     // MONTHLY TARGET LIST
     async function loadMonthlyTargets() {
-        const month = document.getElementById('summary-month-monthly').value || currentMonthStr;
-        const { dTargets, mTargets } = await getMonthlyTargetData(month);
+        var month = document.getElementById('summary-month-monthly').value || currentMonthStr;
+        var result = await getMonthlyTargetData(month);
+        var dTargets = result.dTargets;
+        var mTargets = result.mTargets;
         
-        const tbody = document.querySelector('#monthly-table tbody'); tbody.innerHTML = '';
+        var tbody = document.querySelector('#monthly-table tbody'); 
+        tbody.innerHTML = '';
         
-        const dailyMap = {};
-        if(dTargets) dTargets.forEach(t => {
+        var dailyMap = {};
+        dTargets.forEach(function(t) {
             if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
             dailyMap[t.employee_id] += parseFloat(t.target_amount);
         });
 
-        const manualMap = {};
-        if(mTargets) mTargets.forEach(t => manualMap[t.employee_id] = parseFloat(t.target_amount));
+        var manualMap = {};
+        mTargets.forEach(function(t) { manualMap[t.employee_id] = parseFloat(t.target_amount); });
 
-        for(const emp of employeesCache) {
-            const finalTarget = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0);
-            
-            const nextMonthDate = new Date(month.slice(0,4), parseInt(month.slice(5,7)), 1);
-            const monthEnd = nextMonthDate.toISOString().slice(0, 10);
+        var nextMonthDate = new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 1);
+        var monthEnd = nextMonthDate.toISOString().slice(0, 10);
 
-            const { data: sData } = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd);
-            const ach = sData ? sData.reduce((sum,x) => sum + parseFloat(x.amount), 0) : 0;
-            const pct = finalTarget > 0 ? ((ach/finalTarget)*100).toFixed(1) : 0;
+        for(var i = 0; i < employeesCache.length; i++) {
+            var emp = employeesCache[i];
+            var finalTarget = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0);
 
-            tbody.innerHTML += `<tr><td>${emp.name}</td><td>${emp.employee_id}</td><td>${month}</td><td class="text-right">${formatNumber(finalTarget)}</td><td class="text-right">${formatNumber(ach)}</td><td class="text-right">${pct}%</td></tr>`;
+            var resS = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd);
+            var sData = resS.data || [];
+            var ach = sData.reduce(function(sum,x) { return sum + parseFloat(x.amount); }, 0);
+            var pct = finalTarget > 0 ? ((ach/finalTarget)*100).toFixed(1) : 0;
+
+            var row = '<tr>';
+            row += '<td>' + emp.name + '</td>';
+            row += '<td>' + emp.employee_id + '</td>';
+            row += '<td>' + month + '</td>';
+            row += '<td class="text-right">' + formatNumber(finalTarget) + '</td>';
+            row += '<td class="text-right">' + formatNumber(ach) + '</td>';
+            row += '<td class="text-right">' + pct + '%</td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
         }
     }
     
     async function handleMonthlyTarget(e) {
         e.preventDefault();
-        const m = document.getElementById('month-selector').value, eid = document.getElementById('month-emp-id').value, t = parseFloat(document.getElementById('month-target').value);
-        const { error } = await sbClient.from('monthly_targets').upsert({ employee_id: eid, month: m, target_amount: t }, { onConflict: 'employee_id,month' });
-        if (error) { console.error(error); alert("Error: " + error.message); }
+        var m = document.getElementById('month-selector').value;
+        var eid = document.getElementById('month-emp-id').value;
+        var t = parseFloat(document.getElementById('month-target').value);
+        var res = await sbClient.from('monthly_targets').upsert({ employee_id: eid, month: m, target_amount: t }, { onConflict: 'employee_id,month' });
+        if (res.error) { console.error(res.error); alert("Error: " + res.error.message); }
         else { showToast("Manual Target Saved!"); loadMonthlyTargets(); loadDashboard(); }
     }
 
     // --- 6. EXPORT FUNCTION ---
     function exportTableToCSV(tableId, filename) {
-        const table = document.getElementById(tableId);
-        const rows = Array.from(table.querySelectorAll('tr'));
+        var table = document.getElementById(tableId);
+        var rows = Array.prototype.slice.call(table.querySelectorAll('tr'));
         
-        const csv = [];
-        for (const row of rows) {
-            const cols = Array.from(row.querySelectorAll('th, td'));
-            const rowData = cols.map(col => {
-                let data = col.innerText.replace(/(\r\n|\n|\r)/gm, ""); // Remove newlines
-                data = '"' + data + '"'; // Quote data
+        var csv = [];
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var cols = Array.prototype.slice.call(row.querySelectorAll('th, td'));
+            var rowData = cols.map(function(col) {
+                var data = col.innerText.replace(/(\r\n|\n|\r)/gm, ""); 
+                data = '"' + data + '"'; 
                 return data;
             });
             csv.push(rowData.join(","));
         }
 
-        const csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
-        const downloadLink = document.createElement("a");
+        var csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+        var downloadLink = document.createElement("a");
         downloadLink.download = filename;
         downloadLink.href = window.URL.createObjectURL(csvFile);
         downloadLink.style.display = "none";
@@ -981,192 +1083,260 @@
         document.body.removeChild(downloadLink);
     }
 
-    // --- 7. REPORTS ---
+    // --- 7. SUMMARY REPORT ---
     async function renderSummaryReport() {
-        const month = document.getElementById('summary-month').value || currentMonthStr;
-        const search = document.getElementById('summary-search').value.toLowerCase();
-        const { dTargets, mTargets } = await getMonthlyTargetData(month);
+        var month = document.getElementById('summary-month').value || currentMonthStr;
+        var empId = document.getElementById('summary-emp-select').value;
+        var result = await getMonthlyTargetData(month);
+        var dTargets = result.dTargets;
+        var mTargets = result.mTargets;
         
-        const dailyMap = {};
-        if(dTargets) dTargets.forEach(t => {
+        var dailyMap = {};
+        dTargets.forEach(function(t) {
             if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
             dailyMap[t.employee_id] += parseFloat(t.target_amount);
         });
         
-        const manualMap = {};
-        if(mTargets) mTargets.forEach(t => manualMap[t.employee_id] = parseFloat(t.target_amount));
+        var manualMap = {};
+        mTargets.forEach(function(t) { manualMap[t.employee_id] = parseFloat(t.target_amount); });
 
-        let emps = employeesCache; if(search) emps = emps.filter(e => e.name.toLowerCase().includes(search));
-        const tbody = document.querySelector('#summary-table tbody'); tbody.innerHTML = '';
+        var emps = employeesCache.slice(); 
+        if(empId) emps = emps.filter(function(e) { return e.employee_id === empId; });
+        
+        var tbody = document.querySelector('#summary-table tbody'); 
+        tbody.innerHTML = '';
 
-        const nextMonthDate = new Date(month.slice(0,4), parseInt(month.slice(5,7)), 1);
-        const monthEnd = nextMonthDate.toISOString().slice(0, 10);
+        var nextMonthDate = new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 1);
+        var monthEnd = nextMonthDate.toISOString().slice(0, 10);
 
-        for(const emp of emps) {
-            const target = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0);
-            const { data: sData } = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd);
-            const ach = sData ? sData.reduce((sum,x) => sum + parseFloat(x.amount), 0) : 0;
-            const pct = target > 0 ? ((ach/target)*100).toFixed(1) : 0;
-            tbody.innerHTML += `<tr><td></td><td>${emp.name}</td><td>${emp.phone}</td><td>${emp.employee_id}</td><td>${emp.designation}</td><td class="text-right">${formatNumber(target)}</td><td class="text-right font-bold">${formatNumber(ach)}</td><td class="text-right">${pct}%</td></tr>`;
+        var dateObj = new Date(month + "-01");
+        var monthName = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        for(var i = 0; i < emps.length; i++) {
+            var emp = emps[i];
+            var target = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0);
+            var resS = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd);
+            var sData = resS.data || [];
+            var ach = sData.reduce(function(sum,x) { return sum + parseFloat(x.amount); }, 0);
+            var pct = target > 0 ? ((ach/target)*100).toFixed(1) : 0;
+
+            var row = '<tr>';
+            row += '<td>' + monthName + '</td>';
+            row += '<td>' + (i + 1) + '</td>';
+            row += '<td>' + emp.name + '</td>';
+            row += '<td>' + emp.phone + '</td>';
+            row += '<td>' + emp.employee_id + '</td>';
+            row += '<td>' + emp.designation + '</td>';
+            row += '<td class="text-right">' + formatNumber(target) + '</td>';
+            row += '<td class="text-right font-bold">' + formatNumber(ach) + '</td>';
+            row += '<td class="text-right">' + pct + '%</td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
         }
     }
 
+    // --- 8. DETAILED REPORT (FILL-FORWARD + RUNNING MTD) ---
     async function renderDetailedReport() {
-        const empId = document.getElementById('det-emp').value;
-        const fromDate = document.getElementById('det-from').value;
-        const toDate = document.getElementById('det-to').value;
+        var empId = document.getElementById('det-emp').value;
+        var fromDate = document.getElementById('det-from').value;
+        var toDate = document.getElementById('det-to').value;
         
         if(!fromDate || !toDate) { alert("Please select date range."); return; }
 
-        const tbody = document.querySelector('#detailed-table tbody'); 
-        tbody.innerHTML = '';
+        var tbody = document.querySelector('#detailed-table tbody'); 
+        tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>';
         
-        // 1. Fetch Targets within range
-        let dQuery = sbClient.from('daily_targets').select('*');
-        dQuery = dQuery.gte('date', fromDate).lte('date', toDate);
+        // 1. Get All Targets in Range
+        var dQuery = sbClient.from('daily_targets').select('*').gte('date', fromDate).lte('date', toDate).order('date', { ascending: true });
         if(empId) dQuery = dQuery.eq('employee_id', empId);
-        const { data: dTargetsList } = await dQuery;
+        var resTargets = await dQuery;
+        var allTargetsInRange = resTargets.data || [];
 
-        // 2. Fetch ALL Sales within the selected range (for Day Sales calculation)
-        let sQuery = sbClient.from('sales').select('*');
-        sQuery = sQuery.gte('date', fromDate).lte('date', toDate);
+        // 2. Get All Sales in Range
+        var sQuery = sbClient.from('sales').select('*').gte('date', fromDate).lte('date', toDate).order('date', { ascending: true });
         if(empId) sQuery = sQuery.eq('employee_id', empId);
-        const { data: rangeSales } = await sQuery;
+        var resSales = await sQuery;
+        var rangeSales = resSales.data || [];
 
-        // 3. Calculate Monthly Targets for the months present in the range
-        const monthSet = new Set();
-        dTargetsList.forEach(t => monthSet.add(t.date.slice(0, 7)));
-        
-        const monthlyTargetMap = {}; // key: employee_id_month, value: target amount
-
-        for (const m of monthSet) {
-            // Get targets for this month
-            const startM = m + '-01';
-            const nextMonthDate = new Date(m.slice(0,4), parseInt(m.slice(5,7)), 1);
-            const endM = nextMonthDate.toISOString().slice(0, 10);
-
-            // Fetch Daily Targets for the month to sum up (if auto) or Manual Targets (if manual)
-            const { dTargets, mTargets } = await getMonthlyTargetData(m);
-
-            // Helper to get target for an emp in this month
-            const getMonthTargetForEmp = (eId) => {
-                if(isManualMonthlyMode) {
-                    const manual = mTargets.find(mt => mt.employee_id === eId);
-                    return manual ? parseFloat(manual.target_amount) : 0;
-                } else {
-                    const sum = dTargets
-                        .filter(dt => dt.employee_id === eId)
-                        .reduce((acc, curr) => acc + parseFloat(curr.target_amount), 0);
-                    return sum;
-                }
-            };
-
-            // We need to know which employees are involved in this report for this month
-            // Employees involved can be from Targets OR Sales
-            const involvedEmpIds = new Set();
-            dTargetsList.forEach(t => {
-                if(t.date.startsWith(m)) involvedEmpIds.add(t.employee_id);
-            });
-            rangeSales.forEach(s => {
-                if(s.date.startsWith(m)) involvedEmpIds.add(s.employee_id);
-            });
-
-            involvedEmpIds.forEach(eId => {
-                monthlyTargetMap[`${eId}_${m}`] = getMonthTargetForEmp(eId);
-            });
+        // 3. Generate ALL dates in range (chronological)
+        var dateList = [];
+        var cur = new Date(fromDate + 'T00:00:00');
+        var endDt = new Date(toDate + 'T00:00:00');
+        while (cur <= endDt) {
+            dateList.push(cur.toISOString().split('T')[0]);
+            cur.setDate(cur.getDate() + 1);
         }
 
-        let rows = [];
+        // 4. Build Target lookup Map (key: "employeeId_date")
+        var targetMap = new Map();
+        allTargetsInRange.forEach(function(t) {
+            targetMap.set(t.employee_id + '_' + t.date, parseFloat(t.target_amount));
+        });
+
+        // 5. Build Sales lookup Map (key: "employeeId_date" -> total sales that day)
+        var salesMap = new Map();
+        rangeSales.forEach(function(s) {
+            var key = s.employee_id + '_' + s.date;
+            var currentVal = salesMap.get(key) || 0;
+            salesMap.set(key, currentVal + parseFloat(s.amount));
+        });
+
+        // 6. Process chronologically with fill-forward targets and running MTD accumulators
+        var lastKnownTarget = new Map();   // empId -> last target value seen
+        var mtdTargetMap = new Map();      // "empId_month" -> running MTD target sum
+        var mtdSalesMap = new Map();       // "empId_month" -> running MTD sales sum
+        var prevMonth = new Map();         // empId -> last month string processed (for reset)
         
-        // Pre-calc range sales for performance
-        // Map: empId -> Array of sales
-        const empSalesMap = {};
-        rangeSales.forEach(s => {
-            if(!empSalesMap[s.employee_id]) empSalesMap[s.employee_id] = [];
-            empSalesMap[s.employee_id].push(s);
-        });
+        var rows = [];
 
-        dTargetsList.forEach(t => {
-            const emp = employeesCache.find(e => e.employee_id === t.employee_id);
-            const empName = emp ? emp.name : t.employee_id;
-            
-            // Day Target
-            const dt = parseFloat(t.target_amount);
+        for(var d = 0; d < dateList.length; d++) {
+            var date = dateList[d];
+            var mStr = date.slice(0, 7);
 
-            // Day Sales (Sum of sales for this employee on this specific date)
-            const daySalesList = (empSalesMap[t.employee_id] || []).filter(s => s.date === t.date);
-            const ds = daySalesList.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+            for(var e = 0; e < employeesCache.length; e++) {
+                var emp = employeesCache[e];
+                if(empId && emp.employee_id !== empId) continue;
 
-            // Day %
-            const dp = dt > 0 ? ((ds/dt)*100).toFixed(1) : "0.0";
+                var empKey = emp.employee_id;
+                var mKey = empKey + '_' + mStr;
 
-            // Short / Excess
-            const diff = ds - dt;
+                // --- FILL-FORWARD TARGET ---
+                // If a target entry exists for this employee on this date, update the last known target
+                var targetKey = empKey + '_' + date;
+                if (targetMap.has(targetKey)) {
+                    lastKnownTarget.set(empKey, targetMap.get(targetKey));
+                }
+                var effectiveTarget = lastKnownTarget.get(empKey) || 0;
 
-            const mStr = t.date.slice(0, 7); // YYYY-MM
-            
-            // Total Mth Target (from our calculated map)
-            const mt = monthlyTargetMap[`${t.employee_id}_${mStr}`] || 0;
+                // --- MONTH RESET for MTD accumulators ---
+                var pm = prevMonth.get(empKey);
+                if (pm !== mStr) {
+                    mtdTargetMap.set(mKey, 0);
+                    mtdSalesMap.set(mKey, 0);
+                    prevMonth.set(empKey, mStr);
+                }
 
-            // Total Mth Ach. (Total sales for employee in selected range)
-            const totalRangeSales = (empSalesMap[t.employee_id] || [])
-                .filter(s => s.date >= fromDate && s.date <= toDate)
-                .reduce((sum, s) => sum + parseFloat(s.amount), 0);
-            
-            // Total Mth %
-            const mp = mt > 0 ? ((totalRangeSales/mt)*100).toFixed(1) : "0.0";
+                // --- RUNNING MTD TARGET (sum of effective daily targets from month start to this date) ---
+                var currentMtdTarget = (mtdTargetMap.get(mKey) || 0) + effectiveTarget;
+                mtdTargetMap.set(mKey, currentMtdTarget);
 
-            rows.push({ 
-                m: mStr, 
-                d: t.date, 
-                day: getDayName(t.date), 
-                dt: dt, 
-                ds: ds, 
-                dp: dp, 
-                diff: diff, 
-                en: empName, 
-                mt: mt, 
-                ms: totalRangeSales, 
-                mp: mp 
-            });
-        });
+                // --- RUNNING MTD SALES (sum of daily sales from month start to this date) ---
+                var todaySales = salesMap.get(empKey + '_' + date) || 0;
+                var currentMtdSales = (mtdSalesMap.get(mKey) || 0) + todaySales;
+                mtdSalesMap.set(mKey, currentMtdSales);
 
-        // Sort by date descending
-        rows.sort((a,b) => new Date(b.d) - new Date(a.d));
+                // --- BUILD ROW ---
+                var saleDate = todaySales > 0 ? date : '-';
+                var saleDay = todaySales > 0 ? getDayName(date) : '-';
+                var dayPct = effectiveTarget > 0 ? ((todaySales / effectiveTarget) * 100).toFixed(1) : "0.0";
+                var dailyShortExcess = todaySales - effectiveTarget;
+                var mtdPct = currentMtdTarget > 0 ? ((currentMtdSales / currentMtdTarget) * 100).toFixed(1) : "0.0";
+                var monthShortExcess = currentMtdSales - currentMtdTarget;
 
-        rows.forEach(r => {
-            const diffStyle = r.diff >= 0 ? 'color:var(--success); font-weight:600;' : 'color:var(--danger); font-weight:600;';
-            tbody.innerHTML += `
-                <tr>
-                    <td>${r.m}</td>
-                    <td>${r.d}</td>
-                    <td>${r.day}</td>
-                    <td class="text-right">${formatNumber(r.dt)}</td>
-                    <td class="text-right">${formatNumber(r.ds)}</td>
-                    <td class="text-right">${r.dp}%</td>
-                    <td class="text-right" style="${diffStyle}">${formatNumber(r.diff)}</td>
-                    <td>${r.en}</td>
-                    <td class="text-right">${formatNumber(r.mt)}</td>
-                    <td class="text-right">${formatNumber(r.ms)}</td>
-                    <td class="text-right">${r.mp}%</td>
-                </tr>`;
-        });
+                rows.push({ 
+                    en: emp.name,
+                    m: mStr,
+                    dt_date: date,
+                    dt_day: getDayName(date),
+                    dt: effectiveTarget,
+                    ds_date: saleDate,
+                    ds_day: saleDay,
+                    ds: todaySales,
+                    dp: dayPct,
+                    d_diff: dailyShortExcess,
+                    mt: currentMtdTarget,
+                    ms: currentMtdSales,
+                    mp: mtdPct,
+                    m_diff: monthShortExcess
+                });
+            }
+        }
+
+        // Save to global state for pagination
+        detailedReportData = rows;
+        currentPage = 1;
+        renderDetailedPage();
     }
 
-    function populateMonthSelector(elId) { const el = document.getElementById(elId); if(el) el.value = currentMonthStr; }
+    // --- 9. PAGINATION LOGIC ---
+    function renderDetailedPage() {
+        var tbody = document.querySelector('#detailed-table tbody');
+        tbody.innerHTML = '';
+
+        if (detailedReportData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding:20px;">No data found for this range.</td></tr>';
+            document.getElementById('pagination-container').classList.add('hidden');
+            return;
+        }
+
+        var startIndex = (currentPage - 1) * rowsPerPage;
+        var endIndex = startIndex + rowsPerPage;
+        var pageData = detailedReportData.slice(startIndex, endIndex);
+
+        for (var i = 0; i < pageData.length; i++) {
+            var r = pageData[i];
+            var dailyDiffStyle = r.d_diff >= 0 ? 'color:var(--success); font-weight:600;' : 'color:var(--danger); font-weight:600;';
+            var monthDiffStyle = r.m_diff >= 0 ? 'color:var(--success); font-weight:600;' : 'color:var(--danger); font-weight:600;';
+
+            var row = '<tr>';
+            row += '<td><b>' + r.en + '</b></td>';
+            row += '<td>' + r.m + '</td>';
+            row += '<td>' + r.dt_date + '</td>';
+            row += '<td>' + r.dt_day + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.dt) + '</td>';
+            row += '<td>' + r.ds_date + '</td>';
+            row += '<td>' + r.ds_day + '</td>';
+            row += '<td class="text-right font-bold">' + formatNumber(r.ds) + '</td>';
+            row += '<td class="text-right">' + r.dp + '%</td>';
+            row += '<td class="text-right" style="' + dailyDiffStyle + '">' + formatNumber(r.d_diff) + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.mt) + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.ms) + '</td>';
+            row += '<td class="text-right">' + r.mp + '%</td>';
+            row += '<td class="text-right" style="' + monthDiffStyle + '">' + formatNumber(r.m_diff) + '</td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
+        }
+
+        var totalPages = Math.ceil(detailedReportData.length / rowsPerPage);
+        var paginationContainer = document.getElementById('pagination-container');
+        
+        document.getElementById('page-info').innerText = 'Page ' + currentPage + ' of ' + totalPages;
+        document.getElementById('prev-page').disabled = currentPage === 1;
+        document.getElementById('next-page').disabled = currentPage === totalPages;
+
+        paginationContainer.classList.remove('hidden');
+    }
+
+    function changePage(delta) {
+        currentPage += delta;
+        renderDetailedPage();
+    }
+
     function populateEmployeeDropdowns() {
-        const ids = ['month-emp-select', 'day-emp-select', 'sale-emp-select', 'det-emp', 'sales-list-emp'];
-        ids.forEach(id => {
-            const el = document.getElementById(id); if(!el) return;
-            const v = el.value;
-            el.innerHTML = id==='det-emp'||id==='sales-list-emp'?'<option value="">All Employees</option>':'<option value="">Select Employee</option>';
-            employeesCache.forEach(e => { const o = document.createElement('option'); o.value=e.employee_id; o.innerText=`${e.name} (${e.employee_id})`; el.appendChild(o); });
+        var ids = ['month-emp-select', 'day-emp-select', 'sale-emp-select', 'det-emp', 'sales-list-emp', 'summary-emp-select'];
+        ids.forEach(function(id) {
+            var el = document.getElementById(id); 
+            if(!el) return;
+            var v = el.value;
+            var isAll = (id === 'det-emp' || id === 'sales-list-emp' || id === 'summary-emp-select');
+            el.innerHTML = isAll ? '<option value="">All Employees</option>' : '<option value="">Select Employee</option>';
+            employeesCache.forEach(function(emp) { 
+                var o = document.createElement('option'); 
+                o.value = emp.employee_id; 
+                o.innerText = emp.name + ' (' + emp.employee_id + ')'; 
+                el.appendChild(o); 
+            });
             el.value = v;
         });
     }
     function autoFillEmpData(sid, iid, did) {
-        const s = document.getElementById(sid), eid = s.value, e = employeesCache.find(x => x.employee_id === eid);
-        if(e) { if(iid) document.getElementById(iid).value = e.employee_id; if(did) document.getElementById(did).value = e.designation; }
+        var s = document.getElementById(sid);
+        var eid = s.value;
+        var emp = employeesCache.find(function(x) { return x.employee_id === eid; });
+        if(emp) { 
+            if(iid) document.getElementById(iid).value = emp.employee_id; 
+            if(did) document.getElementById(did).value = emp.designation; 
+        }
     }
 </script>
 </body>
