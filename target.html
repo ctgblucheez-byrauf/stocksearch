@@ -627,6 +627,15 @@
     var currentMonthStr = todayStr.slice(0, 7); 
 
     // --- 2. UTILITY FUNCTIONS ---
+    
+    // FIX: Safe local date string generator (prevents timezone UTC shift bugs)
+    function toLocalDateStr(dateObj) {
+        var y = dateObj.getFullYear();
+        var m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        var d = String(dateObj.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+    }
+
     function showToast(msg) {
         var t = document.getElementById("toast");
         document.getElementById('toast-msg').innerText = msg;
@@ -685,7 +694,7 @@
     }
     function getDayName(dateStr) {
         var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        return days[new Date(dateStr).getDay()];
+        return days[new Date(dateStr + 'T00:00:00').getDay()];
     }
 
     // Toggle Logic
@@ -743,7 +752,8 @@
     async function getMonthlyTargetData(monthStr) {
         var start = monthStr + '-01';
         var nextMonthDate = new Date(parseInt(monthStr.slice(0,4)), parseInt(monthStr.slice(5,7)), 1);
-        var end = nextMonthDate.toISOString().slice(0, 10); 
+        // FIX: Use toLocalDateStr to prevent UTC shift
+        var end = toLocalDateStr(nextMonthDate); 
 
         var res1 = await sbClient.from('daily_targets').select('*').gte('date', start).lt('date', end);
         var dTargets = res1.data || [];
@@ -779,7 +789,8 @@
         var totalDaySales = daySalesData.reduce(function(a,b) { return a + parseFloat(b.amount); }, 0);
         
         var nextMonthDate = new Date(parseInt(currentMonthStr.slice(0,4)), parseInt(currentMonthStr.slice(5,7)), 1);
-        var monthEnd = nextMonthDate.toISOString().slice(0, 10);
+        // FIX: Use toLocalDateStr to prevent UTC shift
+        var monthEnd = toLocalDateStr(nextMonthDate);
 
         var resMonthSales = await sbClient.from('sales').select('amount').gte('date', currentMonthStr + '-01').lt('date', monthEnd);
         var monthSalesData = resMonthSales.data || [];
@@ -1023,7 +1034,8 @@
         mTargets.forEach(function(t) { manualMap[t.employee_id] = parseFloat(t.target_amount); });
 
         var nextMonthDate = new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 1);
-        var monthEnd = nextMonthDate.toISOString().slice(0, 10);
+        // FIX: Use toLocalDateStr to prevent UTC shift
+        var monthEnd = toLocalDateStr(nextMonthDate);
 
         for(var i = 0; i < employeesCache.length; i++) {
             var emp = employeesCache[i];
@@ -1107,7 +1119,8 @@
         tbody.innerHTML = '';
 
         var nextMonthDate = new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 1);
-        var monthEnd = nextMonthDate.toISOString().slice(0, 10);
+        // FIX: Use toLocalDateStr to prevent UTC shift
+        var monthEnd = toLocalDateStr(nextMonthDate);
 
         var dateObj = new Date(month + "-01");
         var monthName = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -1159,11 +1172,12 @@
         var rangeSales = resSales.data || [];
 
         // 3. Generate ALL dates in range (chronological)
+        // FIX: Use toLocalDateStr to prevent UTC shift
         var dateList = [];
         var cur = new Date(fromDate + 'T00:00:00');
         var endDt = new Date(toDate + 'T00:00:00');
         while (cur <= endDt) {
-            dateList.push(cur.toISOString().split('T')[0]);
+            dateList.push(toLocalDateStr(cur));
             cur.setDate(cur.getDate() + 1);
         }
 
