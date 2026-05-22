@@ -1181,9 +1181,28 @@
             salesMap.set(key, currentVal + parseFloat(s.amount));
         });
 
-        // 6. Process chronologically with fill-forward targets and running MTD accumulators
+        // 6. Fetch Monthly Targets if Manual Mode is ON
+        var manualTargetMap = new Map();
+        if (isManualMonthlyMode) {
+            var uniqueMonths = [];
+            for (var i = 0; i < dateList.length; i++) {
+                var m = dateList[i].slice(0, 7);
+                if (uniqueMonths.indexOf(m) === -1) uniqueMonths.push(m);
+            }
+            
+            var mQuery = sbClient.from('monthly_targets').select('*').in('month', uniqueMonths);
+            if(empId) mQuery = mQuery.eq('employee_id', empId);
+            var resManual = await mQuery;
+            var manualData = resManual.data || [];
+            
+            manualData.forEach(function(t) {
+                manualTargetMap.set(t.employee_id + '_' + t.month, parseFloat(t.target_amount));
+            });
+        }
+
+        // 7. Process chronologically with fill-forward targets and running MTD accumulators
         var lastKnownTarget = new Map();   // empId -> last target value seen
-        var mtdTargetMap = new Map();      // "empId_month" -> running MTD target sum
+        var mtdTargetMap = new Map();      // "empId_month" -> running MTD target sum (used ONLY when toggle is OFF)
         var mtdSalesMap = new Map();       // "empId_month" -> running MTD sales sum
         var prevMonth = new Map();         // empId -> last month string processed (for reset)
         
@@ -1201,7 +1220,6 @@
                 var mKey = empKey + '_' + mStr;
 
                 // --- FILL-FORWARD TARGET ---
-                // If a target entry exists for this employee on this date, update the last known target
                 var targetKey = empKey + '_' + date;
                 if (targetMap.has(targetKey)) {
                     lastKnownTarget.set(empKey, targetMap.get(targetKey));
@@ -1211,14 +1229,21 @@
                 // --- MONTH RESET for MTD accumulators ---
                 var pm = prevMonth.get(empKey);
                 if (pm !== mStr) {
-                    mtdTargetMap.set(mKey, 0);
+                    if (!isManualMonthlyMode) mtdTargetMap.set(mKey, 0);
                     mtdSalesMap.set(mKey, 0);
                     prevMonth.set(empKey, mStr);
                 }
 
-                // --- RUNNING MTD TARGET (sum of effective daily targets from month start to this date) ---
-                var currentMtdTarget = (mtdTargetMap.get(mKey) || 0) + effectiveTarget;
-                mtdTargetMap.set(mKey, currentMtdTarget);
+                // --- TOTAL MTH TARGET LOGIC BASED ON TOGGLE ---
+                var currentMtdTarget = 0;
+                if (isManualMonthlyMode) {
+                    // Toggle ON: Use static value from monthly_targets table
+                    currentMtdTarget = manualTargetMap.get(mKey) || 0;
+                } else {
+                    // Toggle OFF: Use running sum of daily targets (fill-forward)
+                    currentMtdTarget = (mtdTargetMap.get(mKey) || 0) + effectiveTarget;
+                    mtdTargetMap.set(mKey, currentMtdTarget);
+                }
 
                 // --- RUNNING MTD SALES (sum of daily sales from month start to this date) ---
                 var todaySales = salesMap.get(empKey + '_' + date) || 0;
