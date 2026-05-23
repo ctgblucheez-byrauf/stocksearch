@@ -396,7 +396,7 @@
             <!-- QUICK ENTRY BUTTON -->
             <button id="quick-entry-btn" onclick="openQuickEntryModal()">
                 <i class="fa-solid fa-plus"></i>
-                <span>+ Entry</span>
+                <span>Entry</span>
             </button>
 
             <!-- SETTINGS BUTTON -->
@@ -1052,16 +1052,28 @@
         var dTargets = result.dTargets;
         var mTargets = result.mTargets;
 
-        // Carry-forward logic: fetch ALL targets from month start up to today,
-        // then for each employee use the most recent entry on or before today.
+        // Carry-forward logic: seed from the most recent target entry before the
+        // current month (in case no entry exists yet this month), then overwrite
+        // with any entries from month-start up to today — last value per employee wins.
+        var resPreMonth = await sbClient.from('daily_targets').select('*')
+            .lt('date', currentMonthStr + '-01')
+            .order('date', { ascending: false });
+        var preMonthTargets = resPreMonth.data || [];
+
+        var latestTargetMap = {};
+        // Seed with pre-month values (desc order → first hit per employee = most recent)
+        preMonthTargets.forEach(function(t) {
+            if (!(t.employee_id in latestTargetMap)) {
+                latestTargetMap[t.employee_id] = parseFloat(t.target_amount);
+            }
+        });
+
+        // Then overwrite with anything from month-start up to today (asc → last wins)
         var resAllToday = await sbClient.from('daily_targets').select('*')
             .gte('date', currentMonthStr + '-01')
             .lte('date', todayStr)
             .order('date', { ascending: true });
         var allTargetsToToday = resAllToday.data || [];
-
-        // Build a map of empId -> latest target amount (last entry wins since sorted asc)
-        var latestTargetMap = {};
         allTargetsToToday.forEach(function(t) {
             latestTargetMap[t.employee_id] = parseFloat(t.target_amount);
         });
@@ -1466,7 +1478,21 @@
             manualData.forEach(function(t) { manualTargetMap.set(t.employee_id + '_' + t.month, parseFloat(t.target_amount)); });
         }
 
+        // Seed carry-forward: for each employee fetch their single most recent target
+        // entry that exists BEFORE the range start date. This ensures that if the
+        // search window begins after the last target was set, we still start with
+        // the correct carried-forward value rather than zero.
         var lastKnownTarget = new Map();
+        var preQuery = sbClient.from('daily_targets').select('*').lt('date', fromDate).order('date', { ascending: false });
+        if(empId) preQuery = preQuery.eq('employee_id', empId);
+        var resPreTargets = await preQuery;
+        var preTargets = resPreTargets.data || [];
+        // Sorted descending — first occurrence per employee is the most recent one
+        preTargets.forEach(function(t) {
+            if (!lastKnownTarget.has(t.employee_id)) {
+                lastKnownTarget.set(t.employee_id, parseFloat(t.target_amount));
+            }
+        });
         var mtdTargetMap = new Map();
         var mtdSalesMap = new Map();
         var prevMonth = new Map();
