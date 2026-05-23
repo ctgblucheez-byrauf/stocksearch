@@ -1052,8 +1052,28 @@
         var dTargets = result.dTargets;
         var mTargets = result.mTargets;
 
-        var resToday = await sbClient.from('daily_targets').select('*').eq('date', todayStr);
-        var todayTargets = resToday.data || [];
+        // Carry-forward logic: fetch ALL targets from month start up to today,
+        // then for each employee use the most recent entry on or before today.
+        var resAllToday = await sbClient.from('daily_targets').select('*')
+            .gte('date', currentMonthStr + '-01')
+            .lte('date', todayStr)
+            .order('date', { ascending: true });
+        var allTargetsToToday = resAllToday.data || [];
+
+        // Build a map of empId -> latest target amount (last entry wins since sorted asc)
+        var latestTargetMap = {};
+        allTargetsToToday.forEach(function(t) {
+            latestTargetMap[t.employee_id] = parseFloat(t.target_amount);
+        });
+
+        // Synthesise a "todayTargets" array using carry-forward values
+        var todayTargets = employeesCache.map(function(emp) {
+            return {
+                employee_id: emp.employee_id,
+                target_amount: latestTargetMap[emp.employee_id] || 0
+            };
+        }).filter(function(t) { return t.target_amount > 0; });
+
         var totalDayTarget = todayTargets.reduce(function(a,b) { return a + parseFloat(b.target_amount); }, 0);
 
         var totalMonthTarget = 0;
