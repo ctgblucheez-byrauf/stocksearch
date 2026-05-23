@@ -3,43 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blucheez ERP | Auto-Target System</title>
+    <title>Sales Target Tracking | Auto-Target System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     
     <style>
         :root {
-            --primary: #2563eb; --primary-hover: #1d4ed8; --secondary: #1e40af;
-            --bg: #f3f4f6; --white: #ffffff; --text: #1f2937; --text-light: #64748b;
-            --border: #e2e8f0; --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
-            --gold: #fbbf24; --silver: #94a3b8; --bronze: #b45309;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #1e40af;
+            --bg: #f3f4f6;
+            --white: #ffffff;
+            --text: #1f2937;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gold: #fbbf24;
+            --silver: #94a3b8;
+            --bronze: #b45309;
         }
+
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
         body { background-color: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
 
         aside { width: 260px; background: var(--white); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; transition: transform 0.3s ease; }
-        .brand { padding: 24px 20px; font-size: 1.25rem; font-weight: 700; color: var(--primary); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+        .brand { padding: 24px 20px; font-size: 1.25rem; font-weight: 700; color: var(--primary); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; letter-spacing: -0.025em; }
         .brand i { font-size: 1.4rem; }
+        
         .nav-menu { flex: 1; padding: 20px 10px; overflow-y: auto; }
-        .nav-item { padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: var(--text-light); border-radius: 8px; transition: all 0.2s ease; font-weight: 500; font-size: 0.9rem; margin-bottom: 4px; }
-        .nav-item i { width: 20px; text-align: center; }
+        .nav-item { 
+            padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+            color: var(--text-light); border-radius: 8px; transition: all 0.2s ease;
+            font-weight: 500; font-size: 0.9rem; margin-bottom: 4px;
+        }
+        .nav-item i { width: 20px; text-align: center; font-size: 1rem; }
         .nav-item:hover { background-color: #f8fafc; color: var(--primary); }
-        .nav-item.active { background-color: #eff6ff; color: var(--primary); font-weight: 600; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+        .nav-item.active { background-color: #eff6ff; color: var(--primary); font-weight: 600; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
         
         main { flex: 1; overflow-y: auto; padding: 24px; position: relative; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
         h1 { font-size: 1.5rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 10px; }
         
         .settings-wrapper { position: relative; }
-        #settings-btn, #quick-entry-btn { border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        #settings-btn { background: var(--white); color: var(--text-light); }
+        #settings-btn {
+            background: var(--white); border: 1px solid var(--border);
+            color: var(--text-light); padding: 10px 16px; border-radius: 8px;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
+            font-weight: 600; font-size: 0.9rem; transition: 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
         #settings-btn:hover { background: #f8fafc; color: var(--primary); border-color: var(--primary); transform: translateY(-1px); }
-        
-        #quick-entry-btn { background: var(--success); color: white; border-color: var(--success); }
-        #quick-entry-btn:hover { background: #059669; border-color: #059669; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); }
-        #quick-entry-btn:active, #settings-btn:active { transform: translateY(0); }
+        #settings-btn:active { transform: translateY(0); }
 
-        #settings-menu { position: absolute; top: 100%; right: 0; background: var(--white); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 300px; padding: 20px; margin-top: 12px; display: none; z-index: 50; }
+        #settings-menu {
+            position: absolute; top: 100%; right: 0;
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 300px; padding: 20px; margin-top: 12px;
+            display: none; z-index: 50;
+        }
         #settings-menu.show { display: block; animation: fadeIn 0.2s ease; }
 
         .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
@@ -56,25 +80,42 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border); position: relative; overflow: hidden; }
+        .card { 
+            background: var(--white); padding: 20px; border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border);
+            position: relative; overflow: hidden;
+        }
         .card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
         .card.today::before { background-color: var(--success); }
         .card.month::before { background-color: var(--secondary); }
+
         .card-label { font-size: 0.75rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
         .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text); }
         .sub-text { font-size: 0.8rem; color: var(--text-light); margin-top: 6px; opacity: 0.8; }
 
         .form-container { background: var(--white); padding: 24px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .form-container h3 { margin-bottom: 20px; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 10px; }
+        
         .filter-bar { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid var(--border); }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; }
         .form-group { margin-bottom: 5px; }
+        
         label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-light); font-weight: 600; }
-        input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; outline: none; transition: border 0.2s, box-shadow 0.2s; background: #fff; }
+        input, select { 
+            width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; 
+            font-size: 0.9rem; outline: none; transition: border 0.2s, box-shadow 0.2s; background: #fff; 
+        }
         input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
-        button { background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; justify-content: center; text-decoration: none; }
+        button { 
+            background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 6px; 
+            cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 0.9rem; 
+            display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+            text-decoration: none;
+        }
         button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button:active { transform: translateY(0); }
+        
         button.secondary { background: var(--white); color: var(--text); border: 1px solid var(--border); }
         button.secondary:hover { background: #f8fafc; border-color: var(--text-light); }
         button.danger { background: var(--danger); color: white; }
@@ -86,12 +127,20 @@
         th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; white-space: nowrap; }
         th { background: #f8fafc; font-weight: 600; color: var(--text-light); position: sticky; top: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
         tr:hover { background: #f8fafc; }
+        tr:last-child td { border-bottom: none; }
+        
         .text-right { text-align: right; }
         .font-bold { font-weight: 700; }
+        
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .bg-good { background: #d1fae5; color: #065f46; }
+        .bg-avg { background: #fef3c7; color: #92400e; }
+        .bg-low { background: #fee2e2; color: #991b1b; }
 
         .rank-1 { border-left: 4px solid var(--gold); background: linear-gradient(to right, #fffbeb, #ffffff); }
         .rank-2 { border-left: 4px solid var(--silver); background: linear-gradient(to right, #f8fafc, #ffffff); }
         .rank-3 { border-left: 4px solid var(--bronze); background: linear-gradient(to right, #fff7ed, #ffffff); }
+        
         .rank-icon { font-size: 1.2rem; }
         .rank-1 .rank-icon { color: var(--gold); }
         .rank-2 .rank-icon { color: var(--silver); }
@@ -100,65 +149,257 @@
         .pagination-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; }
         .page-btn { padding: 6px 12px; border: 1px solid var(--border); background: var(--white); border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
         .page-btn:hover:not(:disabled) { background: #f1f5f9; border-color: var(--text-light); }
+        .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
         .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        #toast { visibility: hidden; min-width: 280px; background-color: #1e293b; color: #fff; text-align: center; border-radius: 8px; padding: 14px 20px; position: fixed; z-index: 2000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 0.95rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; justify-content: center; }
+        #toast { visibility: hidden; min-width: 280px; background-color: #1e293b; color: #fff; text-align: center; border-radius: 8px; padding: 14px 20px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 0.95rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: flex; align-items: center; gap: 10px; justify-content: center; }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0; transform: translate(-50%, 20px);} to {bottom: 30px; opacity: 1; transform: translate(-50%, 0);} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1; transform: translate(-50%, 0);} to {bottom: 0; opacity: 0; transform: translate(-50%, 20px);} }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1500; transition: opacity 0.2s ease; }
-        .modal-container { background: var(--white); border-radius: 16px; width: 90%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); transform: scale(0.9); opacity: 0; }
-        @keyframes modalPop { to { transform: scale(1); opacity: 1; } }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border); }
-        .modal-header h3 { margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
-        .modal-close-btn { background: none; border: none; font-size: 1.25rem; color: var(--text-light); cursor: pointer; padding: 4px; border-radius: 4px; transition: 0.2s; }
-        .modal-close-btn:hover { background: #f1f5f9; color: var(--text); }
-        .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; background: #f8fafc; border-radius: 0 0 16px 16px; }
-
         .hidden { display: none !important; }
+
+        /* ===== QUICK ENTRY BUTTON ===== */
+        #quick-entry-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+            transition: all 0.2s ease;
+            letter-spacing: 0.01em;
+        }
+        #quick-entry-btn:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+        }
+        #quick-entry-btn:active { transform: translateY(0); box-shadow: 0 1px 4px rgba(16,185,129,0.3); }
+        #quick-entry-btn i { font-size: 0.95rem; }
+
+        /* ===== MODAL OVERLAY ===== */
+        #quick-entry-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #quick-entry-overlay.open {
+            display: flex;
+            animation: overlayIn 0.2s ease;
+        }
+        @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ===== MODAL CARD ===== */
+        #quick-entry-modal {
+            background: var(--white);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+            animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.92) translateY(20px); }
+            to   { opacity: 1; transform: scale(1)    translateY(0); }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+            padding: 22px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-header-left { display: flex; align-items: center; gap: 12px; }
+        .modal-header-icon {
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; color: white;
+        }
+        .modal-title { font-size: 1.1rem; font-weight: 700; color: white; letter-spacing: -0.02em; }
+        .modal-subtitle { font-size: 0.78rem; color: rgba(255,255,255,0.75); margin-top: 2px; }
+        .modal-close {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+            padding: 0;
+            box-shadow: none;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.28); transform: none; box-shadow: none; }
+
+        .modal-body { padding: 24px; }
+
+        .modal-field { margin-bottom: 18px; }
+        .modal-field label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .modal-field input,
+        .modal-field select {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.92rem;
+            color: var(--text);
+            background: #f8fafc;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+        .modal-field input:focus,
+        .modal-field select:focus {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .modal-field .optional-tag {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            font-weight: 400;
+            text-transform: none;
+            margin-left: 4px;
+        }
+
+        .modal-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        .modal-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0 20px; }
+
+        .modal-footer {
+            padding: 16px 24px 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+        }
+        #modal-cancel-btn {
+            background: var(--white);
+            color: var(--text-light);
+            border: 1.5px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex; align-items: center; gap: 7px;
+            transition: 0.2s;
+            box-shadow: none;
+        }
+        #modal-cancel-btn:hover { background: #f1f5f9; border-color: #94a3b8; color: var(--text); transform: none; box-shadow: none; }
+
+        #modal-post-btn {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+            transition: 0.2s;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+        }
+        #modal-post-btn:hover { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.4); }
+        #modal-post-btn:active { transform: translateY(0); }
+        #modal-post-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* Amount field accent */
+        #modal-amount { font-size: 1.1rem; font-weight: 600; color: var(--text); }
 
         @media (max-width: 768px) {
             aside { position: fixed; height: 100%; left: -260px; box-shadow: 10px 0 20px rgba(0,0,0,0.1); }
             aside.open { left: 0; }
             .mobile-toggle { display: block !important; margin-right: 15px; cursor: pointer; font-size: 1.25rem; color: var(--text-light); background: none; border: none; }
             .card-grid { grid-template-columns: 1fr 1fr; }
+            #settings-menu { width: 260px; right: -10px; }
             main { padding: 16px; }
-            #quick-entry-btn span.btn-text { display: none; }
+            #quick-entry-btn span { display: none; }
+            .modal-field-row { grid-template-columns: 1fr; }
         }
         @media (min-width: 769px) { .mobile-toggle { display: none; } }
     </style>
 </head>
 <body>
 
+<!-- Sidebar -->
 <aside id="sidebar">
-    <div class="brand"><i class="fa-solid fa-shirt"></i> Blucheez ERP</div>
+    <div class="brand">
+        <i class="fa-solid fa-shirt"></i> Sales Target Tracking
+    </div>
     <nav class="nav-menu">
-        <div class="nav-item active" onclick="showSection('dashboard', this)"><i class="fa-solid fa-chart-pie"></i> Dashboard</div>
-        <div class="nav-item" onclick="showSection('employees', this)"><i class="fa-solid fa-users"></i> Employees</div>
-        <div class="nav-item" onclick="showSection('monthly', this)"><i class="fa-solid fa-calendar-days"></i> Monthly Target</div>
-        <div class="nav-item" onclick="showSection('daily', this)"><i class="fa-solid fa-calendar-check"></i> Daily Target</div>
-        <div class="nav-item" onclick="showSection('sales', this)"><i class="fa-solid fa-cash-register"></i> Sales Entry</div>
-        <div class="nav-item" onclick="showSection('summary', this)"><i class="fa-solid fa-file-invoice"></i> Summary Report</div>
-        <div class="nav-item" onclick="showSection('detailed', this)"><i class="fa-solid fa-chart-line"></i> Detailed Report</div>
+        <div class="nav-item active" onclick="showSection('dashboard', this)">
+            <i class="fa-solid fa-chart-pie"></i> Dashboard
+        </div>
+        <div class="nav-item" onclick="showSection('employees', this)">
+            <i class="fa-solid fa-users"></i> Employees
+        </div>
+        <div class="nav-item" onclick="showSection('monthly', this)">
+            <i class="fa-solid fa-calendar-days"></i> Monthly Target
+        </div>
+        <div class="nav-item" onclick="showSection('daily', this)">
+            <i class="fa-solid fa-calendar-check"></i> Daily Target
+        </div>
+        <div class="nav-item" onclick="showSection('sales', this)">
+            <i class="fa-solid fa-cash-register"></i> Sales Entry
+        </div>
+        <div class="nav-item" onclick="showSection('summary', this)">
+            <i class="fa-solid fa-file-invoice"></i> Summary Report
+        </div>
+        <div class="nav-item" onclick="showSection('detailed', this)">
+            <i class="fa-solid fa-chart-line"></i> Detailed Report
+        </div>
     </nav>
 </aside>
 
+<!-- Main Content -->
 <main>
     <header>
         <div style="display:flex; align-items:center; gap:15px; flex:1;">
-            <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+            <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                <i class="fa-solid fa-bars"></i>
+            </button>
             <h1 id="page-title"><i class="fa-solid fa-chart-pie" style="color:var(--primary)"></i> Dashboard</h1>
         </div>
         
-        <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
             <div id="current-date" style="color:var(--text-light); font-weight:500; font-size:0.9rem; background: white; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);"></div>
 
-            <button id="quick-entry-btn" onclick="openQuickEntry()">
-                <i class="fa-solid fa-plus"></i> <span class="btn-text">Entry</span>
+            <!-- QUICK ENTRY BUTTON -->
+            <button id="quick-entry-btn" onclick="openQuickEntryModal()">
+                <i class="fa-solid fa-plus"></i>
+                <span>+ Entry</span>
             </button>
 
+            <!-- SETTINGS BUTTON -->
             <div class="settings-wrapper">
                 <button id="settings-btn" onclick="toggleSettingsMenu(event)">
                     <i class="fa-solid fa-gear"></i> Settings
@@ -172,31 +413,81 @@
                             <span class="slider"></span>
                         </label>
                     </div>
-                    <div style="margin-top: 15px; font-size: 0.8rem; color: var(--text-light); line-height: 1.4;">Turn ON to set monthly targets manually instead of calculating from daily targets.</div>
+                    <div style="margin-top: 15px; font-size: 0.8rem; color: var(--text-light); line-height: 1.4;">
+                        Turn ON to set monthly targets manually instead of calculating from daily targets.
+                    </div>
                 </div>
             </div>
         </div>
     </header>
 
+    <!-- 1. DASHBOARD -->
     <section id="dashboard" class="active">
-        <h3 style="margin-bottom:15px; color:var(--success); display:flex; align-items:center; gap:8px; font-size: 1rem;"><i class="fa-regular fa-calendar"></i> Today's Performance</h3>
+        <h3 style="margin-bottom:15px; color:var(--success); display:flex; align-items:center; gap:8px; font-size: 1rem;">
+            <i class="fa-regular fa-calendar"></i> Today's Performance
+        </h3>
         <div class="card-grid">
-            <div class="card today"><div class="card-label">Today's Target</div><div class="stat-value" id="dash-today-target">0</div><div class="sub-text">Sum of all daily targets</div></div>
-            <div class="card today"><div class="card-label">Today's Achievement</div><div class="stat-value" id="dash-today-achieve">0</div><div class="sub-text">Total sales today (All Employees)</div></div>
-            <div class="card today"><div class="card-label">Today's Ach. %</div><div class="stat-value" id="dash-today-pct">0%</div></div>
+            <div class="card today">
+                <div class="card-label">Today's Target</div>
+                <div class="stat-value" id="dash-today-target">0</div>
+                <div class="sub-text">Sum of all daily targets</div>
+            </div>
+            <div class="card today">
+                <div class="card-label">Today's Achievement</div>
+                <div class="stat-value" id="dash-today-achieve">0</div>
+                <div class="sub-text">Total sales today (All Employees)</div>
+            </div>
+            <div class="card today">
+                <div class="card-label">Today's Ach. %</div>
+                <div class="stat-value" id="dash-today-pct">0%</div>
+            </div>
         </div>
-        <h3 style="margin:25px 0 15px 0; color:var(--secondary); display:flex; align-items:center; gap:8px; font-size: 1rem;"><i class="fa-solid fa-chart-simple"></i> Monthly Performance</h3>
+
+        <h3 style="margin:25px 0 15px 0; color:var(--secondary); display:flex; align-items:center; gap:8px; font-size: 1rem;">
+            <i class="fa-solid fa-chart-simple"></i> Monthly Performance
+        </h3>
         <div class="card-grid">
-            <div class="card month"><div class="card-label">Month's Target</div><div class="stat-value" id="dash-month-target">0</div><div class="sub-text" id="dash-month-target-sub">Calculated from Daily Targets</div></div>
-            <div class="card month"><div class="card-label">Month's Achievement</div><div class="stat-value" id="dash-month-achieve">0</div><div class="sub-text">Total of every day achievement (Sales)</div></div>
-            <div class="card month"><div class="card-label">Month's Ach. %</div><div class="stat-value" id="dash-month-pct">0%</div></div>
+            <div class="card month">
+                <div class="card-label">Month's Target</div>
+                <div class="stat-value" id="dash-month-target">0</div>
+                <div class="sub-text" id="dash-month-target-sub">Calculated from Daily Targets</div>
+            </div>
+            <div class="card month">
+                <div class="card-label">Month's Achievement</div>
+                <div class="stat-value" id="dash-month-achieve">0</div>
+                <div class="sub-text">Total of every day achievement (Sales)</div>
+            </div>
+            <div class="card month">
+                <div class="card-label">Month's Ach. %</div>
+                <div class="stat-value" id="dash-month-pct">0%</div>
+            </div>
         </div>
-        <h3 style="margin:30px 0 20px 0; display:flex; align-items:center; gap:10px; font-size: 1.2rem;"><i class="fa-solid fa-trophy" style="color:var(--gold)"></i> Live Performance Ranking</h3>
+
+        <h3 style="margin:30px 0 20px 0; display:flex; align-items:center; gap:10px; font-size: 1.2rem;">
+            <i class="fa-solid fa-trophy" style="color:var(--gold)"></i> Live Performance Ranking
+        </h3>
         <div class="table-container">
-            <table id="ranking-table"><thead><tr><th>Date</th><th>Rank</th><th>Employee Name</th><th>Designation</th><th class="text-right">Day Target</th><th class="text-right">Day Ach.</th><th class="text-right">Day %</th><th class="text-right">Mth Target</th><th class="text-right">Mth Ach.</th><th class="text-right">Mth %</th></tr></thead><tbody></tbody></table>
+            <table id="ranking-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Rank</th>
+                        <th>Employee Name</th>
+                        <th>Designation</th>
+                        <th class="text-right">Day Target</th>
+                        <th class="text-right">Day Ach.</th>
+                        <th class="text-right">Day %</th>
+                        <th class="text-right">Mth Target (Calc)</th>
+                        <th class="text-right">Mth Ach.</th>
+                        <th class="text-right">Mth %</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </section>
 
+    <!-- 2. ADD EMPLOYEE -->
     <section id="employees">
         <div class="form-container">
             <h3><i class="fa-solid fa-user-plus" style="color:var(--primary)"></i> Add New Employee</h3>
@@ -209,17 +500,33 @@
                 <div class="form-group" style="display:flex; align-items:flex-end"><button type="submit"><i class="fa-solid fa-save"></i> Save Employee</button></div>
             </form>
         </div>
+        <h3 style="margin-bottom:15px;">Employee List</h3>
         <div class="table-container">
-            <table id="employee-table"><thead><tr><th>Name</th><th>Phone</th><th>ID No</th><th>Designation</th><th>Joining Date</th><th>Days Worked</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            <table id="employee-table">
+                <thead>
+                    <tr>
+                        <th>Name</th><th>Phone</th><th>ID No</th><th>Designation</th><th>Joining Date</th><th>Days Worked</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </section>
 
+    <!-- 3. MONTHLY TARGET -->
     <section id="monthly">
         <div id="monthly-form-container" class="form-container hidden">
             <h3><i class="fa-solid fa-calendar-pen" style="color:var(--warning)"></i> Set Manual Monthly Target</h3>
-            <p style="margin-bottom:15px; color:var(--text-light); font-size:0.9rem; display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-circle-info"></i> This overrides the calculated daily sum.</p>
+            <p style="margin-bottom:15px; color:var(--text-light); font-size:0.9rem; display:flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-circle-info"></i> This overrides the calculated daily sum.
+            </p>
             <form id="monthly-form" class="form-grid" onsubmit="handleMonthlyTarget(event)">
-                <div class="form-group"><label>Employee</label><select id="month-emp-select" onchange="autoFillEmpData('month-emp-select', 'month-emp-id', 'month-emp-desig')" required><option value="">Select Employee</option></select></div>
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="month-emp-select" onchange="autoFillEmpData('month-emp-select', 'month-emp-id', 'month-emp-desig')" required>
+                        <option value="">Select Employee</option>
+                    </select>
+                </div>
                 <div class="form-group"><label>ID No</label><input type="text" id="month-emp-id" readonly></div>
                 <div class="form-group"><label>Designation</label><input type="text" id="month-emp-desig" readonly></div>
                 <div class="form-group"><label>Month</label><input type="month" id="month-selector" required></div>
@@ -228,17 +535,36 @@
             </form>
         </div>
         <h3 style="margin-bottom:15px;">Monthly Target List <span id="monthly-list-subtitle" style="font-size:0.8rem; font-weight:normal; color:var(--text-light); margin-left:10px;">(Calculated from Daily Targets)</span></h3>
-        <div class="filter-bar"><div style="flex:1; max-width:200px"><label>Select Month</label><input type="month" id="summary-month-monthly" onchange="loadMonthlyTargets()"></div></div>
+        <div class="filter-bar">
+             <div style="flex:1; max-width:200px">
+                <label>Select Month</label>
+                <input type="month" id="summary-month-monthly" onchange="loadMonthlyTargets()">
+            </div>
+        </div>
         <div class="table-container">
-            <table id="monthly-table"><thead><tr><th>Employee</th><th>ID</th><th>Month</th><th class="text-right">Total Target</th><th class="text-right">Total Achievement</th><th class="text-right">Ach. %</th></tr></thead><tbody></tbody></table>
+            <table id="monthly-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th><th>ID</th><th>Month</th>
+                        <th class="text-right">Total Target</th><th class="text-right">Total Achievement</th><th class="text-right">Ach. %</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </section>
 
+    <!-- 4. DAILY TARGET -->
     <section id="daily">
         <div class="form-container">
             <h3><i class="fa-regular fa-calendar-check" style="color:var(--primary)"></i> Set Daily Target</h3>
             <form id="daily-form" class="form-grid" onsubmit="handleDailyTarget(event)">
-                <div class="form-group"><label>Employee</label><select id="day-emp-select" onchange="autoFillEmpData('day-emp-select', 'day-emp-id', 'day-emp-desig')" required><option value="">Select Employee</option></select></div>
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="day-emp-select" onchange="autoFillEmpData('day-emp-select', 'day-emp-id', 'day-emp-desig')" required>
+                        <option value="">Select Employee</option>
+                    </select>
+                </div>
                 <div class="form-group"><label>ID No</label><input type="text" id="day-emp-id" readonly></div>
                 <div class="form-group"><label>Designation</label><input type="text" id="day-emp-desig" readonly></div>
                 <div class="form-group"><label>Date</label><input type="date" id="day-date" onchange="updateMonthFromDay()" required></div>
@@ -247,21 +573,41 @@
                 <div class="form-group" style="display:flex; align-items:flex-end"><button type="submit"><i class="fa-solid fa-check"></i> Set Target</button></div>
             </form>
         </div>
+        <h3 style="margin-bottom:15px;">Daily Target List</h3>
         <div class="filter-bar">
-            <div style="flex:1; max-width:200px"><label>Select Date</label><input type="date" id="daily-list-date" onchange="loadDailyTargetList()"></div>
-            <div style="flex:1; display:flex; align-items:flex-end; padding-bottom:10px; font-weight:bold; color:var(--primary); font-size:0.95rem;">Total Day Target: <span id="total-day-target-display" style="margin-left:8px;">0</span></div>
+            <div style="flex:1; max-width:200px">
+                <label>Select Date</label>
+                <input type="date" id="daily-list-date" onchange="loadDailyTargetList()">
+            </div>
+            <div style="flex:1; display:flex; align-items:flex-end; padding-bottom:10px; font-weight:bold; color:var(--primary); font-size:0.95rem;">
+                Total Day Target: <span id="total-day-target-display" style="margin-left:8px;">0</span>
+            </div>
         </div>
         <div class="table-container">
-            <table id="daily-list-table"><thead><tr><th>Employee</th><th>ID</th><th class="text-right">Target</th><th class="text-right">Achievement</th><th class="text-right">Ach. %</th></tr></thead><tbody></tbody></table>
+            <table id="daily-list-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th><th>ID</th>
+                        <th class="text-right">Target</th><th class="text-right">Achievement</th><th class="text-right">Ach. %</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </section>
 
+    <!-- 5. SALES ENTRY -->
     <section id="sales">
         <div class="form-container" style="border-left: 5px solid var(--primary);">
             <h3><i class="fa-solid fa-money-bill-wave" style="color:var(--primary)"></i> Live Sales / Billing</h3>
             <form id="sales-form" class="form-grid" onsubmit="handleSaleSubmit(event)">
                 <div class="form-group"><label>Date</label><input type="date" id="sale-date" required></div>
-                <div class="form-group"><label>Employee</label><select id="sale-emp-select" onchange="autoFillEmpData('sale-emp-select', 'sale-emp-id', null)" required><option value="">Select Employee</option></select></div>
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="sale-emp-select" onchange="autoFillEmpData('sale-emp-select', 'sale-emp-id', null)" required>
+                        <option value="">Select Employee</option>
+                    </select>
+                </div>
                 <div class="form-group"><label>ID No (Auto)</label><input type="text" id="sale-emp-id" readonly></div>
                 <div class="form-group"><label>Customer Name</label><input type="text" id="sale-cust-name"></div>
                 <div class="form-group"><label>Customer Phone</label><input type="tel" id="sale-cust-phone"></div>
@@ -270,29 +616,64 @@
                 <div class="form-group" style="display:flex; align-items:flex-end"><button type="submit"><i class="fa-solid fa-paper-plane"></i> Post Sale</button></div>
             </form>
         </div>
+        <h3 style="margin-bottom:15px;">Sales Entry List</h3>
         <div class="filter-bar">
-            <div style="flex:1; max-width:200px"><label>Filter by Employee</label><select id="sales-list-emp" onchange="loadSalesList()"><option value="">All Employees</option></select></div>
-            <div style="flex:1; max-width:200px"><label>Filter by Date</label><input type="date" id="sales-list-date" onchange="loadSalesList()"></div>
-            <div style="flex:1; display:flex; align-items:flex-end; padding-bottom:10px;"><button class="secondary" onclick="resetSalesFilters()"><i class="fa-solid fa-rotate-left"></i> Reset Filters</button></div>
+            <div style="flex:1; max-width:200px">
+                <label>Filter by Employee</label>
+                <select id="sales-list-emp" onchange="loadSalesList()"><option value="">All Employees</option></select>
+            </div>
+            <div style="flex:1; max-width:200px">
+                <label>Filter by Date</label>
+                <input type="date" id="sales-list-date" onchange="loadSalesList()">
+            </div>
+            <div style="flex:1; display:flex; align-items:flex-end; padding-bottom:10px;">
+                <button class="secondary" onclick="resetSalesFilters()"><i class="fa-solid fa-rotate-left"></i> Reset Filters</button>
+            </div>
         </div>
         <div class="table-container">
-            <table id="sales-list-table"><thead><tr><th>Invoice</th><th>Date</th><th>Employee</th><th>Customer</th><th class="text-right">Amount</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            <table id="sales-list-table">
+                <thead>
+                    <tr>
+                        <th>Invoice</th><th>Date</th><th>Employee</th><th>Customer</th>
+                        <th class="text-right">Amount</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </section>
 
+    <!-- 6. SUMMARY REPORT -->
     <section id="summary">
         <div class="filter-bar" style="background:transparent; padding:0; margin-bottom:20px; border:none; justify-content: space-between; align-items: flex-end;">
             <div style="display: flex; gap: 15px; flex-wrap: wrap; flex: 1;">
-                <div style="flex:1; max-width:250px;"><label>Employee</label><select id="summary-emp-select" onchange="renderSummaryReport()"><option value="">All Employees</option></select></div>
-                <div style="flex:1; max-width:200px;"><label>Month</label><input type="month" id="summary-month" onchange="renderSummaryReport()"></div>
+                <div style="flex:1; max-width:250px;">
+                    <label>Employee</label>
+                    <select id="summary-emp-select" onchange="renderSummaryReport()">
+                        <option value="">All Employees</option>
+                    </select>
+                </div>
+                <div style="flex:1; max-width:200px;">
+                    <label>Month</label>
+                    <input type="month" id="summary-month" onchange="renderSummaryReport()">
+                </div>
             </div>
             <button class="secondary" onclick="exportTableToCSV('summary-table', 'Summary_Report.csv')"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
         </div>
         <div class="table-container">
-            <table id="summary-table"><thead><tr><th>Month</th><th>#</th><th>Staff Name</th><th>Phone</th><th>ID</th><th>Designation</th><th class="text-right">Total Target</th><th class="text-right">Total Achievement</th><th class="text-right">Ach. %</th></tr></thead><tbody></tbody></table>
+            <table id="summary-table">
+                <thead>
+                    <tr>
+                        <th>Month</th><th>#</th><th>Staff Name</th><th>Phone</th><th>ID</th><th>Designation</th>
+                        <th class="text-right">Total Target</th><th class="text-right">Total Achievement</th><th class="text-right">Ach. %</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </section>
 
+    <!-- 7. DETAILED REPORT -->
     <section id="detailed">
         <div class="form-container">
             <div class="form-grid">
@@ -306,7 +687,19 @@
             </div>
         </div>
         <div class="table-container">
-            <table id="detailed-table" style="min-width: 1900px;"><thead><tr><th>Employee</th><th>Month</th><th>Daily Target Date</th><th>Daily Target Day</th><th class="text-right">Day Target</th><th>Daily Sale Date</th><th>Daily Sale Day</th><th class="text-right">Day Sales</th><th class="text-right">Day %</th><th class="text-right">Daily Short / Excess</th><th class="text-right">Total Mth Target</th><th class="text-right">Total Mth Ach</th><th class="text-right">Total Mth %</th><th class="text-right">Month Short / Excess</th></tr></thead><tbody></tbody></table>
+            <table id="detailed-table" style="min-width: 1900px;">
+                <thead>
+                    <tr>
+                        <th>Employee</th><th>Month</th><th>Daily Target Date</th><th>Daily Target Day</th>
+                        <th class="text-right">Day Target</th><th>Daily Sale Date</th><th>Daily Sale Day</th>
+                        <th class="text-right">Day Sales</th><th class="text-right">Day %</th>
+                        <th class="text-right">Daily Short / Excess</th><th class="text-right">Total Mth Target</th>
+                        <th class="text-right">Total Mth Ach</th><th class="text-right">Total Mth %</th>
+                        <th class="text-right">Month Short / Excess</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
         <div id="pagination-container" class="pagination-container hidden">
             <button id="prev-page" class="page-btn" onclick="changePage(-1)"><i class="fa-solid fa-chevron-left"></i> Prev</button>
@@ -316,36 +709,61 @@
     </section>
 </main>
 
-<div id="quick-entry-modal" class="modal-overlay hidden" onclick="if(event.target === this) closeQuickEntry()">
-    <div class="modal-container">
+<!-- ===== QUICK ENTRY MODAL ===== -->
+<div id="quick-entry-overlay" onclick="handleOverlayClick(event)">
+    <div id="quick-entry-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-text">
+        
+        <!-- Modal Header -->
         <div class="modal-header">
-            <h3><i class="fa-solid fa-bolt" style="color: var(--warning)"></i> Quick Sales Entry</h3>
-            <button type="button" class="modal-close-btn" onclick="closeQuickEntry()"><i class="fa-solid fa-xmark"></i></button>
+            <div class="modal-header-left">
+                <div class="modal-header-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                    <div class="modal-title" id="modal-title-text">Quick Sales Entry</div>
+                    <div class="modal-subtitle">Post a sale instantly from anywhere</div>
+                </div>
+            </div>
+            <button class="modal-close" onclick="closeQuickEntryModal()" aria-label="Close modal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
         </div>
-        <form id="quick-sales-form" onsubmit="handleQuickSaleSubmit(event)">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Employee</label>
-                    <select id="qe-emp-select" required><option value="">Select Employee</option></select>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+            <div class="modal-field">
+                <label>Employee <span style="color:var(--danger)">*</span></label>
+                <select id="modal-emp-select" required>
+                    <option value="">— Select Employee —</option>
+                </select>
+            </div>
+
+            <div class="modal-field-row">
+                <div class="modal-field">
+                    <label>Date <span style="color:var(--danger)">*</span></label>
+                    <input type="date" id="modal-date" required>
                 </div>
-                <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="qe-date" required>
-                </div>
-                <div class="form-group">
-                    <label>Amount</label>
-                    <input type="number" id="qe-amount" min="0" step="0.01" placeholder="0.00" required>
-                </div>
-                <div class="form-group">
-                    <label>Invoice No (Optional)</label>
-                    <input type="text" id="qe-invoice" placeholder="Leave blank if none">
+                <div class="modal-field">
+                    <label>Amount <span style="color:var(--danger)">*</span></label>
+                    <input type="number" id="modal-amount" min="0" step="0.01" placeholder="0.00" required>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="secondary" onclick="closeQuickEntry()">Cancel</button>
-                <button type="submit" style="background: var(--success);"><i class="fa-solid fa-check"></i> Post Sale</button>
+
+            <div class="modal-field">
+                <label>Invoice No <span class="optional-tag">(optional)</span></label>
+                <input type="text" id="modal-invoice" placeholder="e.g. INV-2025-001">
             </div>
-        </form>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+            <button id="modal-cancel-btn" onclick="closeQuickEntryModal()">
+                <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button id="modal-post-btn" onclick="handleQuickSalePost()">
+                <i class="fa-solid fa-paper-plane"></i> Post Sale
+            </button>
+        </div>
     </div>
 </div>
 
@@ -385,57 +803,6 @@
     function formatNumber(amount) {
         return parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    
-    function openQuickEntry() {
-        var modal = document.getElementById('quick-entry-modal');
-        modal.classList.remove('hidden');
-        
-        var select = document.getElementById('qe-emp-select');
-        select.innerHTML = '<option value="">Select Employee</option>';
-        employeesCache.forEach(function(emp) { 
-            var o = document.createElement('option'); 
-            o.value = emp.employee_id; 
-            o.innerText = emp.name + ' (' + emp.employee_id + ')'; 
-            select.appendChild(o); 
-        });
-
-        document.getElementById('qe-date').value = todayStr;
-        
-        setTimeout(function(){ document.getElementById('qe-amount').focus(); }, 100);
-    }
-
-    function closeQuickEntry() {
-        var modal = document.getElementById('quick-entry-modal');
-        modal.classList.add('hidden');
-        document.getElementById('quick-sales-form').reset();
-    }
-
-    async function handleQuickSaleSubmit(e) {
-        e.preventDefault();
-        
-        // FIX: Explicitly add empty strings for customer_name and phone so database NOT NULL constraints don't fail
-        var saleData = { 
-            employee_id: document.getElementById('qe-emp-select').value, 
-            date: document.getElementById('qe-date').value, 
-            amount: parseFloat(document.getElementById('qe-amount').value), 
-            invoice_no: document.getElementById('qe-invoice').value || null,
-            customer_name: "", 
-            phone: "" 
-        };
-        
-        var res = await sbClient.from('sales').insert([saleData]);
-        if (res.error) { 
-            console.error(res.error); 
-            alert("Error: " + res.error.message); 
-        } else { 
-            showToast("Quick Sale Posted!"); 
-            closeQuickEntry(); 
-            
-            if (document.getElementById('sales').classList.contains('active')) loadSalesList();
-            if (document.getElementById('dashboard').classList.contains('active')) loadDashboard();
-        }
-    }
-
     function showSection(sectionId, navEl) {
         document.querySelectorAll('section').forEach(function(s) { s.classList.remove('active'); });
         document.getElementById(sectionId).classList.add('active');
@@ -456,16 +823,30 @@
 
         if(sectionId === 'dashboard') loadDashboard();
         if(sectionId === 'employees') loadEmployees();
-        if(sectionId === 'monthly') { var el = document.getElementById('summary-month-monthly'); if(el) el.value = currentMonthStr; loadMonthlyTargets(); }
-        if(sectionId === 'daily') { document.getElementById('day-date').value = todayStr; updateMonthFromDay(); document.getElementById('daily-list-date').value = todayStr; loadDailyTargetList(); }
+        if(sectionId === 'monthly') { 
+            var el = document.getElementById('summary-month-monthly');
+            if(el) el.value = currentMonthStr; 
+            loadMonthlyTargets(); 
+        }
+        if(sectionId === 'daily') { 
+            document.getElementById('day-date').value = todayStr; 
+            updateMonthFromDay();
+            document.getElementById('daily-list-date').value = todayStr;
+            loadDailyTargetList();
+        }
         if(sectionId === 'sales') { initSalesForm(); loadSalesList(); }
-        if(sectionId === 'summary') { var monthEl = document.getElementById('summary-month'); if(monthEl) monthEl.value = currentMonthStr; renderSummaryReport(); }
+        if(sectionId === 'summary') { 
+            var monthEl = document.getElementById('summary-month');
+            if(monthEl) monthEl.value = currentMonthStr;
+            renderSummaryReport(); 
+        }
         if(sectionId === 'detailed') populateEmployeeDropdowns();
         document.getElementById('sidebar').classList.remove('open');
     }
-    
     function calculateDaysWorked(joinDate) {
-        var oneDay = 24 * 60 * 60 * 1000; var today = new Date(); var join = new Date(joinDate);
+        var oneDay = 24 * 60 * 60 * 1000;
+        var today = new Date();
+        var join = new Date(joinDate);
         return Math.round(Math.abs((today - join) / oneDay));
     }
     function getDayName(dateStr) {
@@ -479,19 +860,172 @@
         var formContainer = document.getElementById('monthly-form-container');
         var subtitle = document.getElementById('monthly-list-subtitle');
         var dashSub = document.getElementById('dash-month-target-sub');
-        if(isManualMonthlyMode) { formContainer.classList.remove('hidden'); subtitle.innerText = "(Using Manual Targets)"; dashSub.innerText = "Using Manual Targets"; }
-        else { formContainer.classList.add('hidden'); subtitle.innerText = "(Calculated from Daily Targets)"; dashSub.innerText = "Calculated from Daily Targets"; }
+        if(isManualMonthlyMode) {
+            formContainer.classList.remove('hidden');
+            subtitle.innerText = "(Using Manual Targets)";
+            dashSub.innerText = "Using Manual Targets";
+        } else {
+            formContainer.classList.add('hidden');
+            subtitle.innerText = "(Calculated from Daily Targets)";
+            dashSub.innerText = "Calculated from Daily Targets";
+        }
         loadDashboard();
     }
 
-    function toggleSettingsMenu(e) { if(e) e.stopPropagation(); document.getElementById('settings-menu').classList.toggle('show'); }
-    window.onclick = function(event) { if (!event.target.closest('.settings-wrapper')) { document.getElementById('settings-menu').classList.remove('show'); } }
+    function toggleSettingsMenu(e) {
+        if(e) e.stopPropagation(); 
+        document.getElementById('settings-menu').classList.toggle('show');
+    }
 
+    window.onclick = function(event) {
+        if (!event.target.closest('.settings-wrapper')) {
+            document.getElementById('settings-menu').classList.remove('show');
+        }
+    }
+
+    // ===== QUICK ENTRY MODAL FUNCTIONS =====
+    function openQuickEntryModal() {
+        // Populate employee dropdown with current cache
+        var sel = document.getElementById('modal-emp-select');
+        sel.innerHTML = '<option value="">— Select Employee —</option>';
+        employeesCache.forEach(function(emp) {
+            var o = document.createElement('option');
+            o.value = emp.employee_id;
+            o.innerText = emp.name + ' (' + emp.employee_id + ')';
+            sel.appendChild(o);
+        });
+
+        // Set date to today
+        document.getElementById('modal-date').value = todayStr;
+        document.getElementById('modal-amount').value = '';
+        document.getElementById('modal-invoice').value = '';
+        document.getElementById('modal-emp-select').value = '';
+
+        // Reset post button state
+        var postBtn = document.getElementById('modal-post-btn');
+        postBtn.disabled = false;
+        postBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Post Sale';
+
+        document.getElementById('quick-entry-overlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        
+        // Focus employee field
+        setTimeout(function() {
+            document.getElementById('modal-emp-select').focus();
+        }, 100);
+    }
+
+    function closeQuickEntryModal() {
+        var overlay = document.getElementById('quick-entry-overlay');
+        var modal = document.getElementById('quick-entry-modal');
+        
+        // Animate out
+        modal.style.animation = 'modalOut 0.18s ease forwards';
+        overlay.style.animation = 'overlayOut 0.18s ease forwards';
+        
+        setTimeout(function() {
+            overlay.classList.remove('open');
+            modal.style.animation = '';
+            overlay.style.animation = '';
+            document.body.style.overflow = '';
+        }, 180);
+    }
+
+    function handleOverlayClick(e) {
+        if (e.target === document.getElementById('quick-entry-overlay')) {
+            closeQuickEntryModal();
+        }
+    }
+
+    // ESC key to close
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var overlay = document.getElementById('quick-entry-overlay');
+            if (overlay.classList.contains('open')) closeQuickEntryModal();
+        }
+    });
+
+    async function handleQuickSalePost() {
+        var empId = document.getElementById('modal-emp-select').value;
+        var date = document.getElementById('modal-date').value;
+        var amount = document.getElementById('modal-amount').value;
+        var invoice = document.getElementById('modal-invoice').value.trim();
+
+        // Validation
+        if (!empId) { document.getElementById('modal-emp-select').focus(); showToast('Please select an employee.'); return; }
+        if (!date) { document.getElementById('modal-date').focus(); showToast('Please pick a date.'); return; }
+        if (!amount || parseFloat(amount) <= 0) { document.getElementById('modal-amount').focus(); showToast('Please enter a valid amount.'); return; }
+
+        var postBtn = document.getElementById('modal-post-btn');
+        postBtn.disabled = true;
+        postBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Posting...';
+
+        var saleData = {
+            invoice_no: invoice || null,
+            date: date,
+            employee_id: empId,
+            customer_name: null,
+            phone: null,
+            amount: parseFloat(amount)
+        };
+
+        var res = await sbClient.from('sales').insert([saleData]);
+
+        if (res.error) {
+            console.error(res.error);
+            postBtn.disabled = false;
+            postBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Post Sale';
+            showToast('Error: ' + res.error.message);
+        } else {
+            // Success feedback before closing
+            postBtn.innerHTML = '<i class="fa-solid fa-check"></i> Posted!';
+            postBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+
+            setTimeout(function() {
+                closeQuickEntryModal();
+                showToast('Sale posted successfully!');
+
+                // Refresh relevant sections if open
+                var activeSection = document.querySelector('section.active');
+                if (activeSection) {
+                    var id = activeSection.id;
+                    if (id === 'dashboard') loadDashboard();
+                    if (id === 'sales') loadSalesList();
+                    if (id === 'daily') loadDailyTargetList();
+                }
+
+                // Reset button style
+                setTimeout(function() {
+                    postBtn.style.background = '';
+                }, 400);
+            }, 700);
+        }
+    }
+
+    // Add close animation keyframes dynamically
+    var styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+        @keyframes modalOut { from { opacity:1; transform:scale(1) translateY(0); } to { opacity:0; transform:scale(0.94) translateY(12px); } }
+        @keyframes overlayOut { from { opacity:1; } to { opacity:0; } }
+    `;
+    document.head.appendChild(styleSheet);
+
+    // ===== INIT =====
     window.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('current-date').innerText = new Date().toDateString();
+        
         var savedMode = localStorage.getItem('isManualMonthlyMode');
-        if (savedMode === 'true') { isManualMonthlyMode = true; document.getElementById('monthly-mode-toggle').checked = true; document.getElementById('monthly-form-container').classList.remove('hidden'); document.getElementById('monthly-list-subtitle').innerText = "(Using Manual Targets)"; document.getElementById('dash-month-target-sub').innerText = "Using Manual Targets"; }
-        else { isManualMonthlyMode = false; document.getElementById('monthly-mode-toggle').checked = false; }
+        if (savedMode === 'true') {
+            isManualMonthlyMode = true;
+            document.getElementById('monthly-mode-toggle').checked = true;
+            document.getElementById('monthly-form-container').classList.remove('hidden');
+            document.getElementById('monthly-list-subtitle').innerText = "(Using Manual Targets)";
+            document.getElementById('dash-month-target-sub').innerText = "Using Manual Targets";
+        } else {
+            isManualMonthlyMode = false;
+            document.getElementById('monthly-mode-toggle').checked = false;
+        }
+
         await loadEmployees();
         loadDashboard();
     });
@@ -500,55 +1034,115 @@
         var start = monthStr + '-01';
         var nextMonthDate = new Date(parseInt(monthStr.slice(0,4)), parseInt(monthStr.slice(5,7)), 1);
         var end = toLocalDateStr(nextMonthDate); 
+
         var res1 = await sbClient.from('daily_targets').select('*').gte('date', start).lt('date', end);
         var dTargets = res1.data || [];
+        
         var mTargets = [];
-        if(isManualMonthlyMode) { var res2 = await sbClient.from('monthly_targets').select('*').eq('month', monthStr); if(res2.data) mTargets = res2.data; }
+        if(isManualMonthlyMode) {
+            var res2 = await sbClient.from('monthly_targets').select('*').eq('month', monthStr);
+            if(res2.data) mTargets = res2.data;
+        }
+
         return { dTargets: dTargets, mTargets: mTargets };
     }
 
     async function loadDashboard() {
-        var result = await getMonthlyTargetData(currentMonthStr); var dTargets = result.dTargets; var mTargets = result.mTargets;
-        var resToday = await sbClient.from('daily_targets').select('*').eq('date', todayStr); var todayTargets = resToday.data || [];
+        var result = await getMonthlyTargetData(currentMonthStr);
+        var dTargets = result.dTargets;
+        var mTargets = result.mTargets;
+
+        var resToday = await sbClient.from('daily_targets').select('*').eq('date', todayStr);
+        var todayTargets = resToday.data || [];
         var totalDayTarget = todayTargets.reduce(function(a,b) { return a + parseFloat(b.target_amount); }, 0);
+
         var totalMonthTarget = 0;
-        if(isManualMonthlyMode) { totalMonthTarget = mTargets.reduce(function(a,b) { return a + parseFloat(b.target_amount); }, 0); }
-        else { totalMonthTarget = dTargets.reduce(function(a,b) { return a + parseFloat(b.target_amount); }, 0); }
-        var resDaySales = await sbClient.from('sales').select('amount').eq('date', todayStr); var totalDaySales = (resDaySales.data || []).reduce(function(a,b) { return a + parseFloat(b.amount); }, 0);
-        var nextMonthDate = new Date(parseInt(currentMonthStr.slice(0,4)), parseInt(currentMonthStr.slice(5,7)), 1); var monthEnd = toLocalDateStr(nextMonthDate);
-        var resMonthSales = await sbClient.from('sales').select('amount').gte('date', currentMonthStr + '-01').lt('date', monthEnd); var totalMonthSales = (resMonthSales.data || []).reduce(function(a,b) { return a + parseFloat(b.amount); }, 0);
+        if(isManualMonthlyMode) {
+            totalMonthTarget = mTargets.reduce(function(a,b) { return a + parseFloat(b.target_amount); }, 0);
+        } else {
+            totalMonthTarget = dTargets.reduce(function(a,b) { return a + parseFloat(b.target_amount); }, 0);
+        }
+
+        var resDaySales = await sbClient.from('sales').select('amount').eq('date', todayStr);
+        var daySalesData = resDaySales.data || [];
+        var totalDaySales = daySalesData.reduce(function(a,b) { return a + parseFloat(b.amount); }, 0);
+        
+        var nextMonthDate = new Date(parseInt(currentMonthStr.slice(0,4)), parseInt(currentMonthStr.slice(5,7)), 1);
+        var monthEnd = toLocalDateStr(nextMonthDate);
+
+        var resMonthSales = await sbClient.from('sales').select('amount').gte('date', currentMonthStr + '-01').lt('date', monthEnd);
+        var monthSalesData = resMonthSales.data || [];
+        var totalMonthSales = monthSalesData.reduce(function(a,b) { return a + parseFloat(b.amount); }, 0);
 
         document.getElementById('dash-today-target').innerText = formatNumber(totalDayTarget);
         document.getElementById('dash-today-achieve').innerText = formatNumber(totalDaySales);
         document.getElementById('dash-today-pct').innerText = totalDayTarget > 0 ? ((totalDaySales/totalDayTarget)*100).toFixed(1) + '%' : '0%';
+
         document.getElementById('dash-month-target').innerText = formatNumber(totalMonthTarget);
         document.getElementById('dash-month-achieve').innerText = formatNumber(totalMonthSales);
         document.getElementById('dash-month-pct').innerText = totalMonthTarget > 0 ? ((totalMonthSales/totalMonthTarget)*100).toFixed(1) + '%' : '0%';
 
-        var tbody = document.querySelector('#ranking-table tbody'); tbody.innerHTML = '';
-        var resAllMonthSales = await sbClient.from('sales').select('*').gte('date', currentMonthStr+'-01').lt('date', monthEnd); var allMonthSales = resAllMonthSales.data || [];
-        var rankings = [], dailyMap = {}, manualMap = {};
-        dTargets.forEach(function(t) { if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0; dailyMap[t.employee_id] += parseFloat(t.target_amount); });
+        var tbody = document.querySelector('#ranking-table tbody');
+        tbody.innerHTML = '';
+        
+        var resAllMonthSales = await sbClient.from('sales').select('*').gte('date', currentMonthStr+'-01').lt('date', monthEnd);
+        var allMonthSales = resAllMonthSales.data || [];
+        
+        var rankings = [];
+        var dailyMap = {};
+        dTargets.forEach(function(t) {
+            if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
+            dailyMap[t.employee_id] += parseFloat(t.target_amount);
+        });
+        var manualMap = {};
         mTargets.forEach(function(t) { manualMap[t.employee_id] = parseFloat(t.target_amount); });
 
         employeesCache.forEach(function(emp) {
             var finalTarget = 0;
-            if(isManualMonthlyMode && manualMap[emp.employee_id]) finalTarget = manualMap[emp.employee_id];
-            else if(dailyMap[emp.employee_id]) finalTarget = dailyMap[emp.employee_id];
+            if(isManualMonthlyMode && manualMap[emp.employee_id]) {
+                finalTarget = manualMap[emp.employee_id];
+            } else if(dailyMap[emp.employee_id]) {
+                finalTarget = dailyMap[emp.employee_id];
+            }
+
             var empMonthSales = allMonthSales.filter(function(s) { return s.employee_id === emp.employee_id; });
             var mSales = empMonthSales.reduce(function(sum, s) { return sum + parseFloat(s.amount); }, 0);
-            var dSales = empMonthSales.filter(function(s) { return s.date === todayStr; }).reduce(function(sum, s) { return sum + parseFloat(s.amount); }, 0);
-            var dTargetObj = todayTargets.find(function(t) { return t.employee_id === emp.employee_id; }); var dTarget = dTargetObj ? dTargetObj.target_amount : 0;
-            rankings.push({ name: emp.name, desig: emp.designation, id: emp.employee_id, dTarget: dTarget, dSales: dSales, dPct: dTarget > 0 ? (dSales/dTarget)*100 : 0, mTarget: finalTarget, mSales: mSales, mPct: finalTarget > 0 ? (mSales/finalTarget)*100 : 0 });
+            var empDaySales = empMonthSales.filter(function(s) { return s.date === todayStr; });
+            var dSales = empDaySales.reduce(function(sum, s) { return sum + parseFloat(s.amount); }, 0);
+            var dTargetObj = todayTargets.find(function(t) { return t.employee_id === emp.employee_id; });
+            var dTarget = dTargetObj ? dTargetObj.target_amount : 0;
+            var mPct = finalTarget > 0 ? (mSales/finalTarget)*100 : 0;
+            var dPct = dTarget > 0 ? (dSales/dTarget)*100 : 0;
+
+            rankings.push({
+                name: emp.name, desig: emp.designation, id: emp.employee_id,
+                dTarget: dTarget, dSales: dSales, dPct: dPct,
+                mTarget: finalTarget, mSales: mSales, mPct: mPct
+            });
         });
+
         rankings.sort(function(a,b) { return b.mPct - a.mPct; });
+
         rankings.forEach(function(r, index) {
             var rankClass = '', rankIconHtml = '';
             if(index === 0) { rankClass = 'rank-1'; rankIconHtml = '<i class="fa-solid fa-trophy rank-icon"></i>'; }
             else if(index === 1) { rankClass = 'rank-2'; rankIconHtml = '<i class="fa-solid fa-medal rank-icon"></i>'; }
             else if(index === 2) { rankClass = 'rank-3'; rankIconHtml = '<i class="fa-solid fa-medal rank-icon"></i>'; }
             else { rankIconHtml = '<span style="font-weight:bold; color:#94a3b8;">#' + (index + 1) + '</span>'; }
-            tbody.innerHTML += '<tr class="'+rankClass+'"><td>'+todayStr+'</td><td>'+rankIconHtml+'</td><td><b>'+r.name+'</b></td><td>'+r.desig+'</td><td class="text-right">'+formatNumber(r.dTarget)+'</td><td class="text-right">'+formatNumber(r.dSales)+'</td><td class="text-right">'+r.dPct.toFixed(1)+'%</td><td class="text-right">'+formatNumber(r.mTarget)+'</td><td class="text-right">'+formatNumber(r.mSales)+'</td><td class="text-right"><b>'+r.mPct.toFixed(1)+'%</b></td></tr>';
+
+            var row = '<tr class="' + rankClass + '">';
+            row += '<td>' + todayStr + '</td>';
+            row += '<td>' + rankIconHtml + '</td>';
+            row += '<td><b>' + r.name + '</b></td>';
+            row += '<td>' + r.desig + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.dTarget) + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.dSales) + '</td>';
+            row += '<td class="text-right">' + r.dPct.toFixed(1) + '%</td>';
+            row += '<td class="text-right">' + formatNumber(r.mTarget) + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.mSales) + '</td>';
+            row += '<td class="text-right"><b>' + r.mPct.toFixed(1) + '%</b></td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
         });
     }
 
@@ -556,126 +1150,399 @@
         var res = await sbClient.from('target_employees').select('*').order('id', { ascending: true });
         if (res.error) { console.error("Error loading employees:", res.error); return; }
         employeesCache = res.data || [];
-        var tbody = document.querySelector('#employee-table tbody'); tbody.innerHTML = '';
+        var tbody = document.querySelector('#employee-table tbody');
+        tbody.innerHTML = '';
         employeesCache.forEach(function(emp) {
-            tbody.innerHTML += '<tr><td>'+emp.name+'</td><td>'+emp.phone+'</td><td>'+emp.employee_id+'</td><td>'+emp.designation+'</td><td>'+emp.joining_date+'</td><td><b>'+calculateDaysWorked(emp.joining_date)+'</b></td><td><button class="danger" style="padding:6px 12px; font-size:0.8rem; border-radius:4px;" onclick="deleteEmployee('+emp.id+')"><i class="fa-solid fa-trash"></i></button></td></tr>';
+            var row = '<tr>';
+            row += '<td>' + emp.name + '</td>';
+            row += '<td>' + emp.phone + '</td>';
+            row += '<td>' + emp.employee_id + '</td>';
+            row += '<td>' + emp.designation + '</td>';
+            row += '<td>' + emp.joining_date + '</td>';
+            row += '<td><b>' + calculateDaysWorked(emp.joining_date) + '</b></td>';
+            row += '<td><button class="danger" style="padding:6px 12px; font-size:0.8rem; border-radius:4px;" onclick="deleteEmployee(' + emp.id + ')"><i class="fa-solid fa-trash"></i></button></td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
         });
         populateEmployeeDropdowns();
     }
     async function handleAddEmployee(e) {
         e.preventDefault();
-        var newEmp = { name: document.getElementById('emp-name').value, phone: document.getElementById('emp-phone').value, employee_id: document.getElementById('emp-id-no').value, designation: document.getElementById('emp-designation').value, joining_date: document.getElementById('emp-join-date').value };
+        var newEmp = { 
+            name: document.getElementById('emp-name').value, 
+            phone: document.getElementById('emp-phone').value, 
+            employee_id: document.getElementById('emp-id-no').value, 
+            designation: document.getElementById('emp-designation').value, 
+            joining_date: document.getElementById('emp-join-date').value 
+        };
         var res = await sbClient.from('target_employees').insert([newEmp]);
-        if (res.error) { console.error("Full Error:", res.error); alert("Error adding employee: " + res.error.message); } else { showToast("Employee Added!"); e.target.reset(); loadEmployees(); }
+        if (res.error) { console.error("Full Error:", res.error); alert("Error adding employee: " + res.error.message); } 
+        else { showToast("Employee Added!"); e.target.reset(); loadEmployees(); }
     }
-    async function deleteEmployee(id) { if(!confirm("Delete?")) return; await sbClient.from('target_employees').delete().eq('id', id); loadEmployees(); }
+    async function deleteEmployee(id) { 
+        if(!confirm("Delete?")) return; 
+        await sbClient.from('target_employees').delete().eq('id', id); 
+        loadEmployees(); 
+    }
 
-    async function initSalesForm() { document.getElementById('sale-date').value = todayStr; populateEmployeeDropdowns(); }
+    async function initSalesForm() {
+        document.getElementById('sale-date').value = todayStr; 
+        populateEmployeeDropdowns();
+    }
     async function handleSaleSubmit(e) {
         e.preventDefault();
-        var saleData = { invoice_no: document.getElementById('sale-invoice').value, date: document.getElementById('sale-date').value, employee_id: document.getElementById('sale-emp-id').value, customer_name: document.getElementById('sale-cust-name').value, phone: document.getElementById('sale-cust-phone').value, amount: parseFloat(document.getElementById('sale-amount').value) };
+        var saleData = { 
+            invoice_no: document.getElementById('sale-invoice').value, 
+            date: document.getElementById('sale-date').value, 
+            employee_id: document.getElementById('sale-emp-id').value, 
+            customer_name: document.getElementById('sale-cust-name').value, 
+            phone: document.getElementById('sale-cust-phone').value, 
+            amount: parseFloat(document.getElementById('sale-amount').value) 
+        };
         var res = await sbClient.from('sales').insert([saleData]);
-        if (res.error) { console.error(res.error); alert("Error: " + res.error.message); } else { showToast("Sale Posted!"); e.target.reset(); initSalesForm(); loadSalesList(); }
+        if (res.error) { console.error(res.error); alert("Error: " + res.error.message); } 
+        else { showToast("Sale Posted!"); e.target.reset(); initSalesForm(); loadSalesList(); }
     }
     async function loadSalesList() {
-        var empId = document.getElementById('sales-list-emp').value; var dateVal = document.getElementById('sales-list-date').value;
-        var tbody = document.querySelector('#sales-list-table tbody'); tbody.innerHTML = '';
+        var empId = document.getElementById('sales-list-emp').value;
+        var dateVal = document.getElementById('sales-list-date').value;
+        var tbody = document.querySelector('#sales-list-table tbody'); 
+        tbody.innerHTML = '';
         var query = sbClient.from('sales').select('*').order('date', { ascending: false });
-        if(empId) query = query.eq('employee_id', empId); if(dateVal) query = query.eq('date', dateVal);
-        var res = await query; var data = res.data || [];
-        data.forEach(function(s) { var emp = employeesCache.find(function(e) { return e.employee_id === s.employee_id; }); tbody.innerHTML += '<tr><td>'+(s.invoice_no||'-')+'</td><td>'+s.date+'</td><td>'+(emp?emp.name:s.employee_id)+'</td><td>'+(s.customer_name||'-')+'</td><td class="text-right font-bold">'+formatNumber(s.amount)+'</td><td><button class="danger" style="padding:4px 8px; font-size:0.75rem; border-radius:4px;" onclick="deleteSale('+s.id+')"><i class="fa-solid fa-times"></i></button></td></tr>'; });
+        if(empId) query = query.eq('employee_id', empId); 
+        if(dateVal) query = query.eq('date', dateVal);
+        var res = await query;
+        var data = res.data || [];
+        data.forEach(function(s) { 
+            var emp = employeesCache.find(function(e) { return e.employee_id === s.employee_id; });
+            var row = '<tr>';
+            row += '<td>' + (s.invoice_no || '-') + '</td>';
+            row += '<td>' + s.date + '</td>';
+            row += '<td>' + (emp ? emp.name : s.employee_id) + '</td>';
+            row += '<td>' + (s.customer_name || '-') + '</td>';
+            row += '<td class="text-right font-bold">' + formatNumber(s.amount) + '</td>';
+            row += '<td><button class="danger" style="padding:4px 8px; font-size:0.75rem; border-radius:4px;" onclick="deleteSale(' + s.id + ')"><i class="fa-solid fa-times"></i></button></td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
+        });
     }
     async function deleteSale(id) { if(!confirm("Delete?")) return; await sbClient.from('sales').delete().eq('id', id); loadSalesList(); }
     function resetSalesFilters() { document.getElementById('sales-list-emp').value = ""; document.getElementById('sales-list-date').value = ""; loadSalesList(); }
 
-    function updateMonthFromDay() { var v = document.getElementById('day-date').value; if(v) document.getElementById('day-month').value = v.slice(0, 7); }
+    function updateMonthFromDay() { 
+        var v = document.getElementById('day-date').value; 
+        if(v) document.getElementById('day-month').value = v.slice(0, 7); 
+    }
     async function handleDailyTarget(e) {
         e.preventDefault();
-        var d = { employee_id: document.getElementById('day-emp-id').value, date: document.getElementById('day-date').value, month: document.getElementById('day-month').value, target_amount: parseFloat(document.getElementById('day-target').value) };
+        var d = { 
+            employee_id: document.getElementById('day-emp-id').value, 
+            date: document.getElementById('day-date').value, 
+            month: document.getElementById('day-month').value, 
+            target_amount: parseFloat(document.getElementById('day-target').value) 
+        };
         var res = await sbClient.from('daily_targets').upsert(d, { onConflict: 'employee_id,date' });
-        if (res.error) { console.error(res.error); alert("Error: " + res.error.message); } else { showToast("Saved!"); e.target.reset(); document.getElementById('day-date').value = todayStr; updateMonthFromDay(); if(d.date === document.getElementById('daily-list-date').value) loadDailyTargetList(); }
+        if (res.error) { console.error(res.error); alert("Error: " + res.error.message); }
+        else { 
+            showToast("Saved!"); 
+            e.target.reset(); 
+            document.getElementById('day-date').value = todayStr; 
+            updateMonthFromDay(); 
+            if(d.date === document.getElementById('daily-list-date').value) loadDailyTargetList(); 
+        }
     }
     async function loadDailyTargetList() {
-        var d = document.getElementById('daily-list-date').value; if(!d) return;
-        var resTargets = await sbClient.from('daily_targets').select('*').eq('date', d); var targets = resTargets.data || [];
-        var tbody = document.querySelector('#daily-list-table tbody'); tbody.innerHTML = ''; var tt = 0;
-        var resSales = await sbClient.from('sales').select('*').eq('date', d); var daySales = resSales.data || [];
-        if(targets.length === 0) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-light);">No targets set for this date.</td></tr>';
-        targets.forEach(function(t) { tt += parseFloat(t.target_amount); var emp = employeesCache.find(function(e) { return e.employee_id === t.employee_id; }); var ach = daySales.filter(function(s) { return s.employee_id === t.employee_id; }).reduce(function(sum, s) { return sum + parseFloat(s.amount); }, 0); var pct = t.target_amount > 0 ? ((ach/t.target_amount)*100).toFixed(1) : 0; tbody.innerHTML += '<tr><td>'+(emp?emp.name:'Unknown')+'</td><td>'+t.employee_id+'</td><td class="text-right">'+formatNumber(t.target_amount)+'</td><td class="text-right">'+formatNumber(ach)+'</td><td class="text-right">'+pct+'%</td></tr>'; });
+        var d = document.getElementById('daily-list-date').value; 
+        if(!d) return;
+        var resTargets = await sbClient.from('daily_targets').select('*').eq('date', d);
+        var targets = resTargets.data || [];
+        var tbody = document.querySelector('#daily-list-table tbody'); 
+        tbody.innerHTML = ''; 
+        var tt = 0;
+        var resSales = await sbClient.from('sales').select('*').eq('date', d);
+        var daySales = resSales.data || [];
+        if(targets.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-light);">No targets set for this date.</td></tr>';
+        }
+        targets.forEach(function(t) {
+            tt += parseFloat(t.target_amount);
+            var emp = employeesCache.find(function(e) { return e.employee_id === t.employee_id; });
+            var empSales = daySales.filter(function(s) { return s.employee_id === t.employee_id; });
+            var ach = empSales.reduce(function(sum, s) { return sum + parseFloat(s.amount); }, 0);
+            var pct = t.target_amount > 0 ? ((ach/t.target_amount)*100).toFixed(1) : 0;
+            var row = '<tr>';
+            row += '<td>' + (emp ? emp.name : 'Unknown') + '</td>';
+            row += '<td>' + t.employee_id + '</td>';
+            row += '<td class="text-right">' + formatNumber(t.target_amount) + '</td>';
+            row += '<td class="text-right">' + formatNumber(ach) + '</td>';
+            row += '<td class="text-right">' + pct + '%</td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
+        });
         document.getElementById('total-day-target-display').innerText = formatNumber(tt);
     }
 
     async function loadMonthlyTargets() {
-        var month = document.getElementById('summary-month-monthly').value || currentMonthStr; var result = await getMonthlyTargetData(month); var dTargets = result.dTargets; var mTargets = result.mTargets;
-        var tbody = document.querySelector('#monthly-table tbody'); tbody.innerHTML = ''; var dailyMap = {}, manualMap = {};
-        dTargets.forEach(function(t) { if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0; dailyMap[t.employee_id] += parseFloat(t.target_amount); });
+        var month = document.getElementById('summary-month-monthly').value || currentMonthStr;
+        var result = await getMonthlyTargetData(month);
+        var dTargets = result.dTargets;
+        var mTargets = result.mTargets;
+        var tbody = document.querySelector('#monthly-table tbody'); 
+        tbody.innerHTML = '';
+        var dailyMap = {};
+        dTargets.forEach(function(t) {
+            if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
+            dailyMap[t.employee_id] += parseFloat(t.target_amount);
+        });
+        var manualMap = {};
         mTargets.forEach(function(t) { manualMap[t.employee_id] = parseFloat(t.target_amount); });
-        var nextMonthDate = new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 1); var monthEnd = toLocalDateStr(nextMonthDate);
-        for(var i = 0; i < employeesCache.length; i++) { var emp = employeesCache[i]; var finalTarget = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0); var resS = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd); var ach = (resS.data || []).reduce(function(sum,x) { return sum + parseFloat(x.amount); }, 0); var pct = finalTarget > 0 ? ((ach/finalTarget)*100).toFixed(1) : 0; tbody.innerHTML += '<tr><td>'+emp.name+'</td><td>'+emp.employee_id+'</td><td>'+month+'</td><td class="text-right">'+formatNumber(finalTarget)+'</td><td class="text-right">'+formatNumber(ach)+'</td><td class="text-right">'+pct+'%</td></tr>'; }
-    }
-    async function handleMonthlyTarget(e) { e.preventDefault(); var res = await sbClient.from('monthly_targets').upsert({ employee_id: document.getElementById('month-emp-id').value, month: document.getElementById('month-selector').value, target_amount: parseFloat(document.getElementById('month-target').value) }, { onConflict: 'employee_id,month' }); if (res.error) { console.error(res.error); alert("Error: " + res.error.message); } else { showToast("Manual Target Saved!"); loadMonthlyTargets(); loadDashboard(); } }
+        var nextMonthDate = new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 1);
+        var monthEnd = toLocalDateStr(nextMonthDate);
 
-    function exportTableToCSV(tableId, filename) { var table = document.getElementById(tableId); var rows = Array.prototype.slice.call(table.querySelectorAll('tr')); var csv = []; for (var i = 0; i < rows.length; i++) { var cols = Array.prototype.slice.call(rows[i].querySelectorAll('th, td')); csv.push(cols.map(function(col) { return '"' + col.innerText.replace(/(\r\n|\n|\r)/gm, "") + '"'; }).join(",")); } var dl = document.createElement("a"); dl.download = filename; dl.href = window.URL.createObjectURL(new Blob([csv.join("\n")], { type: "text/csv" })); document.body.appendChild(dl); dl.click(); document.body.removeChild(dl); }
+        for(var i = 0; i < employeesCache.length; i++) {
+            var emp = employeesCache[i];
+            var finalTarget = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0);
+            var resS = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd);
+            var sData = resS.data || [];
+            var ach = sData.reduce(function(sum,x) { return sum + parseFloat(x.amount); }, 0);
+            var pct = finalTarget > 0 ? ((ach/finalTarget)*100).toFixed(1) : 0;
+            var row = '<tr>';
+            row += '<td>' + emp.name + '</td>';
+            row += '<td>' + emp.employee_id + '</td>';
+            row += '<td>' + month + '</td>';
+            row += '<td class="text-right">' + formatNumber(finalTarget) + '</td>';
+            row += '<td class="text-right">' + formatNumber(ach) + '</td>';
+            row += '<td class="text-right">' + pct + '%</td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
+        }
+    }
+    
+    async function handleMonthlyTarget(e) {
+        e.preventDefault();
+        var m = document.getElementById('month-selector').value;
+        var eid = document.getElementById('month-emp-id').value;
+        var t = parseFloat(document.getElementById('month-target').value);
+        var res = await sbClient.from('monthly_targets').upsert({ employee_id: eid, month: m, target_amount: t }, { onConflict: 'employee_id,month' });
+        if (res.error) { console.error(res.error); alert("Error: " + res.error.message); }
+        else { showToast("Manual Target Saved!"); loadMonthlyTargets(); loadDashboard(); }
+    }
+
+    function exportTableToCSV(tableId, filename) {
+        var table = document.getElementById(tableId);
+        var rows = Array.prototype.slice.call(table.querySelectorAll('tr'));
+        var csv = [];
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var cols = Array.prototype.slice.call(row.querySelectorAll('th, td'));
+            var rowData = cols.map(function(col) {
+                var data = col.innerText.replace(/(\r\n|\n|\r)/gm, ""); 
+                data = '"' + data + '"'; 
+                return data;
+            });
+            csv.push(rowData.join(","));
+        }
+        var csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+        var downloadLink = document.createElement("a");
+        downloadLink.download = filename;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
 
     async function renderSummaryReport() {
-        var month = document.getElementById('summary-month').value || currentMonthStr; var empId = document.getElementById('summary-emp-select').value; var result = await getMonthlyTargetData(month); var dTargets = result.dTargets; var mTargets = result.mTargets;
-        var dailyMap = {}, manualMap = {};
-        dTargets.forEach(function(t) { if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0; dailyMap[t.employee_id] += parseFloat(t.target_amount); });
+        var month = document.getElementById('summary-month').value || currentMonthStr;
+        var empId = document.getElementById('summary-emp-select').value;
+        var result = await getMonthlyTargetData(month);
+        var dTargets = result.dTargets;
+        var mTargets = result.mTargets;
+        var dailyMap = {};
+        dTargets.forEach(function(t) {
+            if(!dailyMap[t.employee_id]) dailyMap[t.employee_id] = 0;
+            dailyMap[t.employee_id] += parseFloat(t.target_amount);
+        });
+        var manualMap = {};
         mTargets.forEach(function(t) { manualMap[t.employee_id] = parseFloat(t.target_amount); });
-        var emps = employeesCache.slice(); if(empId) emps = emps.filter(function(e) { return e.employee_id === empId; });
-        var tbody = document.querySelector('#summary-table tbody'); tbody.innerHTML = '';
-        var nextMonthDate = new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 1); var monthEnd = toLocalDateStr(nextMonthDate);
-        var monthName = new Date(month + "-01").toLocaleString('default', { month: 'long', year: 'numeric' });
-        for(var i = 0; i < emps.length; i++) { var emp = emps[i]; var target = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0); var resS = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd); var ach = (resS.data || []).reduce(function(sum,x) { return sum + parseFloat(x.amount); }, 0); var pct = target > 0 ? ((ach/target)*100).toFixed(1) : 0; tbody.innerHTML += '<tr><td>'+monthName+'</td><td>'+(i+1)+'</td><td>'+emp.name+'</td><td>'+emp.phone+'</td><td>'+emp.employee_id+'</td><td>'+emp.designation+'</td><td class="text-right">'+formatNumber(target)+'</td><td class="text-right font-bold">'+formatNumber(ach)+'</td><td class="text-right">'+pct+'%</td></tr>'; }
+        var emps = employeesCache.slice(); 
+        if(empId) emps = emps.filter(function(e) { return e.employee_id === empId; });
+        var tbody = document.querySelector('#summary-table tbody'); 
+        tbody.innerHTML = '';
+        var nextMonthDate = new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 1);
+        var monthEnd = toLocalDateStr(nextMonthDate);
+        var dateObj = new Date(month + "-01");
+        var monthName = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        for(var i = 0; i < emps.length; i++) {
+            var emp = emps[i];
+            var target = isManualMonthlyMode && manualMap[emp.employee_id] ? manualMap[emp.employee_id] : (dailyMap[emp.employee_id] || 0);
+            var resS = await sbClient.from('sales').select('amount').eq('employee_id', emp.employee_id).gte('date', month+'-01').lt('date', monthEnd);
+            var sData = resS.data || [];
+            var ach = sData.reduce(function(sum,x) { return sum + parseFloat(x.amount); }, 0);
+            var pct = target > 0 ? ((ach/target)*100).toFixed(1) : 0;
+            var row = '<tr>';
+            row += '<td>' + monthName + '</td>';
+            row += '<td>' + (i + 1) + '</td>';
+            row += '<td>' + emp.name + '</td>';
+            row += '<td>' + emp.phone + '</td>';
+            row += '<td>' + emp.employee_id + '</td>';
+            row += '<td>' + emp.designation + '</td>';
+            row += '<td class="text-right">' + formatNumber(target) + '</td>';
+            row += '<td class="text-right font-bold">' + formatNumber(ach) + '</td>';
+            row += '<td class="text-right">' + pct + '%</td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
+        }
     }
 
     async function renderDetailedReport() {
-        var empId = document.getElementById('det-emp').value; var fromDate = document.getElementById('det-from').value; var toDate = document.getElementById('det-to').value;
+        var empId = document.getElementById('det-emp').value;
+        var fromDate = document.getElementById('det-from').value;
+        var toDate = document.getElementById('det-to').value;
         if(!fromDate || !toDate) { alert("Please select date range."); return; }
-        var tbody = document.querySelector('#detailed-table tbody'); tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>';
-        var dQuery = sbClient.from('daily_targets').select('*').gte('date', fromDate).lte('date', toDate).order('date', { ascending: true }); if(empId) dQuery = dQuery.eq('employee_id', empId);
-        var allTargetsInRange = (await dQuery).data || [];
-        var sQuery = sbClient.from('sales').select('*').gte('date', fromDate).lte('date', toDate).order('date', { ascending: true }); if(empId) sQuery = sQuery.eq('employee_id', empId);
-        var rangeSales = (await sQuery).data || [];
-        var dateList = [], cur = new Date(fromDate + 'T00:00:00'), endDt = new Date(toDate + 'T00:00:00');
-        while (cur <= endDt) { dateList.push(toLocalDateStr(cur)); cur.setDate(cur.getDate() + 1); }
-        var targetMap = new Map(), salesMap = new Map();
+
+        var tbody = document.querySelector('#detailed-table tbody'); 
+        tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>';
+        
+        var dQuery = sbClient.from('daily_targets').select('*').gte('date', fromDate).lte('date', toDate).order('date', { ascending: true });
+        if(empId) dQuery = dQuery.eq('employee_id', empId);
+        var resTargets = await dQuery;
+        var allTargetsInRange = resTargets.data || [];
+
+        var sQuery = sbClient.from('sales').select('*').gte('date', fromDate).lte('date', toDate).order('date', { ascending: true });
+        if(empId) sQuery = sQuery.eq('employee_id', empId);
+        var resSales = await sQuery;
+        var rangeSales = resSales.data || [];
+
+        var dateList = [];
+        var cur = new Date(fromDate + 'T00:00:00');
+        var endDt = new Date(toDate + 'T00:00:00');
+        while (cur <= endDt) {
+            dateList.push(toLocalDateStr(cur));
+            cur.setDate(cur.getDate() + 1);
+        }
+
+        var targetMap = new Map();
         allTargetsInRange.forEach(function(t) { targetMap.set(t.employee_id + '_' + t.date, parseFloat(t.target_amount)); });
-        rangeSales.forEach(function(s) { var key = s.employee_id + '_' + s.date; salesMap.set(key, (salesMap.get(key) || 0) + parseFloat(s.amount)); });
+
+        var salesMap = new Map();
+        rangeSales.forEach(function(s) {
+            var key = s.employee_id + '_' + s.date;
+            salesMap.set(key, (salesMap.get(key) || 0) + parseFloat(s.amount));
+        });
+
         var manualTargetMap = new Map();
         if (isManualMonthlyMode) {
-            var uniqueMonths = []; for (var i = 0; i < dateList.length; i++) { var m = dateList[i].slice(0, 7); if (uniqueMonths.indexOf(m) === -1) uniqueMonths.push(m); }
-            var mQuery = sbClient.from('monthly_targets').select('*').in('month', uniqueMonths); if(empId) mQuery = mQuery.eq('employee_id', empId);
-            var mRes = await mQuery; if(mRes.data) mRes.data.forEach(function(t) { manualTargetMap.set(t.employee_id + '_' + t.month, parseFloat(t.target_amount)); });
+            var uniqueMonths = [];
+            for (var i = 0; i < dateList.length; i++) {
+                var m = dateList[i].slice(0, 7);
+                if (uniqueMonths.indexOf(m) === -1) uniqueMonths.push(m);
+            }
+            var mQuery = sbClient.from('monthly_targets').select('*').in('month', uniqueMonths);
+            if(empId) mQuery = mQuery.eq('employee_id', empId);
+            var resManual = await mQuery;
+            var manualData = resManual.data || [];
+            manualData.forEach(function(t) { manualTargetMap.set(t.employee_id + '_' + t.month, parseFloat(t.target_amount)); });
         }
-        var lastKnownTarget = new Map(), mtdTargetMap = new Map(), mtdSalesMap = new Map(), prevMonth = new Map(), rows = [];
+
+        var lastKnownTarget = new Map();
+        var mtdTargetMap = new Map();
+        var mtdSalesMap = new Map();
+        var prevMonth = new Map();
+        var rows = [];
+
         for(var d = 0; d < dateList.length; d++) {
-            var date = dateList[d], mStr = date.slice(0, 7);
+            var date = dateList[d];
+            var mStr = date.slice(0, 7);
+
             for(var e = 0; e < employeesCache.length; e++) {
-                var emp = employeesCache[e]; if(empId && emp.employee_id !== empId) continue;
-                var empKey = emp.employee_id, mKey = empKey + '_' + mStr;
-                var targetKey = empKey + '_' + date; if (targetMap.has(targetKey)) lastKnownTarget.set(empKey, targetMap.get(targetKey));
+                var emp = employeesCache[e];
+                if(empId && emp.employee_id !== empId) continue;
+
+                var empKey = emp.employee_id;
+                var mKey = empKey + '_' + mStr;
+                var targetKey = empKey + '_' + date;
+                if (targetMap.has(targetKey)) lastKnownTarget.set(empKey, targetMap.get(targetKey));
                 var effectiveTarget = lastKnownTarget.get(empKey) || 0;
-                if (prevMonth.get(empKey) !== mStr) { if (!isManualMonthlyMode) mtdTargetMap.set(mKey, 0); mtdSalesMap.set(mKey, 0); prevMonth.set(empKey, mStr); }
+
+                var pm = prevMonth.get(empKey);
+                if (pm !== mStr) {
+                    if (!isManualMonthlyMode) mtdTargetMap.set(mKey, 0);
+                    mtdSalesMap.set(mKey, 0);
+                    prevMonth.set(empKey, mStr);
+                }
+
                 var currentMtdTarget = 0;
-                if (isManualMonthlyMode) { currentMtdTarget = manualTargetMap.get(mKey) || 0; }
-                else { currentMtdTarget = (mtdTargetMap.get(mKey) || 0) + effectiveTarget; mtdTargetMap.set(mKey, currentMtdTarget); }
+                if (isManualMonthlyMode) {
+                    currentMtdTarget = manualTargetMap.get(mKey) || 0;
+                } else {
+                    currentMtdTarget = (mtdTargetMap.get(mKey) || 0) + effectiveTarget;
+                    mtdTargetMap.set(mKey, currentMtdTarget);
+                }
+
                 var todaySales = salesMap.get(empKey + '_' + date) || 0;
-                var currentMtdSales = (mtdSalesMap.get(mKey) || 0) + todaySales; mtdSalesMap.set(mKey, currentMtdSales);
-                rows.push({ en: emp.name, m: mStr, dt_date: date, dt_day: getDayName(date), dt: effectiveTarget, ds_date: todaySales > 0 ? date : '-', ds_day: todaySales > 0 ? getDayName(date) : '-', ds: todaySales, dp: effectiveTarget > 0 ? ((todaySales/effectiveTarget)*100).toFixed(1) : "0.0", d_diff: todaySales - effectiveTarget, mt: currentMtdTarget, ms: currentMtdSales, mp: currentMtdTarget > 0 ? ((currentMtdSales/currentMtdTarget)*100).toFixed(1) : "0.0", m_diff: currentMtdSales - currentMtdTarget });
+                var currentMtdSales = (mtdSalesMap.get(mKey) || 0) + todaySales;
+                mtdSalesMap.set(mKey, currentMtdSales);
+
+                var saleDate = todaySales > 0 ? date : '-';
+                var saleDay = todaySales > 0 ? getDayName(date) : '-';
+                var dayPct = effectiveTarget > 0 ? ((todaySales / effectiveTarget) * 100).toFixed(1) : "0.0";
+                var dailyShortExcess = todaySales - effectiveTarget;
+                var mtdPct = currentMtdTarget > 0 ? ((currentMtdSales / currentMtdTarget) * 100).toFixed(1) : "0.0";
+                var monthShortExcess = currentMtdSales - currentMtdTarget;
+
+                rows.push({ 
+                    en: emp.name, m: mStr, dt_date: date, dt_day: getDayName(date),
+                    dt: effectiveTarget, ds_date: saleDate, ds_day: saleDay, ds: todaySales,
+                    dp: dayPct, d_diff: dailyShortExcess, mt: currentMtdTarget,
+                    ms: currentMtdSales, mp: mtdPct, m_diff: monthShortExcess
+                });
             }
         }
-        detailedReportData = rows; currentPage = 1; renderDetailedPage();
+
+        detailedReportData = rows;
+        currentPage = 1;
+        renderDetailedPage();
     }
 
     function renderDetailedPage() {
-        var tbody = document.querySelector('#detailed-table tbody'); tbody.innerHTML = '';
-        if (detailedReportData.length === 0) { tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding:20px;">No data found for this range.</td></tr>'; document.getElementById('pagination-container').classList.add('hidden'); return; }
-        var startIndex = (currentPage - 1) * rowsPerPage, pageData = detailedReportData.slice(startIndex, startIndex + rowsPerPage);
-        for (var i = 0; i < pageData.length; i++) {
-            var r = pageData[i], dStyle = r.d_diff >= 0 ? 'color:var(--success); font-weight:600;' : 'color:var(--danger); font-weight:600;', mStyle = r.m_diff >= 0 ? 'color:var(--success); font-weight:600;' : 'color:var(--danger); font-weight:600;';
-            tbody.innerHTML += '<tr><td><b>'+r.en+'</b></td><td>'+r.m+'</td><td>'+r.dt_date+'</td><td>'+r.dt_day+'</td><td class="text-right">'+formatNumber(r.dt)+'</td><td>'+r.ds_date+'</td><td>'+r.ds_day+'</td><td class="text-right font-bold">'+formatNumber(r.ds)+'</td><td class="text-right">'+r.dp+'%</td><td class="text-right" style="'+dStyle+'">'+formatNumber(r.d_diff)+'</td><td class="text-right">'+formatNumber(r.mt)+'</td><td class="text-right">'+formatNumber(r.ms)+'</td><td class="text-right">'+r.mp+'%</td><td class="text-right" style="'+mStyle+'">'+formatNumber(r.m_diff)+'</td></tr>';
+        var tbody = document.querySelector('#detailed-table tbody');
+        tbody.innerHTML = '';
+
+        if (detailedReportData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding:20px;">No data found for this range.</td></tr>';
+            document.getElementById('pagination-container').classList.add('hidden');
+            return;
         }
+
+        var startIndex = (currentPage - 1) * rowsPerPage;
+        var endIndex = startIndex + rowsPerPage;
+        var pageData = detailedReportData.slice(startIndex, endIndex);
+
+        for (var i = 0; i < pageData.length; i++) {
+            var r = pageData[i];
+            var dailyDiffStyle = r.d_diff >= 0 ? 'color:var(--success); font-weight:600;' : 'color:var(--danger); font-weight:600;';
+            var monthDiffStyle = r.m_diff >= 0 ? 'color:var(--success); font-weight:600;' : 'color:var(--danger); font-weight:600;';
+            var row = '<tr>';
+            row += '<td><b>' + r.en + '</b></td>';
+            row += '<td>' + r.m + '</td>';
+            row += '<td>' + r.dt_date + '</td>';
+            row += '<td>' + r.dt_day + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.dt) + '</td>';
+            row += '<td>' + r.ds_date + '</td>';
+            row += '<td>' + r.ds_day + '</td>';
+            row += '<td class="text-right font-bold">' + formatNumber(r.ds) + '</td>';
+            row += '<td class="text-right">' + r.dp + '%</td>';
+            row += '<td class="text-right" style="' + dailyDiffStyle + '">' + formatNumber(r.d_diff) + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.mt) + '</td>';
+            row += '<td class="text-right">' + formatNumber(r.ms) + '</td>';
+            row += '<td class="text-right">' + r.mp + '%</td>';
+            row += '<td class="text-right" style="' + monthDiffStyle + '">' + formatNumber(r.m_diff) + '</td>';
+            row += '</tr>';
+            tbody.innerHTML += row;
+        }
+
         var totalPages = Math.ceil(detailedReportData.length / rowsPerPage);
         document.getElementById('page-info').innerText = 'Page ' + currentPage + ' of ' + totalPages;
         document.getElementById('prev-page').disabled = currentPage === 1;
@@ -687,9 +1554,30 @@
 
     function populateEmployeeDropdowns() {
         var ids = ['month-emp-select', 'day-emp-select', 'sale-emp-select', 'det-emp', 'sales-list-emp', 'summary-emp-select'];
-        ids.forEach(function(id) { var el = document.getElementById(id); if(!el) return; var v = el.value; var isAll = (id === 'det-emp' || id === 'sales-list-emp' || id === 'summary-emp-select'); el.innerHTML = isAll ? '<option value="">All Employees</option>' : '<option value="">Select Employee</option>'; employeesCache.forEach(function(emp) { var o = document.createElement('option'); o.value = emp.employee_id; o.innerText = emp.name + ' (' + emp.employee_id + ')'; el.appendChild(o); }); el.value = v; });
+        ids.forEach(function(id) {
+            var el = document.getElementById(id); 
+            if(!el) return;
+            var v = el.value;
+            var isAll = (id === 'det-emp' || id === 'sales-list-emp' || id === 'summary-emp-select');
+            el.innerHTML = isAll ? '<option value="">All Employees</option>' : '<option value="">Select Employee</option>';
+            employeesCache.forEach(function(emp) { 
+                var o = document.createElement('option'); 
+                o.value = emp.employee_id; 
+                o.innerText = emp.name + ' (' + emp.employee_id + ')'; 
+                el.appendChild(o); 
+            });
+            el.value = v;
+        });
     }
-    function autoFillEmpData(sid, iid, did) { var s = document.getElementById(sid); var emp = employeesCache.find(function(x) { return x.employee_id === s.value; }); if(emp) { if(iid) document.getElementById(iid).value = emp.employee_id; if(did) document.getElementById(did).value = emp.designation; } }
+    function autoFillEmpData(sid, iid, did) {
+        var s = document.getElementById(sid);
+        var eid = s.value;
+        var emp = employeesCache.find(function(x) { return x.employee_id === eid; });
+        if(emp) { 
+            if(iid) document.getElementById(iid).value = emp.employee_id; 
+            if(did) document.getElementById(did).value = emp.designation; 
+        }
+    }
 </script>
 </body>
 </html>
