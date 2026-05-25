@@ -473,8 +473,6 @@
         window.addEventListener('DOMContentLoaded', async () => {
             initClock();
             
-            // 1. Load Settings (Priority: LocalStorage > DB > Defaults)
-            // We check LocalStorage first to ensure Persistence works even if DB is slow
             const localSettings = localStorage.getItem('blucheez_settings');
             if(localSettings) {
                 try {
@@ -484,14 +482,10 @@
                 } catch(e) { console.warn("Local storage parse error"); }
             }
 
-            // 2. Fetch from DB
             await fetchGlobalSettings();
-            
-            // 3. Load Employees
             await loadEmployeeDropdown();
             await updateDashboard();
             
-            // 4. Set Date Inputs
             const now = new Date();
             const monthStr = now.toISOString().slice(0, 7); 
             document.getElementById('report-month').value = monthStr;
@@ -545,7 +539,7 @@
             const { data, error } = await sbClient.from('attendance').insert([record]);
             if (error) {
                 console.error("Error checking in:", error);
-                showToast("Check-in failed. Database error.", "error");
+                showToast("Check-in failed. Database error: " + error.message, "error");
                 return false;
             }
             return true;
@@ -562,16 +556,15 @@
         }
 
         /**
-         * GOOGLE SHEETS INTEGRATION (HARDCODED)
+         * GOOGLE SHEETS INTEGRATION
          */
         async function sendToGoogleSheets(record) {
-            // HARDCODED URL AS REQUESTED
             const gSheetUrl = "https://script.google.com/macros/s/AKfycbwSiXzbKJ7uomqfQfFC8llPvxpJvBgK4iws10KhtaXVeA3FUeVHLlHASgyAeSYCa1LB/exec";
 
             const payload = {
                 date: record.date,
                 employee_id: record.employee_id,
-                emp_name: record.emp_name,
+                emp_name: record.emp_name, // Name is needed here for the sheet
                 check_in_time: record.check_in_time,
                 check_out_time: record.check_out_time || "",
                 status: record.status,
@@ -596,10 +589,9 @@
         }
 
         /**
-         * SETTINGS MANAGEMENT (FROM DATABASE & LOCALSTORAGE)
+         * SETTINGS MANAGEMENT
          */
         async function fetchGlobalSettings() {
-            // HARDCODED URL ADDED TO DEFAULTS
             const defaultSettings = {
                 shopName: "Blucheez Main Store",
                 radius: 100,
@@ -609,7 +601,6 @@
                 otStartTime: '18:00',
                 otRate: 10,
                 snacksRate: 5,
-                // URL is hardcoded here
                 gSheetUrl: "https://script.google.com/macros/s/AKfycbwSiXzbKJ7uomqfQfFC8llPvxpJvBgK4iws10KhtaXVeA3FUeVHLlHASgyAeSYCa1LB/exec"
             };
 
@@ -630,18 +621,14 @@
                     otStartTime: data.ot_start_time,
                     otRate: data.ot_rate,
                     snacksRate: data.snacks_rate,
-                    // We ignore DB gsheet_url and use hardcoded one
                     gSheetUrl: defaultSettings.gSheetUrl 
                 };
                 
-                // Merge: DB settings override defaults, but we keep the hardcoded URL
                 globalSettings = { ...defaultSettings, ...dbSettings };
             } else {
-                // Use defaults if DB fails
                 globalSettings = defaultSettings;
             }
             
-            // Save to LocalStorage for Persistence
             localStorage.setItem('blucheez_settings', JSON.stringify(globalSettings));
             loadSettingsToUI();
             initGeo();
@@ -662,9 +649,7 @@
             }
         }
 
-        // --- SAVE SETTINGS (FIXED TO AVOID DB ERROR) ---
         async function saveSettings() {
-            // 1. Get Values from Inputs
             const shopName = document.getElementById('set-shop-name').value;
             const radius = parseInt(document.getElementById('set-radius').value);
             const startTime = document.getElementById('set-start-time').value;
@@ -672,7 +657,6 @@
             const otRate = parseFloat(document.getElementById('set-ot-rate').value) || 0;
             const snacksRate = parseFloat(document.getElementById('set-snacks-rate').value) || 0;
 
-            // 2. Get GPS Coordinates
             let saveLat, saveLon;
 
             if (currentLocation && currentLocation.lat && currentLocation.lon) {
@@ -685,9 +669,6 @@
                 saveLon = inputLon ? parseFloat(inputLon) : -74.0060;
             }
 
-            // 3. Construct object
-            // NOTE: We removed 'gsheet_url' from this object to prevent the DB error 
-            // if the column doesn't exist in your Supabase table.
             const settings = {
                 id: 1, 
                 shop_name: shopName,
@@ -700,9 +681,6 @@
                 snacks_rate: snacksRate
             };
 
-            console.log("Saving Settings to DB:", settings);
-
-            // 4. Upsert to Supabase
             const { data, error } = await sbClient
                 .from('admin_settings')
                 .upsert(settings, { onConflict: 'id' });
@@ -711,8 +689,6 @@
                 console.error("Supabase Error saving settings:", error);
                 showToast("Failed to save settings to DB", "error");
             } else {
-                // Update local cache immediately
-                // We ensure the hardcoded URL remains in the local cache
                 globalSettings = {
                     id: 1,
                     shopName: settings.shop_name,
@@ -726,7 +702,6 @@
                     gSheetUrl: "https://script.google.com/macros/s/AKfycbwSiXzbKJ7uomqfQfFC8llPvxpJvBgK4iws10KhtaXVeA3FUeVHLlHASgyAeSYCa1LB/exec"
                 };
                 
-                // SAVE TO LOCAL STORAGE (Persistence)
                 localStorage.setItem('blucheez_settings', JSON.stringify(globalSettings));
                 
                 showToast("Settings Saved & Persisted!", "success");
@@ -735,7 +710,7 @@
         }
 
         /**
-         * GEO LOCATION (Improved Accuracy & Permission Handling)
+         * GEO LOCATION
          */
         function initGeo(manualTrigger = false) {
             const dotEl = document.getElementById('geo-dot');
@@ -971,22 +946,40 @@
             if (currentMin > startMin) status = 'Late';
 
             const emp = allEmployeesCache.find(e => e.id === currentEmpId);
-            const record = {
+
+            // 1. Prepare Data for Google Sheets (Includes Name)
+            const sheetRecord = {
+                date: getTodayDateStr(),
                 employee_id: currentEmpId,
                 emp_name: emp ? emp.name : 'Unknown',
+                check_in_time: timeStr24,
+                check_out_time: "",
+                status: status,
+                lat: currentLocation.lat,
+                lon: currentLocation.lon,
+                overtime_hours: 0
+            };
+
+            // 2. Prepare Data for Supabase (Strict Schema - No Name, Numbers only)
+            // ONLY these columns must exist in your DB table
+            const dbRecord = {
+                employee_id: currentEmpId,
                 date: getTodayDateStr(),
                 check_in_time: timeStr24,
                 check_out_time: null,
-                lat: parseFloat(currentLocation.lat).toFixed(7),
-                lon: parseFloat(currentLocation.lon).toFixed(7),
+                lat: parseFloat(currentLocation.lat), // Send as Number
+                lon: parseFloat(currentLocation.lon), // Send as Number
                 status: status,
                 overtime_hours: 0
             };
 
-            const success = await addAttendanceToSupabase(record);
+            // 3. Save to Supabase first
+            const success = await addAttendanceToSupabase(dbRecord);
             
             if(success) {
-                sendToGoogleSheets(record);
+                // 4. If DB save worked, then send to Google Sheets
+                sendToGoogleSheets(sheetRecord);
+                
                 showToast(`Checked In (${status})`, "success");
                 await updateEmployeeStatusUI();
                 await renderEmployeeHistory();
@@ -1210,15 +1203,12 @@
             allEmployeesCache.forEach((emp, index) => {
                 const empLogs = monthlyLogs.filter(l => l.employee_id === emp.id);
                 
-                // 1. Calculate OT
                 const totalOtHrs = empLogs.reduce((acc, curr) => acc + (parseFloat(curr.overtime_hours) || 0), 0);
                 const otTotal = totalOtHrs * globalSettings.otRate;
 
-                // 2. Calculate Snacks (Days = Present Days)
                 const snacksDays = empLogs.length; 
                 const snacksTotal = snacksDays * globalSettings.snacksRate;
 
-                // 3. Total Pay = Base + OT + Snacks
                 const totalPay = (emp.salary || 0) + otTotal + snacksTotal;
 
                 const tr = document.createElement('tr');
