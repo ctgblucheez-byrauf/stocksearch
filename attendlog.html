@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blucheez | Geo-Attendance (Supabase)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Blucheez | Geo-Attendance (Supabase + G-Sheets)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -107,8 +107,11 @@
         .status-absent { background: #f1f5f9; color: #475569; }
 
         .geo-status { font-size: 0.9rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-        .geo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+        .geo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); transition: background 0.3s, box-shadow 0.3s; }
         .geo-dot.active { background: var(--success); box-shadow: 0 0 0 4px #dcfce7; }
+        .geo-dot.scanning { background: var(--warning); animation: pulse 1.5s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         /* --- Tables --- */
         .table-wrapper {
@@ -243,9 +246,10 @@
                     </div>
 
                     <div class="clock-display" id="clock">12:00:00 PM</div>
+                    
                     <div class="geo-status">
                         <div class="geo-dot" id="geo-dot"></div>
-                        <span id="geo-msg">Locating Shop...</span>
+                        <span id="geo-msg">Initializing GPS...</span>
                     </div>
 
                     <div id="action-area" class="hidden">
@@ -264,6 +268,13 @@
 
                     <div id="login-hint" class="mt-2" style="text-align:center; color: var(--text-muted); font-size: 0.9rem;">
                         Please select your name above to enable punch buttons.
+                    </div>
+                    
+                    <!-- Manual GPS Trigger for Mobile Permissions -->
+                    <div id="gps-trigger-area" class="mt-2 hidden" style="text-align: center;">
+                        <button class="btn btn-sm btn-outline" onclick="initGeo(true)">
+                            📍 Enable Location Access
+                        </button>
                     </div>
                 </div>
 
@@ -407,6 +418,14 @@
                         </div>
                         <button class="btn btn-sm btn-outline mt-2" onclick="setShopToCurrentLocation()">Set Current Location as Shop</button>
                     </div>
+                    
+                    <!-- Google Sheets Config -->
+                    <div class="form-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border);">
+                        <label style="color:var(--info);">Google Sheets Web App URL</label>
+                        <input type="text" id="set-gsheet-url" placeholder="https://script.google.com/macros/s/..." style="font-size: 0.85rem; font-family: monospace;">
+                        <small style="color:var(--text-muted); display:block; margin-top:4px;">Leave empty to disable Google Sheets sync.</small>
+                    </div>
+
                     <button class="btn" onclick="saveSettings()">Save Settings</button>
                 </div>
 
@@ -440,25 +459,30 @@
             var sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else {
             console.error("Supabase library failed to load.");
-            alert("Supabase library failed to load. Please check your internet connection.");
+            showToast("Supabase library failed to load. Please check your internet connection.", "error");
         }
 
         // Global State
         let currentEmpId = null;
-        let currentLocation = null;
+        let currentLocation = null; // User's live location
         let allEmployeesCache = []; 
         let allAttendanceCache = []; 
-        let globalSettings = {}; 
+        let globalSettings = {
+            gSheetUrl: ""
+        }; 
+        let geoWatchId = null; // To control the watchPosition
 
         window.addEventListener('DOMContentLoaded', async () => {
             initClock();
-            initGeo();
             
-            // Fetch Employees & Settings from DB
+            // 1. Load Settings (Priority: DB > LocalStorage > Defaults)
             await fetchGlobalSettings();
+            
+            // 2. Load Employees
             await loadEmployeeDropdown();
             await updateDashboard();
             
+            // 3. Set Date Inputs
             const now = new Date();
             const monthStr = now.toISOString().slice(0, 7); 
             document.getElementById('report-month').value = monthStr;
@@ -529,30 +553,76 @@
         }
 
         /**
-         * SETTINGS MANAGEMENT (FROM DATABASE)
+         * GOOGLE SHEETS INTEGRATION
+         * Sends data to Google Apps Script Web App
+         */
+        async function sendToGoogleSheets(record) {
+            if (!globalSettings.gSheetUrl || !globalSettings.gSheetUrl.startsWith('http')) {
+                console.log("Google Sheets URL not configured. Skipping sync.");
+                return;
+            }
+
+            // Prepare payload matching your spreadsheet columns
+            // Adjust these keys to match your specific Google Script parsing logic
+            const payload = {
+                date: record.date,
+                employee_id: record.employee_id,
+                emp_name: record.emp_name, // You might need to fetch this name if not in record
+                check_in_time: record.check_in_time,
+                check_out_time: record.check_out_time || "",
+                status: record.status,
+                lat: record.lat,
+                lon: record.lon,
+                overtime_hours: record.overtime_hours
+            };
+
+            try {
+                // Use 'no-cors' mode if the script doesn't return proper CORS headers, 
+                // though standard fetch is better for error handling.
+                // Since we are sending data, we assume the script is set up as a Web App doing POST.
+                
+                await fetch(globalSettings.gSheetUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', // Often required for simple Google Script Web Apps called from client-side
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                console.log("Data sent to Google Sheets successfully (Fire & Forget).");
+            } catch (e) {
+                console.warn("Google Sheets Sync Failed:", e);
+                // We do not show a toast error here to not annoy the user if the main DB save succeeded.
+                // The main DB is the source of truth.
+            }
+        }
+
+        /**
+         * SETTINGS MANAGEMENT (FROM DATABASE & LOCALSTORAGE)
          */
         async function fetchGlobalSettings() {
+            // 1. Try LocalStorage first for instant UI load (Persistence)
+            const localSettings = localStorage.getItem('blucheez_settings');
+            if(localSettings) {
+                try {
+                    const parsed = JSON.parse(localSettings);
+                    // Use local settings temporarily
+                    globalSettings = { ...globalSettings, ...parsed };
+                    loadSettingsToUI();
+                } catch(e) { console.warn("Local storage parse error"); }
+            }
+
+            // 2. Fetch from DB
             const { data, error } = await sbClient
                 .from('admin_settings')
                 .select('*')
                 .eq('id', 1)
                 .single();
 
-            if (error || !data) {
-                // Fallback defaults
-                globalSettings = {
-                    shopName: "Blucheez Main Store",
-                    radius: 100,
-                    lat: 40.7128,
-                    lon: -74.0060,
-                    startTime: '09:00',
-                    otStartTime: '18:00',
-                    otRate: 10,
-                    snacksRate: 5
-                };
-            } else {
+            if (!error && data) {
                 // Map snake_case DB cols to camelCase JS vars
-                globalSettings = {
+                const dbSettings = {
                     id: data.id,
                     shopName: data.shop_name,
                     radius: data.radius,
@@ -561,10 +631,34 @@
                     startTime: data.office_start_time,
                     otStartTime: data.ot_start_time,
                     otRate: data.ot_rate,
-                    snacksRate: data.snacks_rate
+                    snacksRate: data.snacks_rate,
+                    // Check if gsheet_url column exists in DB, else keep current/local
+                    gSheetUrl: data.gsheet_url || globalSettings.gSheetUrl 
+                };
+                
+                // Merge and Update Global
+                globalSettings = { ...globalSettings, ...dbSettings };
+                
+                // Save to LocalStorage for Persistence
+                localStorage.setItem('blucheez_settings', JSON.stringify(globalSettings));
+            } else {
+                // Fallback defaults if DB fails
+                 globalSettings = {
+                    shopName: "Blucheez Main Store",
+                    radius: 100,
+                    lat: 40.7128,
+                    lon: -74.0060,
+                    startTime: '09:00',
+                    otStartTime: '18:00',
+                    otRate: 10,
+                    snacksRate: 5,
+                    gSheetUrl: globalSettings.gSheetUrl || ""
                 };
             }
+            
             loadSettingsToUI();
+            // Initialize GPS after settings are loaded so we have a target
+            initGeo();
         }
 
         function loadSettingsToUI() {
@@ -578,10 +672,11 @@
                 document.getElementById('set-ot-time').value = s.otStartTime;
                 document.getElementById('set-ot-rate').value = s.otRate;
                 document.getElementById('set-snacks-rate').value = s.snacksRate;
+                document.getElementById('set-gsheet-url').value = s.gSheetUrl || "";
             }
         }
 
-        // --- FIXED SAVE SETTINGS FUNCTION ---
+        // --- SAVE SETTINGS (PERSISTENCE + DB) ---
         async function saveSettings() {
             // 1. Get Values from Inputs
             const shopName = document.getElementById('set-shop-name').value;
@@ -590,27 +685,25 @@
             const otTime = document.getElementById('set-ot-time').value;
             const otRate = parseFloat(document.getElementById('set-ot-rate').value) || 0;
             const snacksRate = parseFloat(document.getElementById('set-snacks-rate').value) || 0;
+            const gSheetUrl = document.getElementById('set-gsheet-url').value.trim();
 
-            // 2. Get GPS Coordinates Safely (FIX)
-            // We use 'currentLocation' (Global variable) if available, otherwise fallback to input or default
+            // 2. Get GPS Coordinates Safely
             let saveLat, saveLon;
 
             if (currentLocation && currentLocation.lat && currentLocation.lon) {
-                // Priority 1: Use live GPS data (guaranteed numbers)
                 saveLat = currentLocation.lat;
                 saveLon = currentLocation.lon;
             } else {
-                // Priority 2: Try to read from input field manually
                 const inputLat = document.getElementById('set-lat').value;
                 const inputLon = document.getElementById('set-lon').value;
-                
                 saveLat = inputLat ? parseFloat(inputLat) : 40.7128;
                 saveLon = inputLon ? parseFloat(inputLon) : -74.0060;
             }
 
             // 3. Construct object matching Database Column Names
+            // Note: You need to add a column 'gsheet_url' (type text) to your admin_settings table in Supabase
             const settings = {
-                id: 1, // IMPORTANT: Update row ID 1
+                id: 1, 
                 shop_name: shopName,
                 radius: radius,
                 lat: saveLat,
@@ -618,10 +711,11 @@
                 office_start_time: startTime,
                 ot_start_time: otTime,
                 ot_rate: otRate,
-                snacks_rate: snacksRate
+                snacks_rate: snacksRate,
+                gsheet_url: gSheetUrl
             };
 
-            console.log("Saving Settings:", settings); // Check console to see what is being sent
+            console.log("Saving Settings:", settings);
 
             // 4. Upsert to Supabase
             const { data, error } = await sbClient
@@ -642,70 +736,137 @@
                     startTime: settings.office_start_time,
                     otStartTime: settings.ot_start_time,
                     otRate: settings.ot_rate,
-                    snacksRate: settings.snacks_rate
+                    snacksRate: settings.snacks_rate,
+                    gSheetUrl: settings.gsheet_url
                 };
-                showToast("Settings Saved Successfully!", "success");
+                
+                // SAVE TO LOCAL STORAGE (Persistence Requirement)
+                localStorage.setItem('blucheez_settings', JSON.stringify(globalSettings));
+                
+                showToast("Settings Saved & Persisted!", "success");
                 if(currentLocation) checkZone(currentLocation);
             }
         }
 
         /**
-         * GEO LOCATION
+         * GEO LOCATION (Improved Accuracy & Permission Handling)
          */
-        function initGeo() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.watchPosition(
-                    (position) => {
-                        currentLocation = {
-                            lat: position.coords.latitude,
-                            lon: position.coords.longitude
-                        };
-                        checkZone(currentLocation);
-                    },
-                    (error) => {
-                        document.getElementById('geo-msg').innerText = "GPS Disabled/Denied";
-                        document.getElementById('geo-dot').classList.remove('active');
-                        showToast("Location access denied.", "error");
-                    },
-                    { enableHighAccuracy: true }
-                );
-            } else {
-                showToast("Browser does not support Geolocation.", "error");
+        function initGeo(manualTrigger = false) {
+            const dotEl = document.getElementById('geo-dot');
+            const msgEl = document.getElementById('geo-msg');
+            const triggerArea = document.getElementById('gps-trigger-area');
+
+            if (!("geolocation" in navigator)) {
+                msgEl.innerText = "Geolocation not supported";
+                return;
             }
+
+            if (manualTrigger) {
+                msgEl.innerText = "Requesting permission...";
+            }
+
+            // Clear previous watch if exists to prevent duplicates
+            if (geoWatchId) navigator.geolocation.clearWatch(geoWatchId);
+
+            dotEl.classList.add('scanning');
+
+            const options = {
+                enableHighAccuracy: true, // Crucial for Mobile precision
+                timeout: 10000,           // 10s timeout
+                maximumAge: 0             // Do not use cached position
+            };
+
+            geoWatchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    currentLocation = {
+                        lat: parseFloat(position.coords.latitude), // Ensure float
+                        lon: parseFloat(position.coords.longitude)
+                    };
+                    
+                    dotEl.classList.remove('scanning');
+                    triggerArea.classList.add('hidden'); // Hide manual button once success
+                    
+                    checkZone(currentLocation);
+                },
+                (error) => {
+                    dotEl.classList.remove('scanning');
+                    let errMsg = "GPS Error";
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errMsg = "Location Permission Denied";
+                            // Show manual trigger button on UI if hidden
+                            triggerArea.classList.remove('hidden'); 
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errMsg = "Location Unavailable";
+                            break;
+                        case error.TIMEOUT:
+                            errMsg = "Location Timeout";
+                            break;
+                    }
+                    
+                    msgEl.innerText = errMsg;
+                    // If it's a permission denied on mobile, show toast
+                    if(error.code === error.PERMISSION_DENIED && manualTrigger) {
+                        showToast("Please allow Location access in browser settings.", "error");
+                    }
+                },
+                options
+            );
         }
 
         function checkZone(userLoc) {
+            if(!globalSettings.lat || !globalSettings.lon) return;
+
             const distance = getDistanceFromLatLonInM(userLoc.lat, userLoc.lon, globalSettings.lat, globalSettings.lon);
             const msgEl = document.getElementById('geo-msg');
             const dotEl = document.getElementById('geo-dot');
 
+            // Round distance for display
+            const displayDist = Math.round(distance);
+
             if (distance <= globalSettings.radius) {
-                msgEl.innerText = `Within Range (${Math.round(distance)}m from Shop)`;
+                msgEl.innerHTML = `Within Range (<b>${displayDist}m</b> from Shop)`;
                 dotEl.classList.add('active');
                 return true;
             } else {
-                msgEl.innerText = `Outside Range (${Math.round(distance)}m from Shop)`;
+                msgEl.innerHTML = `Outside Range (<b>${displayDist}m</b> from Shop)`;
                 dotEl.classList.remove('active');
                 return false;
             }
         }
 
+        // --- PRECISE HAVERSINE FORMULA ---
         function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
-            var R = 6371; 
+            // Ensure inputs are numbers
+            lat1 = Number(lat1); lon1 = Number(lon1);
+            lat2 = Number(lat2); lon2 = Number(lon2);
+
+            var R = 6371e3; // Radius of the earth in meters
             var dLat = deg2rad(lat2-lat1);  
             var dLon = deg2rad(lon2-lon1); 
-            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-                    Math.sin(dLon/2) * Math.sin(dLon/2); 
+            var a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2); 
             var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
             var d = R * c; 
-            return d * 1000; 
+            return d; 
         }
+
         function deg2rad(deg) { return deg * (Math.PI/180); }
+        
         function setShopToCurrentLocation() {
-            if(!currentLocation) { showToast("Waiting for location...", "error"); return; }
-            document.getElementById('set-lat').value = currentLocation.lat;
-            document.getElementById('set-lon').value = currentLocation.lon;
+            if(!currentLocation) { 
+                showToast("Waiting for accurate location...", "error"); 
+                // If GPS is stuck, trigger a refresh
+                initGeo(true);
+                return; 
+            }
+            // Format to 7 decimals for high precision (~1cm)
+            document.getElementById('set-lat').value = currentLocation.lat.toFixed(7);
+            document.getElementById('set-lon').value = currentLocation.lon.toFixed(7);
             showToast("Coordinates set! Click Save.", "success");
         }
 
@@ -826,23 +987,31 @@
             const timeStr24 = now.toTimeString().slice(0, 5);
             
             let status = 'Present';
-            const diffMin = (parseInt(timeStr24.split(':')[0]) * 60 + parseInt(timeStr24.split(':')[1])) - 
-                            (parseInt(globalSettings.startTime.split(':')[0]) * 60 + parseInt(globalSettings.startTime.split(':')[1]));
-            if (diffMin > 0) status = 'Late';
+            // Simple time comparison
+            const startMin = parseInt(globalSettings.startTime.split(':')[0]) * 60 + parseInt(globalSettings.startTime.split(':')[1]);
+            const currentMin = parseInt(timeStr24.split(':')[0]) * 60 + parseInt(timeStr24.split(':')[1]);
+            
+            if (currentMin > startMin) status = 'Late';
 
+            const emp = allEmployeesCache.find(e => e.id === currentEmpId);
             const record = {
                 employee_id: currentEmpId,
+                emp_name: emp ? emp.name : 'Unknown', // For Google Sheets
                 date: getTodayDateStr(),
                 check_in_time: timeStr24,
                 check_out_time: null,
-                lat: currentLocation.lat,
-                lon: currentLocation.lon,
+                lat: parseFloat(currentLocation.lat).toFixed(7),
+                lon: parseFloat(currentLocation.lon).toFixed(7),
                 status: status,
                 overtime_hours: 0
             };
 
+            // 1. Save to Supabase
             const success = await addAttendanceToSupabase(record);
+            
+            // 2. Send to Google Sheets (Parallel, Fire & Forget)
             if(success) {
+                sendToGoogleSheets(record);
                 showToast(`Checked In (${status})`, "success");
                 await updateEmployeeStatusUI();
                 await renderEmployeeHistory();
@@ -869,12 +1038,18 @@
                     otHours = Math.round(((totalMin - otStartMin) / 60) * 100) / 100;
                 }
 
-                const success = await updateAttendanceInSupabase(record.id, {
+                const updates = {
                     check_out_time: timeStr24,
                     overtime_hours: otHours
-                });
+                };
+
+                const success = await updateAttendanceInSupabase(record.id, updates);
 
                 if(success) {
+                    // Update Google Sheets (Optional: you might want a separate script for updates or append new row)
+                    // For now, we focus on Check-In for sheet logging, but here is the hook:
+                    // sendToGoogleSheets({ ...record, ...updates }); 
+                    
                     showToast("Checked Out Successfully", "success");
                     await updateEmployeeStatusUI();
                     await renderEmployeeHistory();
@@ -942,7 +1117,7 @@
         }
 
         /**
-         * DASHBOARD & REPORTS LOGIC (Existing)
+         * DASHBOARD & REPORTS LOGIC
          */
         async function updateDashboard() {
             allEmployeesCache = await fetchEmployees();
@@ -1048,7 +1223,7 @@
         }
 
         /**
-         * SALARY REPORT LOGIC (UPDATED)
+         * SALARY REPORT LOGIC
          */
         async function generateSalaryReport() {
             const monthVal = document.getElementById('salary-month').value;
@@ -1101,7 +1276,6 @@
             });
         }
 
-        // Helper to format numbers with commas (1,000.00) and no symbols
         function formatNumber(num) {
             return num.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
@@ -1113,7 +1287,6 @@
             const table = document.getElementById("salary-table");
             if(table.rows.length <= 1) { showToast("No data to export", "error"); return; }
             
-            // CSV Content
             let csvContent = "data:text/csv;charset=utf-8,";
             const headers = ["SL", "Name", "Designation", "OT Total Hours", "OT Per Hour", "OT Total", "Snacks Days", "Snacks Per Day", "Snacks Total", "Total Pay"];
             csvContent += headers.join(",") + "\r\n";
@@ -1121,18 +1294,17 @@
             table.querySelectorAll("tbody tr").forEach(row => {
                 const tds = row.querySelectorAll("td");
                 const rowData = [
-                    tds[0].innerText, // SL
-                    `"${tds[1].innerText}"`, // Name
-                    `"${tds[2].innerText}"`, // Designation
-                    parseFloat(tds[3].innerText), // OT Hours
-                    parseFloat(tds[4].innerText), // OT Rate
-                    tds[5].innerText.replace(/,/g, ''), // OT Total
-                    parseInt(tds[6].innerText), // Snacks Days
-                    parseFloat(tds[7].innerText), // Snacks Rate
-                    tds[8].innerText.replace(/,/g, ''), // Snacks Total
-                    tds[9].innerText.replace(/,/g, '')  // Total Pay
+                    tds[0].innerText, 
+                    `"${tds[1].innerText}"`, 
+                    `"${tds[2].innerText}"`, 
+                    parseFloat(tds[3].innerText), 
+                    parseFloat(tds[4].innerText), 
+                    tds[5].innerText.replace(/,/g, ''), 
+                    parseInt(tds[6].innerText), 
+                    parseFloat(tds[7].innerText), 
+                    tds[8].innerText.replace(/,/g, ''), 
+                    tds[9].innerText.replace(/,/g, '')  
                 ];
-                
                 csvContent += rowData.join(",") + "\r\n";
             });
 
