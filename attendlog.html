@@ -419,11 +419,11 @@
                         <button class="btn btn-sm btn-outline mt-2" onclick="setShopToCurrentLocation()">Set Current Location as Shop</button>
                     </div>
                     
-                    <!-- Google Sheets Config -->
+                    <!-- Google Sheets Config (Hardcoded / Read Only) -->
                     <div class="form-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border);">
-                        <label style="color:var(--info);">Google Sheets Web App URL</label>
-                        <input type="text" id="set-gsheet-url" placeholder="https://script.google.com/macros/s/..." style="font-size: 0.85rem; font-family: monospace;">
-                        <small style="color:var(--text-muted); display:block; margin-top:4px;">Leave empty to disable Google Sheets sync.</small>
+                        <label style="color:var(--info);">Google Sheets Web App URL (Hardcoded)</label>
+                        <input type="text" id="set-gsheet-url" readonly style="background-color: #f1f5f9; color: #64748b; font-size: 0.8rem;">
+                        <small style="color:var(--success); display:block; margin-top:4px;">✓ Google Sheets Sync is Active.</small>
                     </div>
 
                     <button class="btn" onclick="saveSettings()">Save Settings</button>
@@ -467,22 +467,31 @@
         let currentLocation = null; // User's live location
         let allEmployeesCache = []; 
         let allAttendanceCache = []; 
-        let globalSettings = {
-            gSheetUrl: ""
-        }; 
-        let geoWatchId = null; // To control the watchPosition
+        let globalSettings = {}; 
+        let geoWatchId = null; 
 
         window.addEventListener('DOMContentLoaded', async () => {
             initClock();
             
-            // 1. Load Settings (Priority: DB > LocalStorage > Defaults)
+            // 1. Load Settings (Priority: LocalStorage > DB > Defaults)
+            // We check LocalStorage first to ensure Persistence works even if DB is slow
+            const localSettings = localStorage.getItem('blucheez_settings');
+            if(localSettings) {
+                try {
+                    const parsed = JSON.parse(localSettings);
+                    globalSettings = parsed;
+                    loadSettingsToUI();
+                } catch(e) { console.warn("Local storage parse error"); }
+            }
+
+            // 2. Fetch from DB
             await fetchGlobalSettings();
             
-            // 2. Load Employees
+            // 3. Load Employees
             await loadEmployeeDropdown();
             await updateDashboard();
             
-            // 3. Set Date Inputs
+            // 4. Set Date Inputs
             const now = new Date();
             const monthStr = now.toISOString().slice(0, 7); 
             document.getElementById('report-month').value = monthStr;
@@ -553,21 +562,16 @@
         }
 
         /**
-         * GOOGLE SHEETS INTEGRATION
-         * Sends data to Google Apps Script Web App
+         * GOOGLE SHEETS INTEGRATION (HARDCODED)
          */
         async function sendToGoogleSheets(record) {
-            if (!globalSettings.gSheetUrl || !globalSettings.gSheetUrl.startsWith('http')) {
-                console.log("Google Sheets URL not configured. Skipping sync.");
-                return;
-            }
+            // HARDCODED URL AS REQUESTED
+            const gSheetUrl = "https://script.google.com/macros/s/AKfycbwSiXzbKJ7uomqfQfFC8llPvxpJvBgK4iws10KhtaXVeA3FUeVHLlHASgyAeSYCa1LB/exec";
 
-            // Prepare payload matching your spreadsheet columns
-            // Adjust these keys to match your specific Google Script parsing logic
             const payload = {
                 date: record.date,
                 employee_id: record.employee_id,
-                emp_name: record.emp_name, // You might need to fetch this name if not in record
+                emp_name: record.emp_name,
                 check_in_time: record.check_in_time,
                 check_out_time: record.check_out_time || "",
                 status: record.status,
@@ -577,24 +581,17 @@
             };
 
             try {
-                // Use 'no-cors' mode if the script doesn't return proper CORS headers, 
-                // though standard fetch is better for error handling.
-                // Since we are sending data, we assume the script is set up as a Web App doing POST.
-                
-                await fetch(globalSettings.gSheetUrl, {
+                await fetch(gSheetUrl, {
                     method: 'POST',
-                    mode: 'no-cors', // Often required for simple Google Script Web Apps called from client-side
+                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(payload)
                 });
-                
-                console.log("Data sent to Google Sheets successfully (Fire & Forget).");
+                console.log("Data sent to Google Sheets successfully.");
             } catch (e) {
                 console.warn("Google Sheets Sync Failed:", e);
-                // We do not show a toast error here to not annoy the user if the main DB save succeeded.
-                // The main DB is the source of truth.
             }
         }
 
@@ -602,18 +599,20 @@
          * SETTINGS MANAGEMENT (FROM DATABASE & LOCALSTORAGE)
          */
         async function fetchGlobalSettings() {
-            // 1. Try LocalStorage first for instant UI load (Persistence)
-            const localSettings = localStorage.getItem('blucheez_settings');
-            if(localSettings) {
-                try {
-                    const parsed = JSON.parse(localSettings);
-                    // Use local settings temporarily
-                    globalSettings = { ...globalSettings, ...parsed };
-                    loadSettingsToUI();
-                } catch(e) { console.warn("Local storage parse error"); }
-            }
+            // HARDCODED URL ADDED TO DEFAULTS
+            const defaultSettings = {
+                shopName: "Blucheez Main Store",
+                radius: 100,
+                lat: 40.7128,
+                lon: -74.0060,
+                startTime: '09:00',
+                otStartTime: '18:00',
+                otRate: 10,
+                snacksRate: 5,
+                // URL is hardcoded here
+                gSheetUrl: "https://script.google.com/macros/s/AKfycbwSiXzbKJ7uomqfQfFC8llPvxpJvBgK4iws10KhtaXVeA3FUeVHLlHASgyAeSYCa1LB/exec"
+            };
 
-            // 2. Fetch from DB
             const { data, error } = await sbClient
                 .from('admin_settings')
                 .select('*')
@@ -621,7 +620,6 @@
                 .single();
 
             if (!error && data) {
-                // Map snake_case DB cols to camelCase JS vars
                 const dbSettings = {
                     id: data.id,
                     shopName: data.shop_name,
@@ -632,32 +630,20 @@
                     otStartTime: data.ot_start_time,
                     otRate: data.ot_rate,
                     snacksRate: data.snacks_rate,
-                    // Check if gsheet_url column exists in DB, else keep current/local
-                    gSheetUrl: data.gsheet_url || globalSettings.gSheetUrl 
+                    // We ignore DB gsheet_url and use hardcoded one
+                    gSheetUrl: defaultSettings.gSheetUrl 
                 };
                 
-                // Merge and Update Global
-                globalSettings = { ...globalSettings, ...dbSettings };
-                
-                // Save to LocalStorage for Persistence
-                localStorage.setItem('blucheez_settings', JSON.stringify(globalSettings));
+                // Merge: DB settings override defaults, but we keep the hardcoded URL
+                globalSettings = { ...defaultSettings, ...dbSettings };
             } else {
-                // Fallback defaults if DB fails
-                 globalSettings = {
-                    shopName: "Blucheez Main Store",
-                    radius: 100,
-                    lat: 40.7128,
-                    lon: -74.0060,
-                    startTime: '09:00',
-                    otStartTime: '18:00',
-                    otRate: 10,
-                    snacksRate: 5,
-                    gSheetUrl: globalSettings.gSheetUrl || ""
-                };
+                // Use defaults if DB fails
+                globalSettings = defaultSettings;
             }
             
+            // Save to LocalStorage for Persistence
+            localStorage.setItem('blucheez_settings', JSON.stringify(globalSettings));
             loadSettingsToUI();
-            // Initialize GPS after settings are loaded so we have a target
             initGeo();
         }
 
@@ -676,7 +662,7 @@
             }
         }
 
-        // --- SAVE SETTINGS (PERSISTENCE + DB) ---
+        // --- SAVE SETTINGS (FIXED TO AVOID DB ERROR) ---
         async function saveSettings() {
             // 1. Get Values from Inputs
             const shopName = document.getElementById('set-shop-name').value;
@@ -685,9 +671,8 @@
             const otTime = document.getElementById('set-ot-time').value;
             const otRate = parseFloat(document.getElementById('set-ot-rate').value) || 0;
             const snacksRate = parseFloat(document.getElementById('set-snacks-rate').value) || 0;
-            const gSheetUrl = document.getElementById('set-gsheet-url').value.trim();
 
-            // 2. Get GPS Coordinates Safely
+            // 2. Get GPS Coordinates
             let saveLat, saveLon;
 
             if (currentLocation && currentLocation.lat && currentLocation.lon) {
@@ -700,8 +685,9 @@
                 saveLon = inputLon ? parseFloat(inputLon) : -74.0060;
             }
 
-            // 3. Construct object matching Database Column Names
-            // Note: You need to add a column 'gsheet_url' (type text) to your admin_settings table in Supabase
+            // 3. Construct object
+            // NOTE: We removed 'gsheet_url' from this object to prevent the DB error 
+            // if the column doesn't exist in your Supabase table.
             const settings = {
                 id: 1, 
                 shop_name: shopName,
@@ -711,11 +697,10 @@
                 office_start_time: startTime,
                 ot_start_time: otTime,
                 ot_rate: otRate,
-                snacks_rate: snacksRate,
-                gsheet_url: gSheetUrl
+                snacks_rate: snacksRate
             };
 
-            console.log("Saving Settings:", settings);
+            console.log("Saving Settings to DB:", settings);
 
             // 4. Upsert to Supabase
             const { data, error } = await sbClient
@@ -727,6 +712,7 @@
                 showToast("Failed to save settings to DB", "error");
             } else {
                 // Update local cache immediately
+                // We ensure the hardcoded URL remains in the local cache
                 globalSettings = {
                     id: 1,
                     shopName: settings.shop_name,
@@ -737,10 +723,10 @@
                     otStartTime: settings.ot_start_time,
                     otRate: settings.ot_rate,
                     snacksRate: settings.snacks_rate,
-                    gSheetUrl: settings.gsheet_url
+                    gSheetUrl: "https://script.google.com/macros/s/AKfycbwSiXzbKJ7uomqfQfFC8llPvxpJvBgK4iws10KhtaXVeA3FUeVHLlHASgyAeSYCa1LB/exec"
                 };
                 
-                // SAVE TO LOCAL STORAGE (Persistence Requirement)
+                // SAVE TO LOCAL STORAGE (Persistence)
                 localStorage.setItem('blucheez_settings', JSON.stringify(globalSettings));
                 
                 showToast("Settings Saved & Persisted!", "success");
@@ -765,26 +751,25 @@
                 msgEl.innerText = "Requesting permission...";
             }
 
-            // Clear previous watch if exists to prevent duplicates
             if (geoWatchId) navigator.geolocation.clearWatch(geoWatchId);
 
             dotEl.classList.add('scanning');
 
             const options = {
-                enableHighAccuracy: true, // Crucial for Mobile precision
-                timeout: 10000,           // 10s timeout
-                maximumAge: 0             // Do not use cached position
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             };
 
             geoWatchId = navigator.geolocation.watchPosition(
                 (position) => {
                     currentLocation = {
-                        lat: parseFloat(position.coords.latitude), // Ensure float
+                        lat: parseFloat(position.coords.latitude), 
                         lon: parseFloat(position.coords.longitude)
                     };
                     
                     dotEl.classList.remove('scanning');
-                    triggerArea.classList.add('hidden'); // Hide manual button once success
+                    triggerArea.classList.add('hidden'); 
                     
                     checkZone(currentLocation);
                 },
@@ -795,7 +780,6 @@
                     switch(error.code) {
                         case error.PERMISSION_DENIED:
                             errMsg = "Location Permission Denied";
-                            // Show manual trigger button on UI if hidden
                             triggerArea.classList.remove('hidden'); 
                             break;
                         case error.POSITION_UNAVAILABLE:
@@ -807,7 +791,6 @@
                     }
                     
                     msgEl.innerText = errMsg;
-                    // If it's a permission denied on mobile, show toast
                     if(error.code === error.PERMISSION_DENIED && manualTrigger) {
                         showToast("Please allow Location access in browser settings.", "error");
                     }
@@ -823,7 +806,6 @@
             const msgEl = document.getElementById('geo-msg');
             const dotEl = document.getElementById('geo-dot');
 
-            // Round distance for display
             const displayDist = Math.round(distance);
 
             if (distance <= globalSettings.radius) {
@@ -837,13 +819,11 @@
             }
         }
 
-        // --- PRECISE HAVERSINE FORMULA ---
         function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
-            // Ensure inputs are numbers
             lat1 = Number(lat1); lon1 = Number(lon1);
             lat2 = Number(lat2); lon2 = Number(lon2);
 
-            var R = 6371e3; // Radius of the earth in meters
+            var R = 6371e3; 
             var dLat = deg2rad(lat2-lat1);  
             var dLon = deg2rad(lon2-lon1); 
             var a = 
@@ -860,11 +840,9 @@
         function setShopToCurrentLocation() {
             if(!currentLocation) { 
                 showToast("Waiting for accurate location...", "error"); 
-                // If GPS is stuck, trigger a refresh
                 initGeo(true);
                 return; 
             }
-            // Format to 7 decimals for high precision (~1cm)
             document.getElementById('set-lat').value = currentLocation.lat.toFixed(7);
             document.getElementById('set-lon').value = currentLocation.lon.toFixed(7);
             showToast("Coordinates set! Click Save.", "success");
@@ -987,7 +965,6 @@
             const timeStr24 = now.toTimeString().slice(0, 5);
             
             let status = 'Present';
-            // Simple time comparison
             const startMin = parseInt(globalSettings.startTime.split(':')[0]) * 60 + parseInt(globalSettings.startTime.split(':')[1]);
             const currentMin = parseInt(timeStr24.split(':')[0]) * 60 + parseInt(timeStr24.split(':')[1]);
             
@@ -996,7 +973,7 @@
             const emp = allEmployeesCache.find(e => e.id === currentEmpId);
             const record = {
                 employee_id: currentEmpId,
-                emp_name: emp ? emp.name : 'Unknown', // For Google Sheets
+                emp_name: emp ? emp.name : 'Unknown',
                 date: getTodayDateStr(),
                 check_in_time: timeStr24,
                 check_out_time: null,
@@ -1006,10 +983,8 @@
                 overtime_hours: 0
             };
 
-            // 1. Save to Supabase
             const success = await addAttendanceToSupabase(record);
             
-            // 2. Send to Google Sheets (Parallel, Fire & Forget)
             if(success) {
                 sendToGoogleSheets(record);
                 showToast(`Checked In (${status})`, "success");
@@ -1046,10 +1021,6 @@
                 const success = await updateAttendanceInSupabase(record.id, updates);
 
                 if(success) {
-                    // Update Google Sheets (Optional: you might want a separate script for updates or append new row)
-                    // For now, we focus on Check-In for sheet logging, but here is the hook:
-                    // sendToGoogleSheets({ ...record, ...updates }); 
-                    
                     showToast("Checked Out Successfully", "success");
                     await updateEmployeeStatusUI();
                     await renderEmployeeHistory();
