@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Report Generator Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- SheetJS for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- jsPDF for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+:root {
+  --bg: #0d0d0f;
+  --surface: #141418;
+  --surface2: #1c1c22;
+  --surface3: #242430;
+  --border: #2a2a38;
+  --border2: #353545;
+  --accent: #e8c547;
+  --accent2: #f0d878;
+  --accent-dim: rgba(232,197,71,0.12);
+  --accent-dim2: rgba(232,197,71,0.06);
+  --text: #f0efe8;
+  --text2: #a8a79e;
+  --text3: #6b6a64;
+  --success: #4ade80;
+  --danger: #f87171;
+  --info: #60a5fa;
+  --warning: #fb923c;
+  --radius: 10px;
+  --radius2: 6px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── LAYOUT ───────────────────────────── */
+.layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+/* ── SIDEBAR ──────────────────────────── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo .brand {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.3rem;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+}
+.sidebar-logo .tagline { font-size: 0.72rem; color: var(--text3); margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+.sidebar-section { padding: 10px 12px 4px; font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  margin: 2px 8px;
+  border-radius: var(--radius2);
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--text2);
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  width: calc(100% - 16px);
+  text-align: left;
+}
+.nav-item:hover { background: var(--surface3); color: var(--text); }
+.nav-item.active { background: var(--accent-dim); color: var(--accent); border-left: 2px solid var(--accent); margin-left: 8px; padding-left: 14px; }
+.nav-item .icon { font-size: 0.9rem; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 0.6rem;
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--text3);
+}
+.data-status { display: flex; align-items: center; gap: 8px; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+.status-dot.active { background: var(--success); box-shadow: 0 0 6px var(--success); }
+
+/* ── MAIN CONTENT ─────────────────────── */
+.main { display: flex; flex-direction: column; min-height: 100vh; }
+
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.topbar-title { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--text); }
+.topbar-actions { display: flex; gap: 8px; }
+
+.page { padding: 28px; display: none; }
+.page.active { display: block; animation: pagein 0.2s ease; }
+@keyframes pagein { from { opacity: 0; transform: translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── CARDS ────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text3);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title::before { content: ''; display: block; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
+
+/* ── KPI GRID ─────────────────────────── */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.kpi-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 60px; height: 60px;
+  background: var(--accent-dim2);
+  border-radius: 50%;
+  transform: translate(20px, -20px);
+}
+.kpi-label { font-size: 0.7rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+.kpi-val { font-size: 1.5rem; font-weight: 700; color: var(--text); font-family: 'DM Serif Display', serif; }
+.kpi-sub { font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+.kpi-badge { position: absolute; top: 14px; right: 14px; font-size: 0.65rem; padding: 2px 7px; border-radius: 99px; font-weight: 600; }
+.kpi-badge.up { background: rgba(74,222,128,0.12); color: var(--success); }
+.kpi-badge.down { background: rgba(248,113,113,0.12); color: var(--danger); }
+
+/* ── BUTTONS ──────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius2);
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: 'Outfit', sans-serif;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #0d0d0f; }
+.btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+.btn-ghost { background: var(--surface3); color: var(--text2); border: 1px solid var(--border2); }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn-success { background: rgba(74,222,128,0.15); color: var(--success); border: 1px solid rgba(74,222,128,0.25); }
+.btn-success:hover { background: rgba(74,222,128,0.25); }
+.btn-danger { background: rgba(248,113,113,0.12); color: var(--danger); border: 1px solid rgba(248,113,113,0.2); }
+.btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* ── FORM ─────────────────────────────── */
+label { font-size: 0.78rem; color: var(--text2); display: block; margin-bottom: 6px; font-weight: 500; }
+textarea, input[type=text], input[type=number], select {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8rem;
+  padding: 10px 12px;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+textarea { resize: vertical; height: 160px; }
+textarea:focus, input:focus, select:focus { outline: none; border-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--text3); }
+select option { background: var(--surface2); }
+
+.drop-zone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  background: var(--surface2);
+}
+.drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: var(--accent-dim2); }
+.drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.drop-zone .dz-icon { font-size: 2rem; margin-bottom: 8px; }
+.drop-zone .dz-text { font-size: 0.82rem; color: var(--text2); }
+.drop-zone .dz-sub { font-size: 0.72rem; color: var(--text3); margin-top: 4px; }
+
+/* ── TABLES ───────────────────────────── */
+.table-wrap { overflow-x: auto; border-radius: var(--radius2); border: 1px solid var(--border); }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.data-table thead th {
+  background: var(--surface3);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+.data-table thead th.r { text-align: right; }
+.data-table tbody tr { border-bottom: 1px solid rgba(42,42,56,0.5); transition: background 0.1s; }
+.data-table tbody tr:hover { background: var(--surface2); }
+.data-table td { padding: 9px 12px; color: var(--text2); vertical-align: middle; }
+.data-table td.r { text-align: right; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.75rem; }
+.data-table td.hl { color: var(--accent); font-weight: 600; }
+.data-table tfoot tr { background: var(--surface3); border-top: 2px solid var(--border2); }
+.data-table tfoot td { font-weight: 700; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.78rem; }
+
+.tbl-scroll { max-height: 420px; overflow-y: auto; }
+
+/* Rank badge */
+.rank { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 0.65rem; font-weight: 700; background: var(--surface3); color: var(--text3); font-family: 'DM Mono', monospace; }
+.rank.r1 { background: rgba(232,197,71,0.2); color: var(--accent); }
+.rank.r2 { background: rgba(192,192,192,0.15); color: #ccc; }
+.rank.r3 { background: rgba(205,127,50,0.15); color: #cd7f32; }
+
+/* Progress bar */
+.prog-bar { height: 5px; border-radius: 3px; background: var(--surface3); margin-top: 4px; }
+.prog-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.4s ease; }
+.prog-fill.slow { background: var(--danger); }
+.prog-fill.mid { background: var(--warning); }
+
+/* Pill */
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+}
+.pill-green { background: rgba(74,222,128,0.12); color: var(--success); }
+.pill-red { background: rgba(248,113,113,0.12); color: var(--danger); }
+.pill-yellow { background: rgba(232,197,71,0.12); color: var(--accent); }
+.pill-blue { background: rgba(96,165,250,0.12); color: var(--info); }
+.pill-orange { background: rgba(251,146,60,0.12); color: var(--warning); }
+
+/* ── GRID LAYOUTS ─────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.span-2 { grid-column: span 2; }
+.span-3 { grid-column: 1 / -1; }
+
+/* ── INFO BOX ─────────────────────────── */
+.info-box {
+  background: var(--accent-dim2);
+  border: 1px solid rgba(232,197,71,0.2);
+  border-radius: var(--radius2);
+  padding: 12px 14px;
+  font-size: 0.78rem;
+  color: var(--text2);
+  margin-bottom: 16px;
+  line-height: 1.7;
+}
+.info-box strong { color: var(--accent); }
+
+/* ── TOAST ────────────────────────────── */
+#toasts {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+}
+.toast {
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  padding: 10px 16px;
+  font-size: 0.8rem;
+  color: var(--text);
+  box-shadow: var(--shadow);
+  animation: toastin 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast.s { border-left: 3px solid var(--success); }
+.toast.e { border-left: 3px solid var(--danger); }
+@keyframes toastin { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── REPORT HEADER ─────────────────────── */
+.report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.rh-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--text); }
+.rh-sub { font-size: 0.75rem; color: var(--text3); margin-top: 3px; font-family: 'DM Mono', monospace; }
+.rh-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── DISCOUNT ANALYSIS ─────────────────── */
+.disc-highlight { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.15); }
+
+/* ── COMPARISON TABLE ──────────────────── */
+.cmp-input {
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  width: 110px;
+  text-align: right;
+}
+.cmp-input:focus { outline: 1px solid var(--accent); }
+.growth-pos { color: var(--success); font-weight: 700; font-family: 'DM Mono', monospace; font-size: 0.78rem; }
+.growth-neg { color: var(--danger); font-weight: 700; font-family: 'DM Mono', monospace; font-size: 0.78rem; }
+
+/* ── EMPTY STATE ───────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text3);
+}
+.empty-state .es-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.4; }
+.empty-state h3 { color: var(--text2); margin-bottom: 6px; font-size: 1rem; }
+.empty-state p { font-size: 0.82rem; }
+
+/* ── SECTION DIVIDER ───────────────────── */
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* ── SCROLLBAR ─────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .span-2 { grid-column: 1; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">SalesReport Pro</div>
+      <div class="tagline">// Advanced Analytics Engine</div>
+    </div>
+
+    <div class="sidebar-section">Data Input</div>
+    <button class="nav-item active" onclick="nav('pg-input')">
+      <span class="icon">⬆</span> Data Input
+    </button>
+
+    <div class="sidebar-section">Product Reports</div>
+    <button class="nav-item" onclick="nav('pg-best')">
+      <span class="icon">🏆</span> Best Selling Products
+    </button>
+    <button class="nav-item" onclick="nav('pg-top10')">
+      <span class="icon">🔟</span> Top 10 Products
+    </button>
+    <button class="nav-item" onclick="nav('pg-slow')">
+      <span class="icon">🐢</span> Slow Moving Products
+    </button>
+    <button class="nav-item" onclick="nav('pg-fast')">
+      <span class="icon">⚡</span> Fast Moving Products
+    </button>
+    <button class="nav-item" onclick="nav('pg-least')">
+      <span class="icon">📉</span> Least Selling Products
+    </button>
+    <button class="nav-item" onclick="nav('pg-perf')">
+      <span class="icon">📊</span> Product Performance
+    </button>
+    <button class="nav-item" onclick="nav('pg-style')">
+      <span class="icon">👔</span> Best Selling Style
+    </button>
+    <button class="nav-item" onclick="nav('pg-category')">
+      <span class="icon">🗂</span> Best Selling Category
+    </button>
+
+    <div class="sidebar-section">Financial Reports</div>
+    <button class="nav-item" onclick="nav('pg-qty')">
+      <span class="icon">📦</span> Quantity Sold
+    </button>
+    <button class="nav-item" onclick="nav('pg-netsales')">
+      <span class="icon">💰</span> Net Sales Report
+    </button>
+    <button class="nav-item" onclick="nav('pg-avgbill')">
+      <span class="icon">🧾</span> Avg Invoice Value
+    </button>
+    <button class="nav-item" onclick="nav('pg-avgprice')">
+      <span class="icon">🏷</span> Avg Selling Price
+    </button>
+    <button class="nav-item" onclick="nav('pg-vat')">
+      <span class="icon">🏦</span> VAT Collection
+    </button>
+
+    <div class="sidebar-section">Discount Reports</div>
+    <button class="nav-item" onclick="nav('pg-disc-summary')">
+      <span class="icon">🎯</span> Discount Summary <span class="nav-badge">50%</span>
+    </button>
+    <button class="nav-item" onclick="nav('pg-disc-analysis')">
+      <span class="icon">📐</span> Discount % Analysis <span class="nav-badge">50%</span>
+    </button>
+    <button class="nav-item" onclick="nav('pg-disc-product')">
+      <span class="icon">🔖</span> Product Disc. Analysis
+    </button>
+
+    <div class="sidebar-section">Comparison</div>
+    <button class="nav-item" onclick="nav('pg-month-cmp')">
+      <span class="icon">📅</span> Month Comparison
+    </button>
+
+    <div class="sidebar-footer">
+      <div class="data-status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">No data loaded</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <main class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="topbarTitle">Data Input</span>
+      <div class="topbar-actions" id="topbarActions"></div>
+    </div>
+
+    <!-- ══ PAGE: DATA INPUT ══ -->
+    <div class="page active" id="pg-input">
+      <div class="info-box">
+        <strong>Expected Format:</strong> Tab or comma separated · Columns:
+        <strong>Date | Inv# | Barcode | Name | Style | Colour | Size | Qty | MRP | Disc% | Disc Amt | VAT% | VAT Amt | Net Sales</strong><br>
+        Date format: <strong>DD-Month-YYYY</strong> (e.g. 01-March-2026) · Invoices appear as line header numbers before product rows.
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Upload File</div>
+          <div class="drop-zone" id="dropZone">
+            <div class="dz-icon">📂</div>
+            <div class="dz-text">Drop your CSV / TXT here</div>
+            <div class="dz-sub">or click to browse</div>
+            <input type="file" id="fileInput" accept=".csv,.txt">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Paste Data</div>
+          <label>Paste raw sales data</label>
+          <textarea id="pasteInput" placeholder="01-March-2026&#10;100040000768&#10;8901234567890&#9;..."></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Options</div>
+        <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-end;">
+          <div>
+            <label>Company Name</label>
+            <input type="text" id="companyName" value="Blucheez Outfitters Chottogram" style="width:260px;">
+          </div>
+          <div>
+            <label>Generated By</label>
+            <input type="text" id="generatedBy" value="Maruf Mohammadii" style="width:200px;">
+          </div>
+          <div>
+            <label>VAT Filter</label>
+            <select id="vatFilter" style="width:130px;">
+              <option value="all">All VAT Rates</option>
+              <option value="10">10% VAT Only</option>
+              <option value="7.5">7.5% VAT Only</option>
+              <option value="0">0% VAT Only</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:20px;">
+        <button class="btn btn-primary" onclick="processData()">⚙ Process Data &amp; Generate Reports</button>
+        <button class="btn btn-ghost" onclick="loadSample()">Load Sample Data</button>
+        <button class="btn btn-danger btn-sm" onclick="clearAll()">✕ Clear</button>
+      </div>
+
+      <!-- Preview -->
+      <div id="previewSection" style="display:none;">
+        <div class="card">
+          <div class="card-title">Processed Data Preview</div>
+          <div class="tbl-scroll table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th><th>Inv#</th><th>Barcode</th><th>Name</th><th>Style</th>
+                  <th>Colour</th><th>Size</th>
+                  <th class="r">Qty</th><th class="r">MRP</th>
+                  <th class="r">Disc%</th><th class="r">Disc Amt</th>
+                  <th class="r">VAT%</th><th class="r">VAT Amt</th>
+                  <th class="r">Net Sales</th>
+                </tr>
+              </thead>
+              <tbody id="previewBody"></tbody>
+              <tfoot id="previewFoot"></tfoot>
+            </table>
+          </div>
+          <div id="previewStats" style="margin-top:10px; font-size:0.72rem; color:var(--text3); text-align:right;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: BEST SELLING ══ -->
+    <div class="page" id="pg-best">
+      <div id="best-content"></div>
+    </div>
+
+    <!-- ══ PAGE: TOP 10 ══ -->
+    <div class="page" id="pg-top10">
+      <div id="top10-content"></div>
+    </div>
+
+    <!-- ══ PAGE: SLOW MOVING ══ -->
+    <div class="page" id="pg-slow">
+      <div id="slow-content"></div>
+    </div>
+
+    <!-- ══ PAGE: FAST MOVING ══ -->
+    <div class="page" id="pg-fast">
+      <div id="fast-content"></div>
+    </div>
+
+    <!-- ══ PAGE: LEAST SELLING ══ -->
+    <div class="page" id="pg-least">
+      <div id="least-content"></div>
+    </div>
+
+    <!-- ══ PAGE: PRODUCT PERFORMANCE ══ -->
+    <div class="page" id="pg-perf">
+      <div id="perf-content"></div>
+    </div>
+
+    <!-- ══ PAGE: BEST STYLE ══ -->
+    <div class="page" id="pg-style">
+      <div id="style-content"></div>
+    </div>
+
+    <!-- ══ PAGE: BEST CATEGORY ══ -->
+    <div class="page" id="pg-category">
+      <div id="category-content"></div>
+    </div>
+
+    <!-- ══ PAGE: QTY SOLD ══ -->
+    <div class="page" id="pg-qty">
+      <div id="qty-content"></div>
+    </div>
+
+    <!-- ══ PAGE: NET SALES ══ -->
+    <div class="page" id="pg-netsales">
+      <div id="netsales-content"></div>
+    </div>
+
+    <!-- ══ PAGE: AVG BILL ══ -->
+    <div class="page" id="pg-avgbill">
+      <div id="avgbill-content"></div>
+    </div>
+
+    <!-- ══ PAGE: AVG PRICE ══ -->
+    <div class="page" id="pg-avgprice">
+      <div id="avgprice-content"></div>
+    </div>
+
+    <!-- ══ PAGE: VAT ══ -->
+    <div class="page" id="pg-vat">
+      <div id="vat-content"></div>
+    </div>
+
+    <!-- ══ PAGE: DISC SUMMARY ══ -->
+    <div class="page" id="pg-disc-summary">
+      <div id="disc-summary-content"></div>
+    </div>
+
+    <!-- ══ PAGE: DISC ANALYSIS ══ -->
+    <div class="page" id="pg-disc-analysis">
+      <div id="disc-analysis-content"></div>
+    </div>
+
+    <!-- ══ PAGE: PRODUCT DISC ══ -->
+    <div class="page" id="pg-disc-product">
+      <div id="disc-product-content"></div>
+    </div>
+
+    <!-- ══ PAGE: MONTH COMPARISON ══ -->
+    <div class="page" id="pg-month-cmp">
+      <div id="month-cmp-content"></div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toasts"></div>
+
+<!-- ═══════════════════ SCRIPTS ═══════════════════ -->
+<script>
+// ─────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────
+let DATA = [];       // processed rows
+let STATS = {};      // global aggregates
+let CURRENT_PAGE = 'pg-input';
+
+const PAGE_TITLES = {
+  'pg-input': 'Data Input',
+  'pg-best': 'Best Selling Products',
+  'pg-top10': 'Top 10 Products (by Qty)',
+  'pg-slow': 'Slow Moving Products',
+  'pg-fast': 'Fast Moving Products',
+  'pg-least': 'Least Selling Products',
+  'pg-perf': 'Product Performance Report',
+  'pg-style': 'Best Selling Style',
+  'pg-category': 'Best Selling Category',
+  'pg-qty': 'Quantity Sold Report',
+  'pg-netsales': 'Net Sales Report',
+  'pg-avgbill': 'Average Invoice Value Report',
+  'pg-avgprice': 'Average Selling Price Report',
+  'pg-vat': 'VAT Collection Report',
+  'pg-disc-summary': 'Discount Summary (50%+ Products)',
+  'pg-disc-analysis': 'Discount % Analysis (50%+ Products)',
+  'pg-disc-product': 'Product Discount Analysis',
+  'pg-month-cmp': 'Month Comparison Report',
+};
+
+// ─────────────────────────────────────────────────
+// NAV
+// ─────────────────────────────────────────────────
+function nav(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  CURRENT_PAGE = pageId;
+
+  // Highlight nav
+  document.querySelectorAll('.nav-item').forEach(b => {
+    if (b.getAttribute('onclick')?.includes(pageId)) b.classList.add('active');
+  });
+
+  document.getElementById('topbarTitle').textContent = PAGE_TITLES[pageId] || '';
+
+  // Render report pages lazily
+  if (DATA.length > 0 && pageId !== 'pg-input') {
+    renderPage(pageId);
+  }
+
+  // Update topbar actions
+  updateTopbarActions(pageId);
+}
+
+function updateTopbarActions(pageId) {
+  const el = document.getElementById('topbarActions');
+  if (pageId === 'pg-input' || DATA.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="exportExcel('${pageId}')">📊 Excel</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportPDF('${pageId}')">📄 PDF</button>
+  `;
+}
+
+// ─────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────
+function fmt(n, dec=2) {
+  const v = parseFloat(n)||0;
+  return v.toLocaleString('en-US', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+}
+function fmtPct(n) { return (parseFloat(n)||0).toFixed(2) + '%'; }
+function getCompany() { return document.getElementById('companyName').value || 'Company'; }
+function getUser() { return document.getElementById('generatedBy').value || 'User'; }
+function now() { return new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}); }
+
+const MONTH_MAP = { January:0, February:1, March:2, April:3, May:4, June:5,
+                    July:6, August:7, September:8, October:9, November:10, December:11 };
+
+function parseDate(s) {
+  if (!s) return new Date(0);
+  const p = s.split('-');
+  if (p.length === 3) {
+    const d = +p[0], m = MONTH_MAP[p[1]], y = +p[2];
+    if (!isNaN(d) && m !== undefined && !isNaN(y)) return new Date(y, m, d);
+  }
+  return new Date(0);
+}
+
+function groupBy(arr, key) {
+  return arr.reduce((acc, item) => {
+    const k = item[key] ?? 'Unknown';
+    if (!acc[k]) acc[k] = [];
+    acc[k].push(item);
+    return acc;
+  }, {});
+}
+
+function styleStats(arr) {
+  // Aggregate by style_code
+  const map = {};
+  arr.forEach(item => {
+    const k = item.style_code || 'Unknown';
+    if (!map[k]) map[k] = { style: k, name: item.name, qty: 0, mrp_sum: 0, disc_amt: 0, disc_pct_sum: 0, vat_amt: 0, net: 0, rows: 0 };
+    map[k].qty      += item.qty;
+    map[k].mrp_sum  += item.mrp * item.qty;
+    map[k].disc_amt += item.disc_amt;
+    map[k].disc_pct_sum += item.disc_pct * item.qty;
+    map[k].vat_amt  += item.vat_amt;
+    map[k].net      += item.net_sales;
+    map[k].rows++;
+  });
+  return Object.values(map).map(s => ({
+    ...s,
+    avg_mrp: s.qty > 0 ? s.mrp_sum / s.qty : 0,
+    avg_disc_pct: s.qty > 0 ? s.disc_pct_sum / s.qty : 0,
+    avg_price: s.qty > 0 ? s.net / s.qty : 0,
+  }));
+}
+
+function rankClass(i) {
+  if (i === 0) return 'r1';
+  if (i === 1) return 'r2';
+  if (i === 2) return 'r3';
+  return '';
+}
+
+function progBar(val, max, cls='') {
+  const pct = max > 0 ? Math.round((val / max) * 100) : 0;
+  return `<div class="prog-bar"><div class="prog-fill ${cls}" style="width:${pct}%"></div></div>`;
+}
+
+function reportHeader(title, subtitle='') {
+  const dates = [...new Set(DATA.map(d => d.date))].sort((a, b) => parseDate(a) - parseDate(b));
+  const range = dates.length ? `${dates[0]} → ${dates[dates.length-1]}` : 'N/A';
+  return `
+    <div class="report-header">
+      <div>
+        <div class="rh-title">${title}</div>
+        <div class="rh-sub">${getCompany()} · ${subtitle || range} · Generated: ${now()} · By: ${getUser()}</div>
+      </div>
+      <div class="rh-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportExcel('${CURRENT_PAGE}')">📊 Export Excel</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportPDF('${CURRENT_PAGE}')">📄 Export PDF</button>
+      </div>
+    </div>`;
+}
+
+function emptyState(msg='Process data from the Data Input tab first.') {
+  return `<div class="empty-state"><div class="es-icon">📋</div><h3>No Data</h3><p>${msg}</p></div>`;
+}
+
+// ─────────────────────────────────────────────────
+// PARSING
+// ─────────────────────────────────────────────────
+function parseRaw(text) {
+  const lines = text.split(/\r\n|\n/);
+  // Detect delimiter
+  let delim = '\t';
+  for (const l of lines) { if (l.includes('\t')) { delim = '\t'; break; } if (l.includes(',')) { delim = ','; break; } }
+
+  const rows = lines.map(l => l.split(delim).map(c => {
+    let v = c.trim();
+    if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1,-1);
+    return v;
+  }));
+
+  const data = [];
+  const dateRe = /^\d{1,2}-[A-Za-z]+-\d{4}$/;
+  const invRe = /^\d{9,}$/;
+  let curDate = '', curInv = '';
+
+  for (const row of rows) {
+    const c0 = (row[0]||'').trim();
+    if (!c0 || c0.toLowerCase().includes('invoice total') || c0.toLowerCase().includes('day total')) continue;
+    if (dateRe.test(c0)) { curDate = c0; continue; }
+    if (invRe.test(c0)) { curInv = c0; continue; }
+    if (row.length < 8) continue;
+
+    const barcode = c0;
+    const rawName = (row[3]||'').trim();
+    const parts = rawName.split(/[,;]/).map(s => s.trim());
+    const name = parts[0]||'';
+    const style_code = parts[1]||'';
+    const colour = parts[2]||'';
+    const size = parts[3]||'';
+
+    const pf = s => parseFloat((s||'0').toString().replace(/,/g,'')) || 0;
+    const mrp      = pf(row[4]);
+    const qty      = pf(row[5]);
+    // Columns: [0]=barcode, [1]?, [2]?, [3]=name, [4]=MRP, [5]=qty, [6]?, [7]?, [8]?, [9]=disc%, [10]=disc_amt, [11]=vat%, [12]=vat_amt, [13]=net
+    // But original had different indices — we detect by row length
+    let disc_pct=0, disc_amt=0, vat_pct=0, vat_amt=0, net_sales=0;
+
+    if (row.length >= 14) {
+      disc_pct  = pf(row[9]);
+      disc_amt  = pf(row[10]);
+      vat_pct   = pf(row[11]);
+      vat_amt   = pf(row[12]);
+      net_sales = pf(row[row.length-1]);
+    } else if (row.length >= 12) {
+      // Legacy format without disc columns
+      vat_pct   = pf(row[9]);
+      vat_amt   = pf(row[10]);
+      net_sales = pf(row[row.length-1]);
+    } else {
+      net_sales = pf(row[row.length-1]);
+    }
+
+    // VAT filter
+    const vf = document.getElementById('vatFilter').value;
+    if (vf !== 'all' && vat_pct !== parseFloat(vf)) continue;
+
+    data.push({ date: curDate, invoice: curInv, barcode, name, style_code, colour, size,
+                qty, mrp, disc_pct, disc_amt, vat_pct, vat_amt, net_sales });
+  }
+  return data;
+}
+
+// ─────────────────────────────────────────────────
+// PROCESS
+// ─────────────────────────────────────────────────
+function processData() {
+  let raw = document.getElementById('pasteInput').value.trim();
+  if (!raw) { toast('Please paste or upload data', 'e'); return; }
+
+  DATA = parseRaw(raw);
+  if (!DATA.length) { toast('No valid rows found. Check format.', 'e'); return; }
+
+  computeStats();
+  renderPreview();
+  updateStatus();
+  toast(`✓ Processed ${DATA.length} rows · ${Object.keys(groupBy(DATA,'invoice')).length} invoices`, 's');
+  document.getElementById('previewSection').style.display = 'block';
+}
+
+function computeStats() {
+  const inv = new Set(DATA.map(d => d.invoice));
+  const totalSales = DATA.reduce((s,r) => s + r.net_sales, 0);
+  const totalQty   = DATA.reduce((s,r) => s + r.qty, 0);
+  const totalDisc  = DATA.reduce((s,r) => s + r.disc_amt, 0);
+  const totalVat   = DATA.reduce((s,r) => s + r.vat_amt, 0);
+  const totalMRP   = DATA.reduce((s,r) => s + r.mrp * r.qty, 0);
+  const invCount   = inv.size;
+  const avgBill    = invCount > 0 ? totalSales / invCount : 0;
+  const avgPrice   = totalQty > 0 ? totalSales / totalQty : 0;
+
+  const dates = [...new Set(DATA.map(d => d.date))].sort((a,b) => parseDate(a)-parseDate(b));
+  STATS = { totalSales, totalQty, totalDisc, totalVat, totalMRP, invCount, avgBill, avgPrice, dates };
+}
+
+function renderPreview() {
+  const tbody = document.getElementById('previewBody');
+  const tfoot = document.getElementById('previewFoot');
+  tbody.innerHTML = '';
+  let tQ=0, tD=0, tV=0, tN=0;
+  DATA.forEach(r => {
+    tQ+=r.qty; tD+=r.disc_amt; tV+=r.vat_amt; tN+=r.net_sales;
+    tbody.insertAdjacentHTML('beforeend', `<tr>
+      <td>${r.date}</td><td>${r.invoice}</td><td>${r.barcode}</td>
+      <td>${r.name}</td><td>${r.style_code}</td><td>${r.colour}</td><td>${r.size}</td>
+      <td class="r">${fmt(r.qty,0)}</td><td class="r">${fmt(r.mrp)}</td>
+      <td class="r">${fmtPct(r.disc_pct)}</td><td class="r">${fmt(r.disc_amt)}</td>
+      <td class="r">${fmtPct(r.vat_pct)}</td><td class="r">${fmt(r.vat_amt)}</td>
+      <td class="r hl">${fmt(r.net_sales)}</td>
+    </tr>`);
+  });
+  tfoot.innerHTML = `<tr>
+    <td colspan="7" style="text-align:right;color:var(--text3);">TOTAL</td>
+    <td class="r">${fmt(tQ,0)}</td><td></td>
+    <td></td><td class="r">${fmt(tD)}</td>
+    <td></td><td class="r">${fmt(tV)}</td>
+    <td class="r" style="color:var(--accent)">${fmt(tN)}</td>
+  </tr>`;
+  document.getElementById('previewStats').textContent = `${DATA.length} rows · ${STATS.invCount} invoices`;
+}
+
+function updateStatus() {
+  document.getElementById('statusDot').className = DATA.length ? 'status-dot active' : 'status-dot';
+  document.getElementById('statusText').textContent = DATA.length
+    ? `${DATA.length} rows loaded`
+    : 'No data loaded';
+}
+
+// ─────────────────────────────────────────────────
+// RENDER PAGES
+// ─────────────────────────────────────────────────
+function renderPage(pageId) {
+  const contentId = pageId.replace('pg-', '') + '-content';
+  const el = document.getElementById(contentId);
+  if (!el) return;
+
+  switch(pageId) {
+    case 'pg-best':        el.innerHTML = buildBestSelling(); break;
+    case 'pg-top10':       el.innerHTML = buildTop10(); break;
+    case 'pg-slow':        el.innerHTML = buildSlow(); break;
+    case 'pg-fast':        el.innerHTML = buildFast(); break;
+    case 'pg-least':       el.innerHTML = buildLeast(); break;
+    case 'pg-perf':        el.innerHTML = buildPerf(); break;
+    case 'pg-style':       el.innerHTML = buildStyleReport(); break;
+    case 'pg-category':    el.innerHTML = buildCategory(); break;
+    case 'pg-qty':         el.innerHTML = buildQty(); break;
+    case 'pg-netsales':    el.innerHTML = buildNetSales(); break;
+    case 'pg-avgbill':     el.innerHTML = buildAvgBill(); break;
+    case 'pg-avgprice':    el.innerHTML = buildAvgPrice(); break;
+    case 'pg-vat':         el.innerHTML = buildVAT(); break;
+    case 'pg-disc-summary':   el.innerHTML = buildDiscSummary(); break;
+    case 'pg-disc-analysis':  el.innerHTML = buildDiscAnalysis(); break;
+    case 'pg-disc-product':   el.innerHTML = buildDiscProduct(); break;
+    case 'pg-month-cmp':   el.innerHTML = buildMonthCmp(); break;
+  }
+}
+
+// ── Best Selling ──
+function buildBestSelling() {
+  const styles = styleStats(DATA).sort((a,b) => b.net - a.net);
+  const maxNet = styles[0]?.net || 1;
+  let rows = '';
+  styles.forEach((s, i) => {
+    rows += `<tr>
+      <td><span class="rank ${rankClass(i)}">${i+1}</span></td>
+      <td>${s.style}</td><td>${s.name}</td>
+      <td class="r">${fmt(s.qty,0)}</td>
+      <td class="r">${fmt(s.avg_mrp)}</td>
+      <td class="r">${fmt(s.disc_amt)}</td>
+      <td class="r">${fmt(s.vat_amt)}</td>
+      <td class="r hl">${fmt(s.net)}</td>
+      <td style="min-width:100px">${progBar(s.net, maxNet)}<span style="font-size:0.65rem;color:var(--text3)">${((s.net/STATS.totalSales)*100).toFixed(1)}%</span></td>
+    </tr>`;
+  });
+  return reportHeader('Best Selling Products Report') + `
+    <div class="kpi-grid">
+      ${kpi('Total Net Sales', fmt(STATS.totalSales), STATS.invCount + ' invoices')}
+      ${kpi('Total Qty Sold', fmt(STATS.totalQty,0), 'units')}
+      ${kpi('No. of Styles', styles.length, 'unique styles')}
+      ${kpi('#1 Product', styles[0]?.name||'-', styles[0]?.style||'')}
+    </div>
+    <div class="card">
+      <div class="card-title">All Products Ranked by Revenue</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty</th><th class="r">Avg MRP</th><th class="r">Disc Amt</th><th class="r">VAT</th><th class="r">Net Sales</th><th>Contribution</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="3">TOTAL</td><td class="r">${fmt(STATS.totalQty,0)}</td><td></td><td class="r">${fmt(STATS.totalDisc)}</td><td class="r">${fmt(STATS.totalVat)}</td><td class="r">${fmt(STATS.totalSales)}</td><td></td></tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Top 10 ──
+function buildTop10() {
+  const styles = styleStats(DATA).sort((a,b) => b.qty - a.qty).slice(0,10);
+  const maxQty = styles[0]?.qty || 1;
+  let rows = '';
+  styles.forEach((s,i) => {
+    rows += `<tr>
+      <td><span class="rank ${rankClass(i)}">${i+1}</span></td>
+      <td>${s.style}</td><td>${s.name}</td>
+      <td class="r">${fmt(s.qty,0)}</td>
+      <td class="r">${fmt(s.avg_mrp)}</td>
+      <td class="r">${fmtPct(s.avg_disc_pct)}</td>
+      <td class="r">${fmt(s.disc_amt)}</td>
+      <td class="r hl">${fmt(s.net)}</td>
+      <td style="min-width:100px">${progBar(s.qty, maxQty)}</td>
+    </tr>`;
+  });
+  return reportHeader('Top 10 Selling Products') + `
+    <div class="card">
+      <div class="card-title">Top 10 Products by Quantity Sold</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty</th><th class="r">Avg MRP</th><th class="r">Avg Disc%</th><th class="r">Disc Amt</th><th class="r">Net Sales</th><th>Qty Bar</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Slow Moving ──
+function buildSlow() {
+  const all = styleStats(DATA).sort((a,b) => a.qty - b.qty);
+  const slow = all.filter(s => s.qty < (STATS.totalQty / (all.length||1)) * 0.5);
+  const maxNet = Math.max(...slow.map(s=>s.net), 1);
+  let rows = slow.map((s,i) => `<tr>
+    <td><span class="rank">${i+1}</span></td>
+    <td>${s.style}</td><td>${s.name}</td>
+    <td class="r"><span class="pill pill-red">${fmt(s.qty,0)}</span></td>
+    <td class="r">${fmt(s.avg_mrp)}</td>
+    <td class="r">${fmtPct(s.avg_disc_pct)}</td>
+    <td class="r">${fmt(s.net)}</td>
+    <td style="min-width:80px">${progBar(s.net, maxNet, 'slow')}</td>
+  </tr>`).join('');
+
+  return reportHeader('Slow Moving Products Report') + `
+    <div class="info-box">⚠ Products with qty below <strong>50% of average qty sold per style</strong> are flagged as slow moving.</div>
+    <div class="kpi-grid">
+      ${kpi('Slow Moving SKUs', slow.length, 'of ' + styleStats(DATA).length + ' total')}
+      ${kpi('Tied Net Sales', fmt(slow.reduce((s,r)=>s+r.net,0)), 'slow inventory')}
+    </div>
+    <div class="card">
+      <div class="card-title">Slow Moving Products (Sorted by Qty Asc)</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty Sold</th><th class="r">Avg MRP</th><th class="r">Avg Disc%</th><th class="r">Net Sales</th><th>Performance</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="8" style="text-align:center;color:var(--text3)">No slow-moving products found.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Fast Moving ──
+function buildFast() {
+  const all = styleStats(DATA);
+  const avg = STATS.totalQty / (all.length||1);
+  const fast = all.filter(s => s.qty > avg * 1.5).sort((a,b) => b.qty - a.qty);
+  const maxQty = fast[0]?.qty || 1;
+  let rows = fast.map((s,i) => `<tr>
+    <td><span class="rank ${rankClass(i)}">${i+1}</span></td>
+    <td>${s.style}</td><td>${s.name}</td>
+    <td class="r"><span class="pill pill-green">${fmt(s.qty,0)}</span></td>
+    <td class="r">${fmt(s.avg_mrp)}</td>
+    <td class="r">${fmtPct(s.avg_disc_pct)}</td>
+    <td class="r hl">${fmt(s.net)}</td>
+    <td style="min-width:80px">${progBar(s.qty, maxQty)}</td>
+  </tr>`).join('');
+
+  return reportHeader('Fast Moving Products Report') + `
+    <div class="info-box">✅ Products with qty above <strong>150% of average qty sold per style</strong> are flagged as fast moving.</div>
+    <div class="kpi-grid">
+      ${kpi('Fast Moving SKUs', fast.length, 'of ' + all.length + ' total')}
+      ${kpi('Fast Moving Revenue', fmt(fast.reduce((s,r)=>s+r.net,0)), '')}
+    </div>
+    <div class="card">
+      <div class="card-title">Fast Moving Products (Sorted by Qty Desc)</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty Sold</th><th class="r">Avg MRP</th><th class="r">Avg Disc%</th><th class="r">Net Sales</th><th>Performance</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="8" style="text-align:center;color:var(--text3)">No fast-moving products found.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Least Selling ──
+function buildLeast() {
+  const styles = styleStats(DATA).sort((a,b) => a.qty - b.qty).slice(0, 20);
+  let rows = styles.map((s,i) => `<tr>
+    <td><span class="rank">${i+1}</span></td>
+    <td>${s.style}</td><td>${s.name}</td>
+    <td class="r"><span class="pill pill-red">${fmt(s.qty,0)}</span></td>
+    <td class="r">${fmt(s.avg_mrp)}</td>
+    <td class="r">${fmt(s.net)}</td>
+    <td class="r">${((s.net/STATS.totalSales)*100).toFixed(2)}%</td>
+  </tr>`).join('');
+  return reportHeader('Least Selling Products (Bottom 20)') + `
+    <div class="card">
+      <div class="card-title">Bottom 20 Products by Qty Sold</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty Sold</th><th class="r">Avg MRP</th><th class="r">Net Sales</th><th class="r">Revenue %</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Product Performance ──
+function buildPerf() {
+  const styles = styleStats(DATA).sort((a,b) => b.net - a.net);
+  let rows = styles.map((s,i) => {
+    const contrib = ((s.net / STATS.totalSales)*100).toFixed(2);
+    const avgDiscAmt = s.qty > 0 ? s.disc_amt / s.qty : 0;
+    let badge = '';
+    if (i < 3) badge = '<span class="pill pill-yellow">Top</span>';
+    else if (s.qty < 2) badge = '<span class="pill pill-red">Slow</span>';
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${s.style}</td><td>${s.name}</td>
+      <td class="r">${fmt(s.qty,0)}</td>
+      <td class="r">${fmt(s.avg_mrp)}</td>
+      <td class="r">${fmt(avgDiscAmt)}</td>
+      <td class="r">${fmtPct(s.avg_disc_pct)}</td>
+      <td class="r">${fmt(s.vat_amt)}</td>
+      <td class="r hl">${fmt(s.net)}</td>
+      <td class="r">${contrib}%</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+  return reportHeader('Product Performance Report') + `
+    <div class="kpi-grid">
+      ${kpi('Total SKUs', styles.length, 'unique style codes')}
+      ${kpi('Total Revenue', fmt(STATS.totalSales), '')}
+      ${kpi('Total Qty', fmt(STATS.totalQty,0), 'units')}
+      ${kpi('Total Discount', fmt(STATS.totalDisc), 'amt discounted')}
+    </div>
+    <div class="card">
+      <div class="card-title">Full Product Performance Matrix</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty</th><th class="r">Avg MRP</th><th class="r">Avg Disc Amt</th><th class="r">Avg Disc%</th><th class="r">VAT</th><th class="r">Net Sales</th><th class="r">Contrib%</th><th>Flag</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="3">TOTAL</td><td class="r">${fmt(STATS.totalQty,0)}</td><td></td><td></td><td></td><td class="r">${fmt(STATS.totalVat)}</td><td class="r">${fmt(STATS.totalSales)}</td><td class="r">100%</td><td></td></tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Best Style ──
+function buildStyleReport() {
+  const styles = styleStats(DATA).sort((a,b) => b.qty - a.qty);
+  const maxNet = styles[0]?.net || 1;
+  let rows = styles.map((s,i) => `<tr>
+    <td><span class="rank ${rankClass(i)}">${i+1}</span></td>
+    <td class="hl">${s.style}</td>
+    <td class="r">${fmt(s.qty,0)}</td>
+    <td class="r">${fmt(s.avg_mrp)}</td>
+    <td class="r">${fmt(s.disc_amt)}</td>
+    <td class="r">${fmt(s.vat_amt)}</td>
+    <td class="r hl">${fmt(s.net)}</td>
+    <td class="r">${((s.net/STATS.totalSales)*100).toFixed(1)}%</td>
+    <td style="min-width:90px">${progBar(s.net, maxNet)}</td>
+  </tr>`).join('');
+  return reportHeader('Best Selling Style Report') + `
+    <div class="kpi-grid">
+      ${kpi('#1 Style', styles[0]?.style||'-', fmt(styles[0]?.qty||0,0) + ' units')}
+      ${kpi('#2 Style', styles[1]?.style||'-', fmt(styles[1]?.qty||0,0) + ' units')}
+      ${kpi('#3 Style', styles[2]?.style||'-', fmt(styles[2]?.qty||0,0) + ' units')}
+      ${kpi('Total Styles', styles.length, 'unique codes')}
+    </div>
+    <div class="card">
+      <div class="card-title">Style Code Performance (Sorted by Qty)</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style Code</th><th class="r">Qty</th><th class="r">Avg MRP</th><th class="r">Disc Amt</th><th class="r">VAT</th><th class="r">Net Sales</th><th class="r">Share%</th><th>Bar</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Best Category ──
+function buildCategory() {
+  const cats = {};
+  DATA.forEach(r => {
+    const k = r.name || 'Unknown';
+    if (!cats[k]) cats[k] = { name: k, qty:0, disc_amt:0, vat_amt:0, net:0 };
+    cats[k].qty      += r.qty;
+    cats[k].disc_amt += r.disc_amt;
+    cats[k].vat_amt  += r.vat_amt;
+    cats[k].net      += r.net_sales;
+  });
+  const sorted = Object.values(cats).sort((a,b) => b.qty - a.qty);
+  const maxNet = sorted[0]?.net || 1;
+  let rows = sorted.map((c,i) => `<tr>
+    <td><span class="rank ${rankClass(i)}">${i+1}</span></td>
+    <td>${c.name}</td>
+    <td class="r">${fmt(c.qty,0)}</td>
+    <td class="r">${fmt(c.disc_amt)}</td>
+    <td class="r">${fmt(c.vat_amt)}</td>
+    <td class="r hl">${fmt(c.net)}</td>
+    <td class="r">${((c.net/STATS.totalSales)*100).toFixed(1)}%</td>
+    <td style="min-width:90px">${progBar(c.net, maxNet)}</td>
+  </tr>`).join('');
+  return reportHeader('Best Selling Category Report') + `
+    <div class="kpi-grid">
+      ${kpi('#1 Category', sorted[0]?.name||'-', fmt(sorted[0]?.qty||0,0) + ' units')}
+      ${kpi('Total Categories', sorted.length, 'product types')}
+      ${kpi('Best Revenue Cat', sorted.slice().sort((a,b)=>b.net-a.net)[0]?.name||'-', '')}
+    </div>
+    <div class="card">
+      <div class="card-title">Category Performance</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Category</th><th class="r">Qty Sold</th><th class="r">Disc Amt</th><th class="r">VAT</th><th class="r">Net Sales</th><th class="r">Share%</th><th>Bar</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="2">TOTAL</td><td class="r">${fmt(STATS.totalQty,0)}</td><td class="r">${fmt(STATS.totalDisc)}</td><td class="r">${fmt(STATS.totalVat)}</td><td class="r">${fmt(STATS.totalSales)}</td><td class="r">100%</td><td></td></tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Qty Sold ──
+function buildQty() {
+  const daily = groupBy(DATA, 'date');
+  const rows_daily = Object.keys(daily).sort((a,b)=>parseDate(a)-parseDate(b)).map(date => {
+    const items = daily[date];
+    const q = items.reduce((s,r)=>s+r.qty,0);
+    return `<tr><td>${date}</td><td class="r">${fmt(q,0)}</td></tr>`;
+  }).join('');
+
+  const styleS = styleStats(DATA).sort((a,b)=>b.qty-a.qty);
+  const rows_style = styleS.map((s,i) => `<tr>
+    <td><span class="rank ${rankClass(i)}">${i+1}</span></td>
+    <td>${s.style}</td><td>${s.name}</td>
+    <td class="r hl">${fmt(s.qty,0)}</td>
+    <td class="r">${((s.qty/STATS.totalQty)*100).toFixed(1)}%</td>
+  </tr>`).join('');
+
+  const colourG = {};
+  DATA.forEach(r => { const k = r.colour||'Unknown'; if(!colourG[k]) colourG[k]={qty:0}; colourG[k].qty+=r.qty; });
+  const rows_colour = Object.entries(colourG).sort((a,b)=>b[1].qty-a[1].qty).map(([c,v])=>
+    `<tr><td>${c}</td><td class="r">${fmt(v.qty,0)}</td><td class="r">${((v.qty/STATS.totalQty)*100).toFixed(1)}%</td></tr>`
+  ).join('');
+
+  const sizeG = {};
+  DATA.forEach(r => { const k = r.size||'Unknown'; if(!sizeG[k]) sizeG[k]={qty:0}; sizeG[k].qty+=r.qty; });
+  const rows_size = Object.entries(sizeG).sort((a,b)=>b[1].qty-a[1].qty).map(([sz,v])=>
+    `<tr><td>${sz}</td><td class="r">${fmt(v.qty,0)}</td><td class="r">${((v.qty/STATS.totalQty)*100).toFixed(1)}%</td></tr>`
+  ).join('');
+
+  return reportHeader('Quantity Sold Report') + `
+    <div class="kpi-grid">
+      ${kpi('Total Qty Sold', fmt(STATS.totalQty,0), 'units')}
+      ${kpi('Total Invoices', STATS.invCount, '')}
+      ${kpi('Avg Qty / Invoice', fmt(STATS.invCount>0?STATS.totalQty/STATS.invCount:0,1), 'units/bill')}
+      ${kpi('Avg Qty / Style', fmt(styleS.length>0?STATS.totalQty/styleS.length:0,1), 'units/style')}
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Daily Qty Sold</div>
+        <div class="tbl-scroll table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th class="r">Qty Sold</th></tr></thead>
+            <tbody>${rows_daily}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Qty by Colour</div>
+        <div class="tbl-scroll table-wrap">
+          <table class="data-table"><thead><tr><th>Colour</th><th class="r">Qty</th><th class="r">%</th></tr></thead><tbody>${rows_colour}</tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Qty by Size</div>
+        <div class="tbl-scroll table-wrap">
+          <table class="data-table"><thead><tr><th>Size</th><th class="r">Qty</th><th class="r">%</th></tr></thead><tbody>${rows_size}</tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Qty by Style (Top 20)</div>
+        <div class="tbl-scroll table-wrap">
+          <table class="data-table"><thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty</th><th class="r">%</th></tr></thead><tbody>${rows_style.split('</tr>').slice(0,20).join('</tr>')}</tbody></table>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Net Sales ──
+function buildNetSales() {
+  const daily = groupBy(DATA, 'date');
+  const rows_daily = Object.keys(daily).sort((a,b)=>parseDate(a)-parseDate(b)).map(date => {
+    const items = daily[date];
+    const net = items.reduce((s,r)=>s+r.net_sales,0);
+    const qty = items.reduce((s,r)=>s+r.qty,0);
+    return `<tr><td>${date}</td><td class="r">${fmt(qty,0)}</td><td class="r hl">${fmt(net)}</td></tr>`;
+  }).join('');
+
+  const styles = styleStats(DATA).sort((a,b)=>b.net-a.net);
+  const rows_style = styles.map((s,i) => `<tr>
+    <td><span class="rank ${rankClass(i)}">${i+1}</span></td>
+    <td>${s.style}</td><td>${s.name}</td>
+    <td class="r">${fmt(s.qty,0)}</td>
+    <td class="r hl">${fmt(s.net)}</td>
+    <td class="r">${((s.net/STATS.totalSales)*100).toFixed(2)}%</td>
+  </tr>`).join('');
+
+  return reportHeader('Net Sales Report') + `
+    <div class="kpi-grid">
+      ${kpi('Total Net Sales', fmt(STATS.totalSales), '')}
+      ${kpi('Total MRP Value', fmt(STATS.totalMRP), 'before discounts')}
+      ${kpi('Discount Given', fmt(STATS.totalDisc), 'total amt')}
+      ${kpi('VAT Collected', fmt(STATS.totalVat), '')}
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Daily Net Sales</div>
+        <div class="tbl-scroll table-wrap">
+          <table class="data-table"><thead><tr><th>Date</th><th class="r">Qty</th><th class="r">Net Sales</th></tr></thead><tbody>${rows_daily}</tbody></table>
+        </div>
+      </div>
+      <div class="card span-2">
+        <div class="card-title">Style-wise Net Sales</div>
+        <div class="tbl-scroll table-wrap">
+          <table class="data-table"><thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty</th><th class="r">Net Sales</th><th class="r">Revenue%</th></tr></thead>
+          <tbody>${rows_style}</tbody>
+          <tfoot><tr><td colspan="3">TOTAL</td><td class="r">${fmt(STATS.totalQty,0)}</td><td class="r">${fmt(STATS.totalSales)}</td><td class="r">100%</td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Avg Bill ──
+function buildAvgBill() {
+  const invMap = {};
+  DATA.forEach(r => {
+    if (!invMap[r.invoice]) invMap[r.invoice] = { inv: r.invoice, date: r.date, qty:0, disc_amt:0, vat_amt:0, net:0, items:0 };
+    invMap[r.invoice].qty      += r.qty;
+    invMap[r.invoice].disc_amt += r.disc_amt;
+    invMap[r.invoice].vat_amt  += r.vat_amt;
+    invMap[r.invoice].net      += r.net_sales;
+    invMap[r.invoice].items++;
+  });
+  const invs = Object.values(invMap).sort((a,b)=>b.net-a.net);
+  const top5 = invs.slice(0,5);
+  const avgBill = STATS.invCount > 0 ? STATS.totalSales / STATS.invCount : 0;
+
+  const daily = groupBy(DATA, 'date');
+  const dailyAvg = Object.keys(daily).sort((a,b)=>parseDate(a)-parseDate(b)).map(date => {
+    const items = daily[date];
+    const dailyInvs = new Set(items.map(r=>r.invoice));
+    const dailyNet = items.reduce((s,r)=>s+r.net_sales,0);
+    const avg = dailyInvs.size > 0 ? dailyNet / dailyInvs.size : 0;
+    return `<tr><td>${date}</td><td class="r">${dailyInvs.size}</td><td class="r">${fmt(dailyNet)}</td><td class="r hl">${fmt(avg)}</td></tr>`;
+  }).join('');
+
+  const rows_top = top5.map((inv,i) => `<tr>
+    <td><span class="rank ${rankClass(i)}">${i+1}</span></td>
+    <td>${inv.inv}</td><td>${inv.date}</td>
+    <td class="r">${fmt(inv.qty,0)}</td>
+    <td class="r">${fmt(inv.disc_amt)}</td>
+    <td class="r">${fmt(inv.vat_amt)}</td>
+    <td class="r hl">${fmt(inv.net)}</td>
+  </tr>`).join('');
+
+  return reportHeader('Average Invoice Value Report') + `
+    <div class="kpi-grid">
+      ${kpi('Total Invoices', STATS.invCount, '')}
+      ${kpi('Average Bill Value', fmt(avgBill), 'per invoice')}
+      ${kpi('Highest Invoice', fmt(top5[0]?.net||0), top5[0]?.inv||'')}
+      ${kpi('Total Net Sales', fmt(STATS.totalSales), '')}
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Daily Average Invoice Value</div>
+        <div class="tbl-scroll table-wrap">
+          <table class="data-table"><thead><tr><th>Date</th><th class="r">Invoices</th><th class="r">Net Sales</th><th class="r">Avg Bill</th></tr></thead><tbody>${dailyAvg}</tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top 5 High-Value Invoices</div>
+        <div class="table-wrap">
+          <table class="data-table"><thead><tr><th>#</th><th>Invoice</th><th>Date</th><th class="r">Qty</th><th class="r">Disc</th><th class="r">VAT</th><th class="r">Total</th></tr></thead><tbody>${rows_top}</tbody></table>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Avg Price ──
+function buildAvgPrice() {
+  const styles = styleStats(DATA).sort((a,b)=>b.avg_price-a.avg_price);
+  let rows = styles.map((s,i) => `<tr>
+    <td>${i+1}</td>
+    <td>${s.style}</td><td>${s.name}</td>
+    <td class="r">${fmt(s.avg_mrp)}</td>
+    <td class="r">${fmtPct(s.avg_disc_pct)}</td>
+    <td class="r hl">${fmt(s.avg_price)}</td>
+    <td class="r">${fmt(s.qty,0)}</td>
+    <td class="r">${fmt(s.net)}</td>
+  </tr>`).join('');
+
+  return reportHeader('Average Selling Price Report') + `
+    <div class="kpi-grid">
+      ${kpi('Overall Avg Selling Price', fmt(STATS.avgPrice), 'net/unit')}
+      ${kpi('Overall Avg MRP', fmt(STATS.totalMRP/(STATS.totalQty||1)), 'before disc')}
+      ${kpi('Total Qty', fmt(STATS.totalQty,0), 'units')}
+    </div>
+    <div class="card">
+      <div class="card-title">Average Selling Price by Style</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Avg MRP</th><th class="r">Avg Disc%</th><th class="r">Avg Net Price</th><th class="r">Qty Sold</th><th class="r">Net Sales</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── VAT ──
+function buildVAT() {
+  const vatGroups = groupBy(DATA, 'vat_pct');
+  const kpiCards = Object.entries(vatGroups).map(([vp, items]) => {
+    const vat = items.reduce((s,r)=>s+r.vat_amt,0);
+    const net = items.reduce((s,r)=>s+r.net_sales,0);
+    const qty = items.reduce((s,r)=>s+r.qty,0);
+    return kpi(`${vp}% VAT Collected`, fmt(vat), `${fmt(qty,0)} units · Net: ${fmt(net)}`);
+  }).join('');
+
+  const styleVAT = styleStats(DATA).sort((a,b)=>b.vat_amt-a.vat_amt);
+  let rows = styleVAT.map((s,i) => `<tr>
+    <td>${i+1}</td>
+    <td>${s.style}</td><td>${s.name}</td>
+    <td class="r">${fmt(s.qty,0)}</td>
+    <td class="r">${fmtPct(s.avg_mrp>0?s.vat_amt/s.net*100:0)}</td>
+    <td class="r hl">${fmt(s.vat_amt)}</td>
+    <td class="r">${fmt(s.net)}</td>
+  </tr>`).join('');
+
+  const daily = groupBy(DATA, 'date');
+  const dailyVAT = Object.keys(daily).sort((a,b)=>parseDate(a)-parseDate(b)).map(date => {
+    const items = daily[date];
+    const vat = items.reduce((s,r)=>s+r.vat_amt,0);
+    return `<tr><td>${date}</td><td class="r">${fmt(vat)}</td></tr>`;
+  }).join('');
+
+  return reportHeader('VAT Collection Report') + `
+    <div class="kpi-grid">
+      ${kpi('Total VAT Collected', fmt(STATS.totalVat), '')}
+      ${kpiCards}
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Daily VAT Collection</div>
+        <div class="tbl-scroll table-wrap">
+          <table class="data-table"><thead><tr><th>Date</th><th class="r">VAT Collected</th></tr></thead><tbody>${dailyVAT}</tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">VAT by Style</div>
+        <div class="tbl-scroll table-wrap">
+          <table class="data-table"><thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty</th><th class="r">Eff VAT%</th><th class="r">VAT Amt</th><th class="r">Net Sales</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="5">TOTAL</td><td class="r">${fmt(STATS.totalVat)}</td><td class="r">${fmt(STATS.totalSales)}</td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Disc Summary (50%+) ──
+function buildDiscSummary() {
+  const disc50 = DATA.filter(r => r.disc_pct >= 50);
+  if (!disc50.length) return reportHeader('Discount Summary – 50%+ Products') + `<div class="info-box">⚠ No products with 50%+ discount found in this dataset. Make sure your data includes the <strong>Disc%</strong> column.</div>`;
+
+  const total50Net  = disc50.reduce((s,r)=>s+r.net_sales,0);
+  const total50Disc = disc50.reduce((s,r)=>s+r.disc_amt,0);
+  const total50Qty  = disc50.reduce((s,r)=>s+r.qty,0);
+  const total50MRP  = disc50.reduce((s,r)=>s+r.mrp*r.qty,0);
+
+  const styleG = {};
+  disc50.forEach(r => {
+    const k = r.style_code||'Unknown';
+    if (!styleG[k]) styleG[k] = { style:k, name:r.name, qty:0, mrp_sum:0, disc_amt:0, disc_pct_max:0, net:0, invoices:new Set() };
+    styleG[k].qty += r.qty;
+    styleG[k].mrp_sum += r.mrp * r.qty;
+    styleG[k].disc_amt += r.disc_amt;
+    styleG[k].disc_pct_max = Math.max(styleG[k].disc_pct_max, r.disc_pct);
+    styleG[k].net += r.net_sales;
+    styleG[k].invoices.add(r.invoice);
+  });
+
+  const styles50 = Object.values(styleG).sort((a,b)=>b.disc_amt-a.disc_amt);
+  let rows = styles50.map((s,i) => {
+    const avgMRP = s.qty > 0 ? s.mrp_sum / s.qty : 0;
+    const avgDiscPct = avgMRP > 0 ? (s.disc_amt / (s.mrp_sum)) * 100 : 0;
+    return `<tr>
+      <td><span class="rank ${rankClass(i)}">${i+1}</span></td>
+      <td>${s.style}</td><td>${s.name}</td>
+      <td class="r">${fmt(s.qty,0)}</td>
+      <td class="r">${fmt(avgMRP)}</td>
+      <td class="r"><span class="pill pill-red">${fmtPct(avgDiscPct)}</span></td>
+      <td class="r">${s.disc_pct_max.toFixed(0)}%</td>
+      <td class="r">${fmt(s.disc_amt)}</td>
+      <td class="r hl">${fmt(s.net)}</td>
+      <td class="r">${s.invoices.size}</td>
+    </tr>`;
+  }).join('');
+
+  return reportHeader('Discount Summary – 50%+ Products') + `
+    <div class="info-box disc-highlight">🔴 This report shows only products where <strong>Discount% ≥ 50%</strong>. These are heavily discounted items that may need pricing review.</div>
+    <div class="kpi-grid">
+      ${kpi('50%+ Disc Items', fmt(total50Qty,0), 'units sold')}
+      ${kpi('Total Disc Given (50%+)', fmt(total50Disc), 'lost revenue')}
+      ${kpi('Net Sales (50%+)', fmt(total50Net), 'realised')}
+      ${kpi('% of Total Sales', fmtPct((total50Net/STATS.totalSales)*100), 'contribution')}
+      ${kpi('Original MRP Value', fmt(total50MRP), 'before 50%+ disc')}
+    </div>
+    <div class="card">
+      <div class="card-title">Products with 50%+ Discount – Summary</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty</th><th class="r">Avg MRP</th><th class="r">Avg Disc%</th><th class="r">Max Disc%</th><th class="r">Disc Amt</th><th class="r">Net Sales</th><th class="r">Invoices</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="3">TOTAL</td><td class="r">${fmt(total50Qty,0)}</td><td></td><td></td><td></td><td class="r">${fmt(total50Disc)}</td><td class="r">${fmt(total50Net)}</td><td></td></tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Disc Analysis (50%+) ──
+function buildDiscAnalysis() {
+  const disc50 = DATA.filter(r => r.disc_pct >= 50);
+  if (!disc50.length) return reportHeader('Discount % Analysis – 50%+ Products') + `<div class="info-box">⚠ No products with 50%+ discount found.</div>`;
+
+  // Bucket by disc % range
+  const buckets = { '50-60%': [], '60-70%': [], '70-80%': [], '80-90%': [], '90-100%': [] };
+  disc50.forEach(r => {
+    const p = r.disc_pct;
+    if (p < 60) buckets['50-60%'].push(r);
+    else if (p < 70) buckets['60-70%'].push(r);
+    else if (p < 80) buckets['70-80%'].push(r);
+    else if (p < 90) buckets['80-90%'].push(r);
+    else buckets['90-100%'].push(r);
+  });
+
+  const bRows = Object.entries(buckets).map(([range, items]) => {
+    if (!items.length) return '';
+    const qty  = items.reduce((s,r)=>s+r.qty,0);
+    const disc = items.reduce((s,r)=>s+r.disc_amt,0);
+    const net  = items.reduce((s,r)=>s+r.net_sales,0);
+    const uniq = new Set(items.map(r=>r.style_code)).size;
+    return `<tr>
+      <td><span class="pill pill-red">${range}</span></td>
+      <td class="r">${uniq}</td>
+      <td class="r">${fmt(qty,0)}</td>
+      <td class="r">${fmt(disc)}</td>
+      <td class="r hl">${fmt(net)}</td>
+    </tr>`;
+  }).join('');
+
+  // Individual rows
+  const iRows = disc50.sort((a,b)=>b.disc_pct-a.disc_pct).map((r,i) => `<tr>
+    <td>${r.date}</td>
+    <td>${r.invoice}</td>
+    <td>${r.style_code}</td>
+    <td>${r.name}</td>
+    <td class="r">${fmt(r.qty,0)}</td>
+    <td class="r">${fmt(r.mrp)}</td>
+    <td class="r"><span class="pill pill-red">${fmtPct(r.disc_pct)}</span></td>
+    <td class="r">${fmt(r.disc_amt)}</td>
+    <td class="r hl">${fmt(r.net_sales)}</td>
+  </tr>`).join('');
+
+  return reportHeader('Discount % Analysis – 50%+ Products') + `
+    <div class="info-box disc-highlight">📐 Breakdown of discount brackets for 50%+ discounted products. Helps identify pricing anomalies and markdown patterns.</div>
+    <div class="card">
+      <div class="card-title">Discount Bracket Summary</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Disc % Range</th><th class="r">Unique SKUs</th><th class="r">Qty Sold</th><th class="r">Total Disc Amt</th><th class="r">Net Sales</th></tr></thead>
+          <tbody>${bRows}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">All 50%+ Discount Transactions</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Invoice</th><th>Style</th><th>Name</th><th class="r">Qty</th><th class="r">MRP</th><th class="r">Disc%</th><th class="r">Disc Amt</th><th class="r">Net Sales</th></tr></thead>
+          <tbody>${iRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Product Disc Analysis ──
+function buildDiscProduct() {
+  const styles = styleStats(DATA).filter(s => s.disc_amt > 0).sort((a,b)=>b.disc_amt-a.disc_amt);
+  const totalDiscounted = styles.reduce((s,r)=>s+r.disc_amt,0);
+  let rows = styles.map((s,i) => `<tr>
+    <td>${i+1}</td>
+    <td>${s.style}</td><td>${s.name}</td>
+    <td class="r">${fmt(s.qty,0)}</td>
+    <td class="r">${fmt(s.avg_mrp)}</td>
+    <td class="r">${fmtPct(s.avg_disc_pct)}</td>
+    <td class="r">${fmt(s.disc_amt)}</td>
+    <td class="r">${((s.disc_amt/totalDiscounted)*100).toFixed(1)}%</td>
+    <td class="r hl">${fmt(s.net)}</td>
+    <td>${s.avg_disc_pct >= 50 ? '<span class="pill pill-red">High</span>' : s.avg_disc_pct >= 20 ? '<span class="pill pill-orange">Med</span>' : '<span class="pill pill-green">Low</span>'}</td>
+  </tr>`).join('');
+
+  return reportHeader('Product Discount Analysis') + `
+    <div class="kpi-grid">
+      ${kpi('Total Discount Given', fmt(STATS.totalDisc), 'all products')}
+      ${kpi('Discounted SKUs', styles.length, 'with disc > 0')}
+      ${kpi('High Disc SKUs (50%+)', styles.filter(s=>s.avg_disc_pct>=50).length, '')}
+      ${kpi('Avg Disc Per Unit', fmt(STATS.totalQty>0?STATS.totalDisc/STATS.totalQty:0), 'per unit sold')}
+    </div>
+    <div class="card">
+      <div class="card-title">Discount Analysis by Product</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Style</th><th>Name</th><th class="r">Qty</th><th class="r">Avg MRP</th><th class="r">Avg Disc%</th><th class="r">Disc Amt</th><th class="r">Disc Share%</th><th class="r">Net Sales</th><th>Risk</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="6">TOTAL</td><td class="r">${fmt(STATS.totalDisc)}</td><td class="r">100%</td><td class="r">${fmt(STATS.totalSales)}</td><td></td></tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Month Comparison ──
+function buildMonthCmp() {
+  const monthG = {};
+  DATA.forEach(r => {
+    const p = (r.date||'').split('-');
+    const key = p.length >= 3 ? `${p[1]} ${p[2]}` : 'Unknown';
+    if (!monthG[key]) monthG[key] = { month: key, qty:0, net:0, disc:0, vat:0, invoices: new Set() };
+    monthG[key].qty += r.qty;
+    monthG[key].net += r.net_sales;
+    monthG[key].disc += r.disc_amt;
+    monthG[key].vat += r.vat_amt;
+    monthG[key].invoices.add(r.invoice);
+  });
+
+  const months = Object.values(monthG).sort((a,b) => {
+    const pa = a.month.split(' '), pb = b.month.split(' ');
+    const ya = +pa[1], yb = +pb[1];
+    if (ya !== yb) return ya - yb;
+    return (MONTH_MAP[pa[0]]||0) - (MONTH_MAP[pb[0]]||0);
+  });
+
+  let rows = months.map((m,i) => {
+    const prev = months[i-1];
+    const growthNet = prev ? ((m.net - prev.net) / prev.net * 100).toFixed(1) : null;
+    const growthQty = prev ? ((m.qty - prev.qty) / prev.qty * 100).toFixed(1) : null;
+    const avgBill = m.invoices.size > 0 ? m.net / m.invoices.size : 0;
+    const gNetHtml = growthNet !== null
+      ? `<span class="${+growthNet>=0?'growth-pos':'growth-neg'}">${+growthNet>=0?'↑':'↓'}${Math.abs(growthNet)}%</span>`
+      : '<span style="color:var(--text3)">—</span>';
+    const gQtyHtml = growthQty !== null
+      ? `<span class="${+growthQty>=0?'growth-pos':'growth-neg'}">${+growthQty>=0?'↑':'↓'}${Math.abs(growthQty)}%</span>`
+      : '<span style="color:var(--text3)">—</span>';
+    return `<tr>
+      <td>${m.month}</td>
+      <td class="r">${fmt(m.qty,0)}</td>
+      <td class="r">${gQtyHtml}</td>
+      <td class="r">${fmt(m.disc)}</td>
+      <td class="r">${fmt(m.vat)}</td>
+      <td class="r hl">${fmt(m.net)}</td>
+      <td class="r">${gNetHtml}</td>
+      <td class="r">${m.invoices.size}</td>
+      <td class="r">${fmt(avgBill)}</td>
+    </tr>`;
+  }).join('');
+
+  // Manual comparison inputs
+  const cmpSection = `
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">Manual Month vs Month Comparison (Enter Previous Month Values)</div>
+      <table class="data-table">
+        <thead><tr><th>Metric</th><th class="r">Current Period</th><th class="r">Previous Period (Input)</th><th class="r">Variance %</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Net Sales</td>
+            <td class="r">${fmt(STATS.totalSales)}</td>
+            <td class="r"><input type="number" class="cmp-input" placeholder="0.00" oninput="cmpCalc('cmpSalesGrowth', ${STATS.totalSales}, this.value)"></td>
+            <td class="r" id="cmpSalesGrowth">—</td>
+          </tr>
+          <tr>
+            <td>Qty Sold</td>
+            <td class="r">${fmt(STATS.totalQty,0)}</td>
+            <td class="r"><input type="number" class="cmp-input" placeholder="0" oninput="cmpCalc('cmpQtyGrowth', ${STATS.totalQty}, this.value)"></td>
+            <td class="r" id="cmpQtyGrowth">—</td>
+          </tr>
+          <tr>
+            <td>Invoices</td>
+            <td class="r">${STATS.invCount}</td>
+            <td class="r"><input type="number" class="cmp-input" placeholder="0" oninput="cmpCalc('cmpInvGrowth', ${STATS.invCount}, this.value)"></td>
+            <td class="r" id="cmpInvGrowth">—</td>
+          </tr>
+          <tr>
+            <td>Avg Bill Value</td>
+            <td class="r">${fmt(STATS.avgBill)}</td>
+            <td class="r"><input type="number" class="cmp-input" placeholder="0.00" oninput="cmpCalc('cmpAvgGrowth', ${STATS.avgBill}, this.value)"></td>
+            <td class="r" id="cmpAvgGrowth">—</td>
+          </tr>
+          <tr>
+            <td>Total Discount</td>
+            <td class="r">${fmt(STATS.totalDisc)}</td>
+            <td class="r"><input type="number" class="cmp-input" placeholder="0.00" oninput="cmpCalc('cmpDiscGrowth', ${STATS.totalDisc}, this.value)"></td>
+            <td class="r" id="cmpDiscGrowth">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+
+  return reportHeader('Month Comparison Report') + `
+    <div class="card">
+      <div class="card-title">Monthly Sales Trend</div>
+      <div class="tbl-scroll table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Month</th><th class="r">Qty</th><th class="r">Qty Δ</th><th class="r">Disc Amt</th><th class="r">VAT</th><th class="r">Net Sales</th><th class="r">Net Δ</th><th class="r">Invoices</th><th class="r">Avg Bill</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+    ${cmpSection}`;
+}
+
+function cmpCalc(elId, current, prev) {
+  const p = parseFloat(prev)||0;
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!p) { el.textContent = '—'; el.className = ''; return; }
+  const g = ((current - p) / p * 100).toFixed(2);
+  el.innerHTML = `<span class="${+g>=0?'growth-pos':'growth-neg'}">${+g>=0?'↑':'↓'} ${Math.abs(g)}%</span>`;
+}
+
+// ─────────────────────────────────────────────────
+// KPI HELPER
+// ─────────────────────────────────────────────────
+function kpi(label, val, sub='', badge='') {
+  return `<div class="kpi-card">
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-val">${val}</div>
+    ${sub ? `<div class="kpi-sub">${sub}</div>` : ''}
+    ${badge ? `<div class="kpi-badge ${badge.cls}">${badge.text}</div>` : ''}
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────
+// EXPORT: EXCEL
+// ─────────────────────────────────────────────────
+function exportExcel(pageId) {
+  if (!DATA.length) { toast('No data to export', 'e'); return; }
+  const wb = XLSX.utils.book_new();
+
+  // Summary sheet
+  const sumData = [
+    ['SalesReport Pro – ' + PAGE_TITLES[pageId]],
+    ['Company:', getCompany()],
+    ['Generated By:', getUser()],
+    ['Date:', now()],
+    [''],
+    ['SUMMARY'],
+    ['Total Net Sales', STATS.totalSales],
+    ['Total Qty Sold', STATS.totalQty],
+    ['Total Invoices', STATS.invCount],
+    ['Avg Bill Value', STATS.avgBill],
+    ['Total Discount', STATS.totalDisc],
+    ['Total VAT', STATS.totalVat],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sumData), 'Summary');
+
+  // Raw data sheet
+  const headers = ['Date','Invoice','Barcode','Name','Style Code','Colour','Size','Qty','MRP','Disc%','Disc Amt','VAT%','VAT Amt','Net Sales'];
+  const dataRows = DATA.map(r => [r.date, r.invoice, r.barcode, r.name, r.style_code, r.colour, r.size, r.qty, r.mrp, r.disc_pct, r.disc_amt, r.vat_pct, r.vat_amt, r.net_sales]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([headers, ...dataRows]), 'Raw Data');
+
+  // Report-specific sheet
+  const styles = styleStats(DATA).sort((a,b) => b.net - a.net);
+  const styleHeaders = ['Style Code','Name','Qty Sold','Avg MRP','Avg Disc%','Disc Amt','VAT Amt','Net Sales','Revenue%'];
+  const styleRows = styles.map(s => [s.style, s.name, s.qty, +s.avg_mrp.toFixed(2), +s.avg_disc_pct.toFixed(2), +s.disc_amt.toFixed(2), +s.vat_amt.toFixed(2), +s.net.toFixed(2), +((s.net/STATS.totalSales)*100).toFixed(2)]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([styleHeaders, ...styleRows]), 'Style Report');
+
+  // Discount sheet
+  const disc50 = DATA.filter(r => r.disc_pct >= 50);
+  if (disc50.length) {
+    const dHeaders = ['Date','Invoice','Style','Name','Qty','MRP','Disc%','Disc Amt','Net Sales'];
+    const dRows = disc50.map(r => [r.date, r.invoice, r.style_code, r.name, r.qty, r.mrp, r.disc_pct, r.disc_amt, r.net_sales]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([dHeaders, ...dRows]), '50%+ Discount');
+  }
+
+  XLSX.writeFile(wb, `SalesReport_${pageId}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Excel downloaded!', 's');
+}
+
+// ─────────────────────────────────────────────────
+// EXPORT: PDF
+// ─────────────────────────────────────────────────
+function exportPDF(pageId) {
+  if (!DATA.length) { toast('No data to export', 'e'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  const title = PAGE_TITLES[pageId] || 'Sales Report';
+  const styles = styleStats(DATA).sort((a,b) => b.net - a.net);
+  const dates = STATS.dates || [];
+  const range = dates.length ? `${dates[0]} – ${dates[dates.length-1]}` : 'N/A';
+
+  // Header
+  doc.setFillColor(13,13,15);
+  doc.rect(0, 0, 297, 20, 'F');
+  doc.setFontSize(14);
+  doc.setTextColor(232, 197, 71);
+  doc.setFont('helvetica', 'bold');
+  doc.text(title, 14, 13);
+  doc.setFontSize(8);
+  doc.setTextColor(160, 160, 150);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${getCompany()} · ${range} · Generated: ${now()} · By: ${getUser()}`, 14, 18);
+
+  // Summary KPIs
+  doc.setFontSize(9);
+  doc.setTextColor(200, 200, 200);
+  const kpis = [
+    ['Total Net Sales', fmt(STATS.totalSales)],
+    ['Total Qty', fmt(STATS.totalQty, 0)],
+    ['Total Invoices', STATS.invCount],
+    ['Avg Bill', fmt(STATS.avgBill)],
+    ['Total Discount', fmt(STATS.totalDisc)],
+    ['Total VAT', fmt(STATS.totalVat)],
+  ];
+  kpis.forEach(([lbl, val], i) => {
+    const x = 14 + i * 47;
+    doc.setFillColor(28, 28, 34);
+    doc.roundedRect(x, 24, 44, 14, 2, 2, 'F');
+    doc.setFontSize(6);
+    doc.setTextColor(100, 100, 96);
+    doc.text(lbl.toUpperCase(), x+3, 29);
+    doc.setFontSize(9);
+    doc.setTextColor(240, 215, 120);
+    doc.text(String(val), x+3, 35);
+  });
+
+  // Main table
+  const head = [['#','Style','Name','Qty','Avg MRP','Avg Disc%','Disc Amt','VAT','Net Sales','Rev%']];
+  const body = styles.map((s,i) => [
+    i+1, s.style, s.name.slice(0,20),
+    fmt(s.qty,0), fmt(s.avg_mrp), fmtPct(s.avg_disc_pct),
+    fmt(s.disc_amt), fmt(s.vat_amt), fmt(s.net),
+    ((s.net/STATS.totalSales)*100).toFixed(1)+'%'
+  ]);
+
+  doc.autoTable({
+    startY: 42,
+    head: head,
+    body: body,
+    theme: 'grid',
+    headStyles: { fillColor: [28,28,34], textColor: [232,197,71], fontStyle: 'bold', fontSize: 7 },
+    bodyStyles: { textColor: [180,180,170], fontSize: 6.5 },
+    alternateRowStyles: { fillColor: [20,20,24] },
+    styles: { cellPadding: 1.5, overflow: 'linebreak' },
+    margin: { left: 14, right: 14 },
+    foot: [['', 'TOTAL', '', fmt(STATS.totalQty,0), '', '', fmt(STATS.totalDisc), fmt(STATS.totalVat), fmt(STATS.totalSales), '100%']],
+    footStyles: { fillColor: [28,28,34], textColor: [232,197,71], fontStyle: 'bold', fontSize: 7 }
+  });
+
+  doc.save(`SalesReport_${pageId}_${new Date().toISOString().slice(0,10)}.pdf`);
+  toast('PDF downloaded!', 's');
+}
+
+// ─────────────────────────────────────────────────
+// FILE UPLOAD
+// ─────────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('pasteInput').value = ev.target.result;
+    toast('File loaded · Click "Process Data"', 's');
+  };
+  reader.readAsText(f);
+});
+
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); const f = e.dataTransfer.files[0]; if(f){ const r=new FileReader(); r.onload=ev=>{document.getElementById('pasteInput').value=ev.target.result; toast('File dropped · Click "Process Data"','s');}; r.readAsText(f); }});
+
+// ─────────────────────────────────────────────────
+// SAMPLE DATA
+// ─────────────────────────────────────────────────
+function loadSample() {
+  document.getElementById('pasteInput').value = `01-March-2026
+100040000768
+8901234567890\t\t\tETHNIC, WKL-101, PINK, M\t950\t5\t0\t0\t0\t0\t10\t475.00\t0\t15000.00
+8901234567891\t\t\tETHNIC, WKL-101, BLUE, L\t950\t3\t0\t0\t0\t0\t10\t285.00\t0\t9000.00
+8901234567892\t\t\tETHNIC, WKL-102, RED, S\t1200\t2\t0\t0\t0\t50\t1200.00\t10\t120.00\t1200.00
+8901234567899\t\t\tSPORT, SP-330, BLACK, XL\t1500\t1\t0\t0\t0\t0\t10\t150.00\t0\t1500.00
+
+28-February-2026
+100040000769
+8909999999999\t\t\tCASUAL, CS-202, RED, S\t800\t4\t0\t0\t0\t20\t640.00\t7.5\t240.00\t2560.00
+8908888888888\t\t\tCASUAL, CS-202, RED, M\t800\t2\t0\t0\t0\t20\t320.00\t7.5\t120.00\t1280.00
+8907777777777\t\t\tFORMAL, FM-440, WHITE, L\t2500\t1\t0\t0\t0\t50\t2500.00\t10\t125.00\t1250.00
+8906666666666\t\t\tFORMAL, FM-440, NAVY, M\t2500\t3\t0\t0\t0\t30\t2250.00\t10\t337.50\t5250.00
+8905555555555\t\t\tSPORT, SP-330, WHITE, S\t1500\t6\t0\t0\t0\t0\t10\t900.00\t0\t9000.00
+8904444444444\t\t\tETHNIC, WKL-103, GREEN, M\t700\t1\t0\t0\t0\t60\t420.00\t10\t28.00\t280.00
+
+15-March-2026
+100040000770
+8903333333333\t\t\tCASUAL, CS-303, GREY, M\t600\t8\t0\t0\t0\t10\t480.00\t7.5\t270.00\t4320.00
+8902222222222\t\t\tETHNIC, WKL-101, PINK, S\t950\t4\t0\t0\t0\t0\t10\t380.00\t0\t3800.00
+8901111111111\t\t\tSPORT, SP-440, BLACK, L\t1800\t2\t0\t0\t0\t0\t10\t360.00\t0\t3600.00`;
+  toast('Sample data loaded · Click "Process Data"', 's');
+}
+
+// ─────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────
+function toast(msg, type='') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='all 0.2s'; setTimeout(() => c.removeChild(t), 250); }, 3500);
+}
+
+// ─────────────────────────────────────────────────
+// CLEAR
+// ─────────────────────────────────────────────────
+function clearAll() {
+  DATA = []; STATS = {};
+  document.getElementById('pasteInput').value = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('previewSection').style.display = 'none';
+  document.getElementById('previewBody').innerHTML = '';
+  document.getElementById('previewFoot').innerHTML = '';
+  updateStatus();
+  toast('Cleared', 's');
+}
+</script>
+</body>
+</html>
