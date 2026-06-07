@@ -389,6 +389,10 @@
                             <th>Size</th>
                             <th class="text-right">Qty</th>
                             <th class="text-right">MRP</th>
+                            <!-- ADDED: Disc % & Disc Amt -->
+                            <th class="text-right">Disc %</th>
+                            <th class="text-right">Disc Amt</th>
+                            <!-- END ADDED -->
                             <th class="text-right">VAT Amt</th>
                             <th class="text-right highlight-col">Net Sales</th>
                         </tr>
@@ -1241,6 +1245,7 @@ Day Total`;
         tfoot.innerHTML = '';
 
         let totalSQty = 0;
+        let totalDiscAmt = 0;
         let totalVatAmt = 0;
         let totalNetSales = 0;
 
@@ -1248,6 +1253,11 @@ Day Total`;
             if (filterVal !== 'all') {
                 if (item.vat_perc !== parseFloat(filterVal)) return;
             }
+
+            totalSQty += item.qty;
+            totalDiscAmt += item.disc_amt;
+            totalVatAmt += item.vat_amt;
+            totalNetSales += item.net_sales;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -1260,21 +1270,24 @@ Day Total`;
                 <td>${item.size}</td>
                 <td class="text-right">${item.qty.toFixed(2)}</td>
                 <td class="text-right">${formatNum(item.mrp)}</td>
+                <!-- ADDED: Disc % & Disc Amt Cells -->
+                <td class="text-right">${item.disc_perc.toFixed(2)}%</td>
+                <td class="text-right">${formatNum(item.disc_amt)}</td>
+                <!-- END ADDED -->
                 <td class="text-right">${formatNum(item.vat_amt)}</td>
                 <td class="text-right highlight-col" style="font-weight:600;">${formatNum(item.net_sales)}</td>
             `;
             tbody.appendChild(tr);
-
-            totalSQty += item.qty;
-            totalVatAmt += item.vat_amt;
-            totalNetSales += item.net_sales;
         });
 
         tfoot.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align:right; padding-right:15px; border-top: 2px solid #333;">TOTAL:</td>
-                <td class="text-right" style="border-top: 2px solid #333;">${totalSQty.toFixed(2)}</td>
-                <td></td>
+                <td colspan="8" style="text-align:right; padding-right:15px; border-top: 2px solid #333;">TOTAL:</td>
+                <td class="text-right" style="border-top: 2px solid #333;">-</td>
+                <!-- ADDED: Disc % (dash) & Disc Amt (total) -->
+                <td class="text-right" style="border-top: 2px solid #333;">-</td>
+                <td class="text-right" style="border-top: 2px solid #333;">${formatNum(totalDiscAmt)}</td>
+                <!-- END ADDED -->
                 <td class="text-right" style="border-top: 2px solid #333;">${formatNum(totalVatAmt)}</td>
                 <td class="text-right highlight-col" style="border-top: 2px solid #333; font-weight:bold; color:var(--primary);">${formatNum(totalNetSales)}</td>
             </tr>
@@ -1286,13 +1299,15 @@ Day Total`;
         if (processedData.length === 0) return;
         const filterVal = document.getElementById('vatFilter').value;
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Date,Invoice,Barcode,Name,Style,Colour,Size,Qty,MRP,VatAmt,NetSales\r\n";
+        // Updated Header Row to include Disc % and Disc Amt
+        csvContent += "Date,Invoice,Barcode,Name,Style,Colour,Size,Qty,MRP,Disc %,Disc Amt,VatAmt,NetSales\r\n";
+        
         processedData.forEach(item => {
             if (filterVal !== 'all' && item.vat_perc !== parseFloat(filterVal)) return;
             const row = [
                 item.date, item.invoice, item.barcode, 
                 `"${item.name}"`, item.style_code, item.colour, item.size,
-                item.qty, item.mrp, item.vat_amt, item.net_sales
+                item.qty, item.mrp, item.disc_perc, item.disc_amt, item.vat_amt, item.net_sales
             ];
             csvContent += row.join(",") + "\r\n";
         });
