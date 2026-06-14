@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Display Audit System</title>
-    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- SheetJS for Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     
     <style>
@@ -27,25 +25,21 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding-bottom: 80px; }
 
-        /* --- Icons --- */
         .icon { width: 18px; height: 18px; fill: currentColor; vertical-align: middle; }
         .icon-sm { width: 14px; height: 14px; }
         .icon-lg { width: 24px; height: 24px; }
 
-        /* --- Header & Nav --- */
         header { background: var(--surface); padding: 1rem; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
         h1 { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--primary); }
         .nav-btn { background: none; border: none; color: var(--text-sub); font-weight: 600; cursor: pointer; padding: 0.5rem; font-size: 0.9rem; }
         .nav-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
 
-        /* --- Layout --- */
         main { max-width: 800px; margin: 0 auto; padding: 1rem; }
         .view-section { display: none; animation: fadeIn 0.3s ease; }
         .view-section.active { display: block; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Search Bars --- */
         .search-container { position: relative; margin-bottom: 1.5rem; }
         .search-input-wrapper { position: relative; }
         .search-input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-sub); pointer-events: none; }
@@ -57,13 +51,11 @@
         .suggestion-item:hover { background: #f1f5f9; }
         .suggestion-global { background-color: #eff6ff; color: var(--primary-dark); font-weight: 600; border-bottom: 2px solid var(--primary); }
 
-        /* --- Dashboard Cards --- */
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
         .stat-card { background: var(--surface); padding: 1rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .stat-val { font-size: 1.5rem; font-weight: 800; color: var(--text-main); display: block; }
         .stat-label { font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* --- Style Cards --- */
         .style-card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.3s ease; }
         .style-card.hidden-style { display: none; }
 
@@ -77,7 +69,6 @@
         .color-name { font-weight: 500; }
         .stock-badge { background: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; color: var(--text-sub); }
 
-        /* --- Audit Buttons --- */
         .audit-actions { display: flex; gap: 0.5rem; }
         .btn-audit { flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s; color: var(--text-sub); }
         .btn-audit:active { transform: scale(0.95); }
@@ -86,13 +77,11 @@
         .btn-audit.status-missing { background: #fee2e2; border-color: var(--danger); color: #b91c1c; }
         .btn-audit.selected { box-shadow: 0 0 0 2px var(--primary); }
 
-        /* --- Footer Action Bar --- */
         .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); padding: 1rem; border-top: 1px solid var(--border); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 90; display: flex; justify-content: space-between; align-items: center; }
         .progress-text { font-size: 0.9rem; font-weight: 600; }
         .btn-submit { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; }
         .btn-submit:disabled { background: var(--text-sub); opacity: 0.7; cursor: not-allowed; }
 
-        /* --- Reports View --- */
         .report-card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1rem; overflow: hidden; }
         .report-header { padding: 1.5rem; background: #fff; }
         .report-header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9; }
@@ -101,9 +90,12 @@
         .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .btn-outline:hover { background: #eff6ff; }
 
-        /* Delete Button Style */
         .btn-delete { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .btn-delete:hover { background: #fef2f2; }
+
+        /* Edit button style */
+        .btn-edit { background: transparent; border: 1px solid var(--warning); color: #92400e; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .btn-edit:hover { background: #fffbeb; }
 
         .report-details { display: none; background: #f8fafc; padding: 1.5rem; border-top: 1px solid var(--border); animation: slideDown 0.3s ease; }
         .report-details.open { display: block; }
@@ -118,7 +110,6 @@
         .report-table th, .report-table td { text-align: left; padding: 0.75rem; border-bottom: 1px solid #f1f5f9; }
         .report-table th { background: #f1f5f9; color: var(--text-sub); font-weight: 600; font-size: 0.8rem; }
         
-        /* --- Modal/Toast --- */
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--text-main); color: white; padding: 0.75rem 1.5rem; border-radius: 50px; font-size: 0.9rem; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s; display: flex; align-items: center; gap: 8px; }
         .toast.show { opacity: 1; }
         
@@ -129,7 +120,29 @@
         .modal-actions { display: flex; gap: 1rem; justify-content: center; }
         .btn-secondary { background: #e2e8f0; color: var(--text-main); border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
-        /* Helpers */
+        /* === AUTO-SAVE BANNER === */
+        .autosave-banner { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .autosave-banner-text { font-size: 0.875rem; color: #92400e; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; }
+        .autosave-banner-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+        .btn-resume { background: var(--warning); color: white; border: none; padding: 0.45rem 0.9rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+        .btn-discard { background: transparent; border: 1px solid #d97706; color: #92400e; padding: 0.45rem 0.9rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+
+        /* === EDIT VIEW (Full-screen overlay over main) === */
+        #view-edit { display: none; }
+        #view-edit.active { display: block; }
+        .edit-back-bar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+        .btn-back { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--primary); font-size: 0.95rem; padding: 0; }
+        .edit-title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+        .edit-subtitle { font-size: 0.8rem; color: var(--text-sub); margin-top: 2px; }
+        .edit-info-bar { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--primary-dark); }
+
+        /* Edit row: table-style */
+        .edit-card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1rem; overflow: hidden; }
+        .edit-style-header { padding: 0.75rem 1rem; background: #f8fafc; border-bottom: 1px solid var(--border); }
+        .edit-color-row { padding: 0.65rem 1rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+        .edit-color-row:last-child { border-bottom: none; }
+        .edit-color-info { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+
         .hidden { display: none !important; }
         .text-success { color: var(--success); }
         .text-danger { color: var(--danger); }
@@ -150,11 +163,21 @@
         <!-- AUDIT VIEW -->
         <section id="view-audit" class="view-section active">
             
-            <!-- Step 1: Smart Search -->
+            <!-- Auto-Save Resume Banner (hidden by default) -->
+            <div id="autosave-banner" class="autosave-banner hidden">
+                <div class="autosave-banner-text">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                    <span id="autosave-banner-msg">Unsaved audit found. Resume?</span>
+                </div>
+                <div class="autosave-banner-actions">
+                    <button class="btn-resume" onclick="resumeSavedAudit()">Resume</button>
+                    <button class="btn-discard" onclick="discardSavedAudit()">Discard</button>
+                </div>
+            </div>
+
             <div class="search-container">
                 <div class="search-input-wrapper">
                     <div class="search-input-icon">
-                        <!-- Search Icon -->
                         <svg class="icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                     </div>
                     <input type="text" id="category-search" class="search-input" placeholder="Search Category or Style Code..." autocomplete="off">
@@ -162,7 +185,6 @@
                 <div id="category-suggestions" class="category-suggestions"></div>
             </div>
 
-            <!-- Dashboard -->
             <div id="dashboard" class="hidden">
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -179,7 +201,6 @@
                     </div>
                 </div>
 
-                <!-- Filter bar for the loaded list -->
                 <div class="search-container">
                     <div class="search-input-wrapper">
                         <div class="search-input-icon">
@@ -189,9 +210,7 @@
                     </div>
                 </div>
 
-                <div id="style-list">
-                    <!-- Styles Injected Here -->
-                </div>
+                <div id="style-list"></div>
             </div>
 
             <div id="empty-state" style="text-align: center; padding: 3rem; color: var(--text-sub);">
@@ -203,13 +222,33 @@
         <section id="view-reports" class="view-section">
             <h2 style="margin-bottom: 1rem;">Submitted Reports</h2>
             <div id="reports-list">
-                <!-- Reports Injected Here -->
                 <p style="color: var(--text-sub); text-align: center;">Loading reports...</p>
             </div>
         </section>
+
+        <!-- EDIT VIEW -->
+        <section id="view-edit" class="view-section">
+            <div class="edit-back-bar">
+                <button class="btn-back" onclick="closeEditView()">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                    Back to Reports
+                </button>
+            </div>
+            <div id="edit-header-info" class="edit-info-bar"></div>
+            <div class="search-container">
+                <div class="search-input-wrapper">
+                    <div class="search-input-icon">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    </div>
+                    <input type="text" id="edit-style-search" class="search-input" placeholder="Filter loaded styles..." autocomplete="off">
+                </div>
+            </div>
+            <div id="edit-style-list"></div>
+            <div style="padding-bottom: 1rem;"></div>
+        </section>
     </main>
 
-    <!-- Footer Action Bar -->
+    <!-- Footer Action Bar (Audit) -->
     <footer id="action-bar" class="action-bar hidden">
         <div>
             <div class="progress-text">Audit Status</div>
@@ -218,10 +257,19 @@
         <button class="btn-submit" onclick="validateAndSubmit()">Submit Report</button>
     </footer>
 
-    <!-- Toast Notification -->
+    <!-- Footer Action Bar (Edit) -->
+    <footer id="edit-action-bar" class="action-bar hidden">
+        <div>
+            <div class="progress-text" id="edit-footer-label">Edit Mode</div>
+            <div style="font-size: 0.8rem; color: var(--text-sub);"><span id="edit-footer-remaining">0</span> items remaining</div>
+        </div>
+        <button class="btn-submit" onclick="validateAndUpdateReport()">Update Report</button>
+    </footer>
+
+    <!-- Toast -->
     <div id="toast" class="toast">
         <svg class="icon text-success" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-        <span>Action Saved</span>
+        <span id="toast-msg">Action Saved</span>
     </div>
 
     <!-- Warning Modal -->
@@ -230,9 +278,7 @@
             <div class="modal-title text-warning">
                 <svg class="icon-lg" style="width:40px; height:40px;" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
             </div>
-            <div class="modal-body" id="modal-msg">
-                You have items that were not checked. These will be marked as "Unaudited" in the final report. Do you want to proceed?
-            </div>
+            <div class="modal-body" id="modal-msg">You have items that were not checked.</div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeModal()">Go Back</button>
                 <button class="btn-submit" onclick="confirmSubmission()">Proceed Anyway</button>
@@ -246,9 +292,9 @@
             <div class="modal-title text-success">
                 <svg class="icon-lg" style="width:40px; height:40px;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             </div>
-            <div class="modal-body">Audit report submitted successfully.</div>
+            <div class="modal-body" id="success-modal-msg">Audit report submitted successfully.</div>
             <div class="modal-actions">
-                <button class="btn-submit" onclick="resetAudit()">Start New Audit</button>
+                <button class="btn-submit" id="success-modal-action-btn" onclick="resetAudit()">Start New Audit</button>
             </div>
         </div>
     </div>
@@ -259,9 +305,7 @@
             <div class="modal-title text-danger">
                 <svg class="icon-lg" style="width:40px; height:40px;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             </div>
-            <div class="modal-body">
-                Are you sure you want to delete this report? <br>This action cannot be undone.
-            </div>
+            <div class="modal-body">Are you sure you want to delete this report? This action cannot be undone.</div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
                 <button class="btn-delete" style="width: auto; padding: 0.75rem 1.5rem;" onclick="confirmDelete()">Delete</button>
@@ -269,11 +313,28 @@
         </div>
     </div>
 
+    <!-- Edit Unaudited Warning Modal -->
+    <div id="edit-warning-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-title text-warning">
+                <svg class="icon-lg" style="width:40px; height:40px;" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            </div>
+            <div class="modal-body" id="edit-modal-msg">Some items are still unaudited.</div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeEditWarningModal()">Go Back</button>
+                <button class="btn-submit" onclick="confirmUpdateReport()">Update Anyway</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // --- 1. CONFIGURATION & SAFE INITIALIZATION ---
+        // ===================================================================
+        // 1. CONFIGURATION & SUPABASE INIT
+        // ===================================================================
         const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
-        
+        const LS_KEY = "audit_autosave_v1";
+
         let sbClient;
         try {
             sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -282,20 +343,33 @@
             alert("Error initializing database connection.");
         }
 
-        // --- 2. STATE MANAGEMENT ---
+        // ===================================================================
+        // 2. STATE
+        // ===================================================================
         let state = {
             currentCategory: null,
             isGlobalSearch: false,
-            filterTerm: null, 
+            filterTerm: null,
             inventoryData: [],
             groupedData: {},
             auditState: {},
             totalStyles: 0,
             totalQty: 0,
-            reportToDelete: null // ID of report to delete
+            reportToDelete: null
         };
 
-        // --- 3. DOM ELEMENTS ---
+        // Edit mode state (separate from main audit state)
+        let editState = {
+            reportId: null,
+            categoryName: null,
+            groupedData: [],
+            auditState: {},
+            originalItems: []
+        };
+
+        // ===================================================================
+        // 3. DOM ELEMENTS
+        // ===================================================================
         const els = {
             categorySearch: document.getElementById('category-search'),
             categorySuggestions: document.getElementById('category-suggestions'),
@@ -304,33 +378,176 @@
             styleList: document.getElementById('style-list'),
             emptyState: document.getElementById('empty-state'),
             actionBar: document.getElementById('action-bar'),
+            editActionBar: document.getElementById('edit-action-bar'),
             statStyles: document.getElementById('stat-styles'),
             statQty: document.getElementById('stat-qty'),
             statCompletion: document.getElementById('stat-completion'),
             footerRemaining: document.getElementById('footer-remaining'),
             warningModal: document.getElementById('warning-modal'),
             successModal: document.getElementById('success-modal'),
-            deleteModal: document.getElementById('delete-modal'), // New
-            reportsList: document.getElementById('reports-list')
+            deleteModal: document.getElementById('delete-modal'),
+            editWarningModal: document.getElementById('edit-warning-modal'),
+            reportsList: document.getElementById('reports-list'),
+            autosaveBanner: document.getElementById('autosave-banner'),
+            autosaveBannerMsg: document.getElementById('autosave-banner-msg'),
+            editStyleList: document.getElementById('edit-style-list'),
+            editHeaderInfo: document.getElementById('edit-header-info'),
+            editFooterRemaining: document.getElementById('edit-footer-remaining'),
         };
 
-        // --- 4. INITIALIZATION ---
+        // ===================================================================
+        // 4. INIT
+        // ===================================================================
         document.addEventListener('DOMContentLoaded', () => {
             setupCategorySearch();
             setupStyleSearch();
+            checkForSavedAudit();
         });
 
+        // ===================================================================
+        // 5. TAB SWITCHING
+        // ===================================================================
         function switchTab(tab) {
+            // If edit view is active, close it first
+            if (tab !== 'edit') {
+                document.getElementById('view-edit').classList.remove('active');
+                els.editActionBar.classList.add('hidden');
+            }
+
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById(`view-${tab}`).classList.add('active');
-            document.getElementById(`nav-${tab}`).classList.add('active');
 
-            if(tab === 'reports') loadReports();
+            document.getElementById(`view-${tab}`).classList.add('active');
+            const navBtn = document.getElementById(`nav-${tab}`);
+            if (navBtn) navBtn.classList.add('active');
+
+            if (tab === 'reports') {
+                loadReports();
+                els.actionBar.classList.add('hidden');
+            }
+            if (tab === 'audit') {
+                // Restore action bar if mid-audit
+                if (state.groupedData && state.groupedData.length > 0) {
+                    els.actionBar.classList.remove('hidden');
+                }
+            }
         }
 
-        // --- 5. SMART CATEGORY SEARCH LOGIC (ENHANCED) ---
+        // ===================================================================
+        // 6. AUTO-SAVE: LOCAL STORAGE
+        // ===================================================================
+        function saveAuditToLocalStorage() {
+            if (!state.currentCategory || !state.groupedData || state.groupedData.length === 0) return;
+            const snapshot = {
+                currentCategory: state.currentCategory,
+                isGlobalSearch: state.isGlobalSearch,
+                filterTerm: state.filterTerm,
+                groupedData: state.groupedData,
+                inventoryData: state.inventoryData,
+                auditState: state.auditState,
+                totalStyles: state.totalStyles,
+                totalQty: state.totalQty,
+                savedAt: new Date().toISOString()
+            };
+            try {
+                localStorage.setItem(LS_KEY, JSON.stringify(snapshot));
+            } catch (e) {
+                console.warn("Auto-save failed:", e);
+            }
+        }
+
+        function clearLocalStorage() {
+            localStorage.removeItem(LS_KEY);
+        }
+
+        function checkForSavedAudit() {
+            try {
+                const raw = localStorage.getItem(LS_KEY);
+                if (!raw) return;
+                const saved = JSON.parse(raw);
+                if (!saved || !saved.currentCategory) return;
+
+                const when = new Date(saved.savedAt);
+                const timeAgo = formatTimeAgo(when);
+                const audited = Object.keys(saved.auditState || {}).length;
+                const total = (saved.groupedData || []).reduce((acc, s) => acc + Object.keys(s.colors || {}).length, 0);
+
+                els.autosaveBannerMsg.innerHTML =
+                    `Unsaved audit: <strong>${saved.currentCategory}</strong> — ${audited}/${total} items done &middot; ${timeAgo}`;
+                els.autosaveBanner.classList.remove('hidden');
+            } catch (e) {
+                console.warn("Could not read autosave:", e);
+                clearLocalStorage();
+            }
+        }
+
+        function formatTimeAgo(date) {
+            const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return `${Math.floor(diff / 86400)}d ago`;
+        }
+
+        function resumeSavedAudit() {
+            try {
+                const raw = localStorage.getItem(LS_KEY);
+                if (!raw) return;
+                const saved = JSON.parse(raw);
+
+                state.currentCategory = saved.currentCategory;
+                state.isGlobalSearch = saved.isGlobalSearch;
+                state.filterTerm = saved.filterTerm;
+                state.groupedData = saved.groupedData;
+                state.inventoryData = saved.inventoryData;
+                state.auditState = saved.auditState || {};
+                state.totalStyles = saved.totalStyles;
+                state.totalQty = saved.totalQty;
+
+                els.categorySearch.value = saved.currentCategory;
+                els.autosaveBanner.classList.add('hidden');
+                els.emptyState.classList.add('hidden');
+                els.dashboard.classList.remove('hidden');
+                els.styleSearch.value = '';
+
+                renderStyles();
+                restoreAuditStateUI();
+                updateStats();
+                els.actionBar.classList.remove('hidden');
+
+                showToast('Audit resumed!', 'info');
+            } catch (e) {
+                console.error("Resume failed:", e);
+                clearLocalStorage();
+            }
+        }
+
+        function discardSavedAudit() {
+            clearLocalStorage();
+            els.autosaveBanner.classList.add('hidden');
+            showToast('Saved audit discarded.', 'info');
+        }
+
+        function restoreAuditStateUI() {
+            // Re-apply visual states after rendering
+            Object.entries(state.auditState).forEach(([uniqueId, status]) => {
+                const btnMissing = document.getElementById(`btn-missing-${uniqueId}`);
+                const btnDisplay = document.getElementById(`btn-display-${uniqueId}`);
+                if (!btnMissing || !btnDisplay) return;
+
+                if (status === 'missing') {
+                    btnMissing.classList.add('status-missing', 'selected');
+                    btnDisplay.classList.remove('status-displayed', 'selected');
+                } else if (status === 'displayed') {
+                    btnDisplay.classList.add('status-displayed', 'selected');
+                    btnMissing.classList.remove('status-missing', 'selected');
+                }
+            });
+        }
+
+        // ===================================================================
+        // 7. SMART CATEGORY SEARCH
+        // ===================================================================
         async function setupCategorySearch() {
             els.categorySearch.addEventListener('input', async (e) => {
                 const query = e.target.value.trim();
@@ -339,27 +556,18 @@
                     return;
                 }
 
-                // Search BOTH 'name' AND 'style_code'
                 const { data, error } = await sbClient
                     .from('inventory')
-                    .select('name, style_code') 
+                    .select('name, style_code')
                     .or(`name.ilike.%${query}%,style_code.ilike.%${query}%`)
                     .limit(50);
 
-                if (error) {
-                    console.error(error);
-                    return;
-                }
+                if (error) { console.error(error); return; }
 
-                // Extract unique Category Names
                 const uniqueNames = [...new Set(data.map(item => item.name))];
-
-                // Check if the query exists in ANY style code (for Global Search Option)
                 const hasStyleMatches = data.some(item => item.style_code.toLowerCase().includes(query.toLowerCase()));
 
                 let html = '';
-
-                // 1. Global Search Option (If matches found in style codes)
                 if (hasStyleMatches) {
                     html += `
                     <div class="suggestion-item suggestion-global" onclick="selectGlobalSearch('${query}')">
@@ -371,8 +579,7 @@
                     </div>`;
                 }
 
-                // 2. Category Suggestions
-                html += uniqueNames.map(name => 
+                html += uniqueNames.map(name =>
                     `<div class="suggestion-item" onclick="selectCategory('${name}', '${query}')">
                         <svg class="icon" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
                         ${name}
@@ -390,84 +597,60 @@
             });
         }
 
-        // --- 5.5 STYLE SEARCH LOGIC (For filtering the loaded list) ---
+        // ===================================================================
+        // 8. STYLE FILTER SEARCH
+        // ===================================================================
         function setupStyleSearch() {
             els.styleSearch.addEventListener('input', (e) => {
                 const term = e.target.value.toUpperCase().trim();
-                const cards = document.querySelectorAll('.style-card');
-
-                cards.forEach(card => {
+                document.querySelectorAll('.style-card').forEach(card => {
                     const codeEl = card.querySelector('.style-code');
                     if (codeEl) {
-                        const code = codeEl.textContent.toUpperCase();
-                        if (code.includes(term)) {
-                            card.classList.remove('hidden-style');
-                        } else {
-                            card.classList.add('hidden-style');
-                        }
+                        card.classList.toggle('hidden-style', !codeEl.textContent.toUpperCase().includes(term));
                     }
                 });
             });
         }
 
-        // --- CORE FUNCTION: Global Search ---
+        // ===================================================================
+        // 9. DATA LOADING
+        // ===================================================================
         async function selectGlobalSearch(searchTerm) {
             state.isGlobalSearch = true;
             state.filterTerm = searchTerm;
-            state.currentCategory = `Search: ${searchTerm}`; // Virtual Name
-            
-            els.categorySearch.value = searchTerm;
-            els.categorySuggestions.style.display = 'none';
-            els.styleSearch.value = ''; 
-            
-            state.inventoryData = [];
-            state.groupedData = {};
-            state.auditState = {};
-            
-            els.emptyState.classList.add('hidden');
-            els.dashboard.classList.remove('hidden');
-            els.styleList.innerHTML = '<p style="text-align:center">Loading inventory...</p>';
-            els.actionBar.classList.add('hidden');
-
-            await loadInventoryData(null, searchTerm, true); // true = isGlobal
+            state.currentCategory = `Search: ${searchTerm}`;
+            _resetAuditState();
+            await loadInventoryData(null, searchTerm, true);
         }
 
-        // --- CORE FUNCTION: Select Category & Determine Filter ---
         async function selectCategory(categoryName, searchTerm) {
             state.isGlobalSearch = false;
             state.currentCategory = categoryName;
-            state.filterTerm = searchTerm; 
-            
-            els.categorySearch.value = categoryName;
-            els.categorySuggestions.style.display = 'none';
-            els.styleSearch.value = ''; 
-            
+            state.filterTerm = searchTerm;
+            _resetAuditState();
+            await loadInventoryData(categoryName, searchTerm, false);
+        }
+
+        function _resetAuditState() {
             state.inventoryData = [];
             state.groupedData = {};
             state.auditState = {};
-            
+            els.categorySearch.value = state.currentCategory;
+            els.categorySuggestions.style.display = 'none';
+            els.styleSearch.value = '';
             els.emptyState.classList.add('hidden');
             els.dashboard.classList.remove('hidden');
             els.styleList.innerHTML = '<p style="text-align:center">Loading inventory...</p>';
             els.actionBar.classList.add('hidden');
-
-            await loadInventoryData(categoryName, searchTerm, false);
         }
 
-        // --- CORE FUNCTION: Load Data with Smart Filtering ---
         async function loadInventoryData(categoryName, searchTerm, isGlobal) {
             let query = sbClient.from('inventory').select('*').gt('balance', 0);
 
             if (isGlobal) {
-                // Global: Search ALL inventory for matching style codes
                 query = query.ilike('style_code', `%${searchTerm}%`);
             } else {
-                // Category Mode:
-                // Logic: If the selected category name does NOT contain the search term,
-                // it means the user likely searched for a Style Code (e.g., "MPS").
-                // In that case, we MUST filter by style code as well.
                 const isStyleSearch = !categoryName.toLowerCase().includes(searchTerm.toLowerCase());
-                
                 query = query.eq('name', categoryName);
                 if (isStyleSearch) {
                     query = query.ilike('style_code', `%${searchTerm}%`);
@@ -477,7 +660,6 @@
             const { data, error } = await query;
 
             if (error) {
-                console.error("Fetch error", error);
                 els.styleList.innerHTML = `<p class="text-danger">Error loading data: ${error.message}</p>`;
                 return;
             }
@@ -488,26 +670,17 @@
                 return;
             }
 
-            // Process Data: Group by Style Code
             state.inventoryData = data;
-            state.groupedData = {};
+            state.groupedData = [];
             let totalQty = 0;
             const styleMap = {};
 
             data.forEach(item => {
                 if (!styleMap[item.style_code]) {
-                    styleMap[item.style_code] = {
-                        code: item.style_code,
-                        totalQty: 0,
-                        colors: {} 
-                    };
+                    styleMap[item.style_code] = { code: item.style_code, totalQty: 0, colors: {} };
                 }
-                
                 if (!styleMap[item.style_code].colors[item.color]) {
-                    styleMap[item.style_code].colors[item.color] = {
-                        name: item.color,
-                        qty: 0
-                    };
+                    styleMap[item.style_code].colors[item.color] = { name: item.color, qty: 0 };
                 }
                 styleMap[item.style_code].colors[item.color].qty += item.balance;
                 styleMap[item.style_code].totalQty += item.balance;
@@ -521,31 +694,33 @@
             renderStyles();
             updateStats();
             els.actionBar.classList.remove('hidden');
+
+            // Auto-save initial load
+            saveAuditToLocalStorage();
         }
 
-        // --- 6. RENDERING ---
+        // ===================================================================
+        // 10. RENDERING (AUDIT)
+        // ===================================================================
         function renderStyles() {
             els.styleList.innerHTML = '';
-
             state.groupedData.forEach(style => {
                 const card = document.createElement('div');
                 card.className = 'style-card';
-                
+
                 const header = document.createElement('div');
                 header.className = 'style-header';
                 header.innerHTML = `
                     <div>
                         <div class="style-code">${style.code}</div>
                         <div class="style-meta">${Object.keys(style.colors).length} Colors • ${style.totalQty} Pcs</div>
-                    </div>
-                `;
+                    </div>`;
                 card.appendChild(header);
 
                 Object.values(style.colors).forEach(color => {
                     const uniqueId = `${style.code}-${color.name}`;
                     const row = document.createElement('div');
                     row.className = 'color-row';
-                    
                     row.innerHTML = `
                         <div class="color-info">
                             <span class="color-name">${color.name}</span>
@@ -558,8 +733,7 @@
                             <button class="btn-audit" id="btn-display-${uniqueId}" onclick="setAuditStatus('${uniqueId}', 'displayed')">
                                 <svg class="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Display
                             </button>
-                        </div>
-                    `;
+                        </div>`;
                     card.appendChild(row);
                 });
 
@@ -569,7 +743,7 @@
 
         function setAuditStatus(uniqueId, status) {
             state.auditState[uniqueId] = status;
-            
+
             const btnMissing = document.getElementById(`btn-missing-${uniqueId}`);
             const btnDisplay = document.getElementById(`btn-display-${uniqueId}`);
 
@@ -581,15 +755,15 @@
                 btnMissing.classList.remove('status-missing', 'selected');
             }
 
-            showToast();
+            showToast('Action Saved', 'success');
             updateStats();
+            saveAuditToLocalStorage(); // Auto-save on every action
         }
 
         function updateStats() {
             const totalColors = countTotalColors();
             const auditedCount = Object.keys(state.auditState).length;
             const remaining = totalColors - auditedCount;
-            
             const percent = totalColors === 0 ? 0 : Math.round((auditedCount / totalColors) * 100);
 
             els.statStyles.textContent = state.totalStyles;
@@ -600,25 +774,28 @@
 
         function countTotalColors() {
             let count = 0;
-            state.groupedData.forEach(style => {
-                count += Object.keys(style.colors).length;
-            });
+            state.groupedData.forEach(style => { count += Object.keys(style.colors).length; });
             return count;
         }
 
-        function showToast() {
+        // ===================================================================
+        // 11. TOAST
+        // ===================================================================
+        function showToast(msg = 'Action Saved', type = 'success') {
             const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-msg');
+            msgEl.textContent = msg;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
-        // --- 7. LOGIC & SUBMISSION ---
-        
+        // ===================================================================
+        // 12. SUBMISSION (NEW AUDIT)
+        // ===================================================================
         function validateAndSubmit() {
-            const report = generateReportData();
-
+            const report = generateReportData(state.groupedData, state.auditState);
             if (report.unauditedStyles.length > 0) {
-                document.getElementById('modal-msg').innerHTML = 
+                document.getElementById('modal-msg').innerHTML =
                     `⚠️ <strong>${report.unauditedStyles.length} items</strong> were not audited.<br><br>These will be marked as "Unaudited" in the final report.<br>Do you want to proceed?`;
                 els.warningModal.style.display = 'flex';
             } else {
@@ -626,65 +803,43 @@
             }
         }
 
-        function closeModal() {
-            els.warningModal.style.display = 'none';
-        }
-
+        function closeModal() { els.warningModal.style.display = 'none'; }
         function confirmSubmission() {
             closeModal();
-            const report = generateReportData();
-            submitToDB(report);
+            submitToDB(generateReportData(state.groupedData, state.auditState));
         }
 
-        function generateReportData() {
+        function generateReportData(groupedData, auditState) {
             const missingColors = [];
             const fullMissingStyles = [];
             const unauditedItems = [];
 
-            state.groupedData.forEach(style => {
+            groupedData.forEach(style => {
                 let styleHasDisplayed = false;
-                let styleHasAudited = false;
 
                 Object.entries(style.colors).forEach(([colorName, colorData]) => {
                     const uniqueId = `${style.code}-${colorName}`;
-                    const status = state.auditState[uniqueId];
+                    const status = auditState[uniqueId];
 
                     if (status === 'displayed') {
                         styleHasDisplayed = true;
-                        styleHasAudited = true;
                     } else if (status === 'missing') {
-                        missingColors.push({
-                            style_code: style.code,
-                            color: colorName,
-                            quantity: colorData.qty
-                        });
-                        styleHasAudited = true;
+                        missingColors.push({ style_code: style.code, color: colorName, quantity: colorData.qty });
                     } else {
-                        unauditedItems.push({
-                            style_code: style.code,
-                            color: colorName,
-                            quantity: colorData.qty
-                        });
+                        unauditedItems.push({ style_code: style.code, color: colorName, quantity: colorData.qty });
                     }
                 });
 
                 if (!styleHasDisplayed) {
-                    fullMissingStyles.push({
-                        style_code: style.code,
-                        quantity: style.totalQty
-                    });
+                    fullMissingStyles.push({ style_code: style.code, quantity: style.totalQty });
                 }
             });
 
-            return {
-                missingColors,
-                fullMissingStyles,
-                unauditedStyles: unauditedItems
-            };
+            return { missingColors, fullMissingStyles, unauditedStyles: unauditedItems };
         }
 
         async function submitToDB(report) {
-            const btn = document.querySelector('.btn-submit');
+            const btn = document.querySelector('#action-bar .btn-submit');
             btn.disabled = true;
             btn.textContent = 'Submitting...';
 
@@ -709,45 +864,19 @@
                 if (reportError) throw reportError;
 
                 const reportId = reportData[0].id;
-                const itemsToInsert = [];
-
-                report.missingColors.forEach(item => {
-                    itemsToInsert.push({
-                        report_id: reportId,
-                        style_code: item.style_code,
-                        color: item.color,
-                        quantity: item.quantity,
-                        issue_type: 'missing_color'
-                    });
-                });
-
-                report.fullMissingStyles.forEach(item => {
-                    itemsToInsert.push({
-                        report_id: reportId,
-                        style_code: item.style_code,
-                        color: null,
-                        quantity: item.quantity,
-                        issue_type: 'full_style_missing'
-                    });
-                });
-
-                report.unauditedStyles.forEach(item => {
-                    itemsToInsert.push({
-                        report_id: reportId,
-                        style_code: item.style_code,
-                        color: item.color,
-                        quantity: item.quantity,
-                        issue_type: 'unaudited_style'
-                    });
-                });
+                const itemsToInsert = buildItemsPayload(report, reportId);
 
                 if (itemsToInsert.length > 0) {
-                    const { error: itemsError } = await sbClient
-                        .from('audit_report_items')
-                        .insert(itemsToInsert);
+                    const { error: itemsError } = await sbClient.from('audit_report_items').insert(itemsToInsert);
                     if (itemsError) throw itemsError;
                 }
 
+                // Clear auto-save after successful submission
+                clearLocalStorage();
+
+                document.getElementById('success-modal-msg').textContent = 'Audit report submitted successfully.';
+                document.getElementById('success-modal-action-btn').onclick = resetAudit;
+                document.getElementById('success-modal-action-btn').textContent = 'Start New Audit';
                 els.successModal.style.display = 'flex';
 
             } catch (err) {
@@ -758,12 +887,23 @@
             }
         }
 
+        function buildItemsPayload(report, reportId) {
+            const items = [];
+            report.missingColors.forEach(item => items.push({ report_id: reportId, style_code: item.style_code, color: item.color, quantity: item.quantity, issue_type: 'missing_color' }));
+            report.fullMissingStyles.forEach(item => items.push({ report_id: reportId, style_code: item.style_code, color: null, quantity: item.quantity, issue_type: 'full_style_missing' }));
+            report.unauditedStyles.forEach(item => items.push({ report_id: reportId, style_code: item.style_code, color: item.color, quantity: item.quantity, issue_type: 'unaudited_style' }));
+            return items;
+        }
+
         function resetAudit() {
             els.successModal.style.display = 'none';
+            clearLocalStorage();
             location.reload();
         }
 
-        // --- 8. VIEW REPORTS (ENHANCED WITH DELETE) ---
+        // ===================================================================
+        // 13. REPORTS VIEW
+        // ===================================================================
         async function loadReports() {
             els.reportsList.innerHTML = '<p style="text-align:center">Loading...</p>';
 
@@ -773,15 +913,8 @@
                 .order('created_at', { ascending: false })
                 .limit(10);
 
-            if (error) {
-                els.reportsList.innerHTML = `<p class="text-danger">Error loading reports</p>`;
-                return;
-            }
-
-            if (!data || data.length === 0) {
-                els.reportsList.innerHTML = `<p style="text-align:center; color: var(--text-sub)">No reports found.</p>`;
-                return;
-            }
+            if (error) { els.reportsList.innerHTML = `<p class="text-danger">Error loading reports</p>`; return; }
+            if (!data || data.length === 0) { els.reportsList.innerHTML = `<p style="text-align:center; color: var(--text-sub)">No reports found.</p>`; return; }
 
             els.reportsList.innerHTML = '';
 
@@ -793,29 +926,20 @@
 
                 const reportCard = document.createElement('div');
                 reportCard.className = 'report-card';
-                reportCard.id = `report-card-${report.id}`; // ID for deletion removal
+                reportCard.id = `report-card-${report.id}`;
 
                 const dateStr = new Date(report.created_at).toLocaleString();
-
-                let missingHtml = '';
-                let fullMissingHtml = '';
-                let unauditedHtml = '';
+                let missingHtml = '', fullMissingHtml = '', unauditedHtml = '';
                 let hasIssues = false;
 
                 if (items) {
                     items.forEach(item => {
-                        const row = `<tr>
-                            <td>${item.style_code}</td>
-                            <td>${item.color || '-'}</td>
-                            <td>${item.quantity}</td>
-                        </tr>`;
-
+                        const row = `<tr><td>${item.style_code}</td><td>${item.color || '-'}</td><td>${item.quantity}</td></tr>`;
                         if (item.issue_type === 'missing_color') missingHtml += row;
                         if (item.issue_type === 'full_style_missing') fullMissingHtml += row;
                         if (item.issue_type === 'unaudited_style') unauditedHtml += row;
                     });
                 }
-
                 if (missingHtml || fullMissingHtml || unauditedHtml) hasIssues = true;
 
                 const detailsId = `details-${report.id}`;
@@ -832,13 +956,16 @@
                                 <div style="font-size:0.8rem; color:var(--text-sub)">${report.total_styles} Styles</div>
                             </div>
                         </div>
-                        
                         <div class="report-actions">
                             <button class="btn-outline" onclick="toggleDetails('${detailsId}', this)">
                                 <svg class="icon" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                                 <span>See Details</span>
                             </button>
-                            <button class="btn-outline" onclick="exportToExcel(${report.id}, '${report.category_name}')">
+                            <button class="btn-edit" onclick="openEditView(${report.id}, '${report.category_name.replace(/'/g, "\\'")}')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                <span>Edit</span>
+                            </button>
+                            <button class="btn-outline" onclick="exportToExcel(${report.id}, '${report.category_name.replace(/'/g, "\\'")}')">
                                 <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                                 <span>Export Excel</span>
                             </button>
@@ -852,34 +979,15 @@
                     <div id="${detailsId}" class="report-details">
                         ${!hasIssues ? '<div style="text-align:center; color:var(--success); padding:1rem; display:flex; align-items:center; justify-content:center; gap:8px;"><svg class="icon text-success" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> Perfect Audit! No issues found.</div>' : ''}
 
-                        ${missingHtml ? `
-                        <div class="report-section">
-                            <h4 class="text-danger">Missing Colors (${report.missing_colors_count})</h4>
-                            <table class="report-table">
-                                <thead><tr><th>Style</th><th>Color</th><th>Qty</th></tr></thead>
-                                <tbody>${missingHtml}</tbody>
-                            </table>
-                        </div>` : ''}
+                        ${missingHtml ? `<div class="report-section"><h4 class="text-danger">Missing Colors (${report.missing_colors_count})</h4>
+                            <table class="report-table"><thead><tr><th>Style</th><th>Color</th><th>Qty</th></tr></thead><tbody>${missingHtml}</tbody></table></div>` : ''}
 
-                        ${fullMissingHtml ? `
-                        <div class="report-section">
-                            <h4 style="color:var(--warning)">Full Styles Missing (${report.full_missing_styles_count})</h4>
-                            <table class="report-table">
-                                <thead><tr><th>Style</th><th>Color</th><th>Qty</th></tr></thead>
-                                <tbody>${fullMissingHtml}</tbody>
-                            </table>
-                        </div>` : ''}
+                        ${fullMissingHtml ? `<div class="report-section"><h4 style="color:var(--warning)">Full Styles Missing (${report.full_missing_styles_count})</h4>
+                            <table class="report-table"><thead><tr><th>Style</th><th>Color</th><th>Qty</th></tr></thead><tbody>${fullMissingHtml}</tbody></table></div>` : ''}
 
-                        ${unauditedHtml ? `
-                        <div class="report-section">
-                            <h4 class="text-warning">Unaudited (${report.unaudited_styles_count})</h4>
-                            <table class="report-table">
-                                <thead><tr><th>Style</th><th>Color</th><th>Qty</th></tr></thead>
-                                <tbody>${unauditedHtml}</tbody>
-                            </table>
-                        </div>` : ''}
-                    </div>
-                `;
+                        ${unauditedHtml ? `<div class="report-section"><h4 class="text-warning">Unaudited (${report.unaudited_styles_count})</h4>
+                            <table class="report-table"><thead><tr><th>Style</th><th>Color</th><th>Qty</th></tr></thead><tbody>${unauditedHtml}</tbody></table></div>` : ''}
+                    </div>`;
 
                 els.reportsList.appendChild(reportCard);
             }
@@ -888,7 +996,6 @@
         function toggleDetails(elementId, btn) {
             const el = document.getElementById(elementId);
             const span = btn.querySelector('span');
-            
             if (el.classList.contains('open')) {
                 el.classList.remove('open');
                 span.textContent = 'See Details';
@@ -898,13 +1005,12 @@
             }
         }
 
+        // ===================================================================
+        // 14. EXPORT
+        // ===================================================================
         async function exportToExcel(reportId, categoryName) {
             try {
-                const { data, error } = await sbClient
-                    .from('audit_report_items')
-                    .select('*')
-                    .eq('report_id', reportId);
-                
+                const { data, error } = await sbClient.from('audit_report_items').select('*').eq('report_id', reportId);
                 if (error) throw error;
 
                 const excelData = data.map(item => ({
@@ -917,17 +1023,16 @@
                 const ws = XLSX.utils.json_to_sheet(excelData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Audit Report");
-
-                const fileName = `${categoryName}_Audit_${new Date().toISOString().slice(0,10)}.xlsx`;
-                XLSX.writeFile(wb, fileName);
-
+                XLSX.writeFile(wb, `${categoryName}_Audit_${new Date().toISOString().slice(0,10)}.xlsx`);
             } catch (err) {
                 console.error(err);
                 alert("Failed to export Excel.");
             }
         }
 
-        // --- DELETE FUNCTIONS ---
+        // ===================================================================
+        // 15. DELETE
+        // ===================================================================
         function promptDelete(reportId) {
             state.reportToDelete = reportId;
             els.deleteModal.style.display = 'flex';
@@ -940,16 +1045,10 @@
 
         async function confirmDelete() {
             if (!state.reportToDelete) return;
-
             try {
-                const { error } = await sbClient
-                    .from('audit_reports')
-                    .delete()
-                    .eq('id', state.reportToDelete);
-
+                const { error } = await sbClient.from('audit_reports').delete().eq('id', state.reportToDelete);
                 if (error) throw error;
 
-                // Remove from DOM
                 const card = document.getElementById(`report-card-${state.reportToDelete}`);
                 if (card) {
                     card.style.transition = 'all 0.3s ease';
@@ -957,12 +1056,287 @@
                     card.style.transform = 'scale(0.9)';
                     setTimeout(() => card.remove(), 300);
                 }
-
                 closeDeleteModal();
-
             } catch (err) {
                 console.error("Delete Error", err);
                 alert("Failed to delete report.");
+            }
+        }
+
+        // ===================================================================
+        // 16. EDIT REPORT
+        // ===================================================================
+        async function openEditView(reportId, categoryName) {
+            editState.reportId = reportId;
+            editState.categoryName = categoryName;
+            editState.auditState = {};
+            editState.groupedData = [];
+            editState.originalItems = [];
+
+            els.editStyleList.innerHTML = '<p style="text-align:center">Loading inventory for edit...</p>';
+            els.editHeaderInfo.textContent = '';
+
+            // Show edit view
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-edit').classList.add('active');
+            els.actionBar.classList.add('hidden');
+            els.editActionBar.classList.remove('hidden');
+
+            try {
+                // Fetch the report's saved items to know what was audited
+                const { data: savedItems, error: itemsErr } = await sbClient
+                    .from('audit_report_items')
+                    .select('*')
+                    .eq('report_id', reportId);
+                if (itemsErr) throw itemsErr;
+                editState.originalItems = savedItems || [];
+
+                // Fetch the report meta for category
+                const { data: reportMeta, error: metaErr } = await sbClient
+                    .from('audit_reports')
+                    .select('*')
+                    .eq('id', reportId)
+                    .single();
+                if (metaErr) throw metaErr;
+
+                // Load inventory for the same category
+                // Detect if it's a global search (category starts with "Search: ")
+                let invQuery = sbClient.from('inventory').select('*').gt('balance', 0);
+                const isGlobal = reportMeta.category_name.startsWith('Search: ');
+                if (isGlobal) {
+                    const term = reportMeta.category_name.replace('Search: ', '');
+                    invQuery = invQuery.ilike('style_code', `%${term}%`);
+                } else {
+                    invQuery = invQuery.eq('name', reportMeta.category_name);
+                }
+
+                const { data: invData, error: invErr } = await invQuery;
+                if (invErr) throw invErr;
+
+                // Build grouped data same way as audit
+                const styleMap = {};
+                let totalQty = 0;
+                (invData || []).forEach(item => {
+                    if (!styleMap[item.style_code]) styleMap[item.style_code] = { code: item.style_code, totalQty: 0, colors: {} };
+                    if (!styleMap[item.style_code].colors[item.color]) styleMap[item.style_code].colors[item.color] = { name: item.color, qty: 0 };
+                    styleMap[item.style_code].colors[item.color].qty += item.balance;
+                    styleMap[item.style_code].totalQty += item.balance;
+                    totalQty += item.balance;
+                });
+                editState.groupedData = Object.values(styleMap);
+
+                // Reconstruct prior audit state from saved items
+                // Items with issue_type 'missing_color' = missing
+                // Items with issue_type 'full_style_missing' or 'missing_color' but not unaudited = has some status
+                // Items with issue_type 'unaudited_style' = not audited (leave blank)
+                savedItems.forEach(item => {
+                    if (item.issue_type === 'missing_color') {
+                        const uid = `${item.style_code}-${item.color}`;
+                        editState.auditState[uid] = 'missing';
+                    }
+                    // 'displayed' items are NOT stored as issues, so we derive them:
+                    // If a style has no 'missing_color' record for that color AND no 'unaudited_style', it was displayed.
+                    // We'll handle this after building the full map.
+                });
+
+                // For each style+color in inventory, determine prior status
+                // displayed = was audited but NOT in missing_color or unaudited_style lists
+                const missingSet = new Set(savedItems.filter(i => i.issue_type === 'missing_color').map(i => `${i.style_code}-${i.color}`));
+                const unauditedSet = new Set(savedItems.filter(i => i.issue_type === 'unaudited_style').map(i => `${i.style_code}-${i.color}`));
+
+                editState.groupedData.forEach(style => {
+                    Object.keys(style.colors).forEach(colorName => {
+                        const uid = `${style.code}-${colorName}`;
+                        if (missingSet.has(uid)) {
+                            editState.auditState[uid] = 'missing';
+                        } else if (!unauditedSet.has(uid)) {
+                            // Was not in unaudited → it was displayed (or audited)
+                            editState.auditState[uid] = 'displayed';
+                        }
+                        // If in unauditedSet → leave as undefined (not audited)
+                    });
+                });
+
+                const dateStr = new Date(reportMeta.created_at).toLocaleString();
+                els.editHeaderInfo.innerHTML = `
+                    <strong>Editing:</strong> ${reportMeta.category_name} &nbsp;|&nbsp; 
+                    Originally submitted: ${dateStr} &nbsp;|&nbsp;
+                    ${reportMeta.total_styles} styles, ${reportMeta.total_qty} pcs
+                    <br><span style="font-size:0.8rem; opacity:0.8;">Review your previous responses below and make any changes, then click <strong>Update Report</strong>.</span>`;
+
+                renderEditStyles();
+                updateEditStats();
+                setupEditStyleSearch();
+
+            } catch (err) {
+                console.error("Edit load error", err);
+                els.editStyleList.innerHTML = `<p class="text-danger">Failed to load report for editing.</p>`;
+            }
+        }
+
+        function closeEditView() {
+            document.getElementById('view-edit').classList.remove('active');
+            els.editActionBar.classList.add('hidden');
+            // Go back to reports
+            document.getElementById('view-reports').classList.add('active');
+            document.getElementById('nav-reports').classList.add('active');
+        }
+
+        function renderEditStyles() {
+            els.editStyleList.innerHTML = '';
+            editState.groupedData.forEach(style => {
+                const card = document.createElement('div');
+                card.className = 'edit-card';
+
+                const header = document.createElement('div');
+                header.className = 'edit-style-header';
+                header.innerHTML = `
+                    <div class="style-code">${style.code}</div>
+                    <div class="style-meta">${Object.keys(style.colors).length} Colors • ${style.totalQty} Pcs</div>`;
+                card.appendChild(header);
+
+                Object.values(style.colors).forEach(color => {
+                    const uniqueId = `${style.code}-${color.name}`;
+                    const row = document.createElement('div');
+                    row.className = 'edit-color-row';
+                    row.innerHTML = `
+                        <div class="edit-color-info">
+                            <span class="color-name">${color.name}</span>
+                            <span class="stock-badge">Stock: ${color.qty}</span>
+                        </div>
+                        <div class="audit-actions">
+                            <button class="btn-audit" id="edit-btn-missing-${uniqueId}" onclick="setEditStatus('${uniqueId}', 'missing')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> Missing
+                            </button>
+                            <button class="btn-audit" id="edit-btn-display-${uniqueId}" onclick="setEditStatus('${uniqueId}', 'displayed')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Display
+                            </button>
+                        </div>`;
+                    card.appendChild(row);
+                });
+
+                els.editStyleList.appendChild(card);
+            });
+
+            // Restore prior audit state UI
+            Object.entries(editState.auditState).forEach(([uid, status]) => {
+                applyEditStatusUI(uid, status);
+            });
+        }
+
+        function setupEditStyleSearch() {
+            const input = document.getElementById('edit-style-search');
+            if (!input) return;
+            input.value = '';
+            input.oninput = (e) => {
+                const term = e.target.value.toUpperCase().trim();
+                document.querySelectorAll('#edit-style-list .edit-card').forEach(card => {
+                    const codeEl = card.querySelector('.style-code');
+                    if (codeEl) {
+                        card.classList.toggle('hidden-style', !codeEl.textContent.toUpperCase().includes(term));
+                    }
+                });
+            };
+        }
+
+        function setEditStatus(uniqueId, status) {
+            editState.auditState[uniqueId] = status;
+            applyEditStatusUI(uniqueId, status);
+            showToast('Status updated', 'success');
+            updateEditStats();
+        }
+
+        function applyEditStatusUI(uniqueId, status) {
+            const btnMissing = document.getElementById(`edit-btn-missing-${uniqueId}`);
+            const btnDisplay = document.getElementById(`edit-btn-display-${uniqueId}`);
+            if (!btnMissing || !btnDisplay) return;
+
+            if (status === 'missing') {
+                btnMissing.classList.add('status-missing', 'selected');
+                btnDisplay.classList.remove('status-displayed', 'selected');
+            } else if (status === 'displayed') {
+                btnDisplay.classList.add('status-displayed', 'selected');
+                btnMissing.classList.remove('status-missing', 'selected');
+            } else {
+                btnMissing.classList.remove('status-missing', 'selected');
+                btnDisplay.classList.remove('status-displayed', 'selected');
+            }
+        }
+
+        function updateEditStats() {
+            const totalColors = editState.groupedData.reduce((acc, s) => acc + Object.keys(s.colors).length, 0);
+            const auditedCount = Object.keys(editState.auditState).length;
+            const remaining = totalColors - auditedCount;
+            els.editFooterRemaining.textContent = remaining;
+        }
+
+        function validateAndUpdateReport() {
+            const report = generateReportData(editState.groupedData, editState.auditState);
+            if (report.unauditedStyles.length > 0) {
+                document.getElementById('edit-modal-msg').innerHTML =
+                    `⚠️ <strong>${report.unauditedStyles.length} items</strong> were not audited.<br><br>These will be marked as "Unaudited". Do you want to proceed?`;
+                els.editWarningModal.style.display = 'flex';
+            } else {
+                confirmUpdateReport();
+            }
+        }
+
+        function closeEditWarningModal() { els.editWarningModal.style.display = 'none'; }
+
+        async function confirmUpdateReport() {
+            closeEditWarningModal();
+
+            const btn = document.querySelector('#edit-action-bar .btn-submit');
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+
+            try {
+                const report = generateReportData(editState.groupedData, editState.auditState);
+
+                const totalColors = editState.groupedData.reduce((acc, s) => acc + Object.keys(s.colors).length, 0);
+                const auditedCount = Object.keys(editState.auditState).length;
+                const completion = totalColors === 0 ? 0 : Math.round((auditedCount / totalColors) * 100);
+
+                // Update audit_reports row
+                const { error: updateErr } = await sbClient
+                    .from('audit_reports')
+                    .update({
+                        audit_completion_percent: completion,
+                        missing_colors_count: report.missingColors.length,
+                        full_missing_styles_count: report.fullMissingStyles.length,
+                        unaudited_styles_count: report.unauditedStyles.length
+                    })
+                    .eq('id', editState.reportId);
+                if (updateErr) throw updateErr;
+
+                // Delete old items
+                const { error: deleteErr } = await sbClient
+                    .from('audit_report_items')
+                    .delete()
+                    .eq('report_id', editState.reportId);
+                if (deleteErr) throw deleteErr;
+
+                // Insert new items
+                const newItems = buildItemsPayload(report, editState.reportId);
+                if (newItems.length > 0) {
+                    const { error: insertErr } = await sbClient.from('audit_report_items').insert(newItems);
+                    if (insertErr) throw insertErr;
+                }
+
+                document.getElementById('success-modal-msg').textContent = 'Report updated successfully.';
+                document.getElementById('success-modal-action-btn').textContent = 'Back to Reports';
+                document.getElementById('success-modal-action-btn').onclick = () => {
+                    els.successModal.style.display = 'none';
+                    closeEditView();
+                };
+                els.successModal.style.display = 'flex';
+
+            } catch (err) {
+                console.error("Update Error", err);
+                alert("Failed to update report. Check console.");
+                btn.disabled = false;
+                btn.textContent = 'Update Report';
             }
         }
 
