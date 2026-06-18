@@ -423,22 +423,41 @@
 
     <!-- 1. DASHBOARD -->
     <section id="dashboard" class="active">
-        <h3 style="margin-bottom:15px; color:var(--success); display:flex; align-items:center; gap:8px; font-size: 1rem;">
-            <i class="fa-regular fa-calendar"></i> Today's Performance
+        <h3 style="margin-bottom:15px; color:var(--success); display:flex; align-items:center; justify-content:space-between; gap:8px; font-size: 1rem;">
+            <span style="display:flex; align-items:center; gap:8px;">
+                <i class="fa-regular fa-calendar"></i> <span id="today-perf-heading">Today's Performance</span>
+            </span>
+            <button id="dash-perf-filter-toggle" class="secondary" style="padding:8px 12px;" onclick="toggleDashPerfFilter()" title="Filter by date range">
+                <i class="fa-solid fa-filter"></i>
+            </button>
         </h3>
+        <div id="dash-perf-filter-bar" class="filter-bar hidden" style="margin-bottom:20px;">
+            <div style="flex:1; max-width:200px">
+                <label>From Date</label>
+                <input type="date" id="dash-perf-from">
+            </div>
+            <div style="flex:1; max-width:200px">
+                <label>To Date</label>
+                <input type="date" id="dash-perf-to">
+            </div>
+            <div style="display:flex; align-items:flex-end; gap:10px;">
+                <button onclick="applyDashPerfRange()"><i class="fa-solid fa-magnifying-glass"></i> Apply</button>
+                <button class="secondary" onclick="resetDashPerfRange()"><i class="fa-solid fa-rotate-left"></i> Reset to Today</button>
+            </div>
+        </div>
         <div class="card-grid">
             <div class="card today">
-                <div class="card-label">Today's Target</div>
+                <div class="card-label" id="dash-today-target-label">Today's Target</div>
                 <div class="stat-value" id="dash-today-target">0</div>
-                <div class="sub-text">Sum of all daily targets</div>
+                <div class="sub-text" id="dash-today-target-sub">Sum of all daily targets</div>
             </div>
             <div class="card today">
-                <div class="card-label">Today's Achievement</div>
+                <div class="card-label" id="dash-today-achieve-label">Today's Achievement</div>
                 <div class="stat-value" id="dash-today-achieve">0</div>
-                <div class="sub-text">Total sales today (All Employees)</div>
+                <div class="sub-text" id="dash-today-achieve-sub">Total sales today (All Employees)</div>
             </div>
             <div class="card today">
-                <div class="card-label">Today's Ach. %</div>
+                <div class="card-label" id="dash-today-pct-label">Today's Ach. %</div>
                 <div class="stat-value" id="dash-today-pct">0%</div>
             </div>
         </div>
@@ -782,6 +801,7 @@
     var detailedReportData = [];
     var currentPage = 1;
     var rowsPerPage = 50;
+    var isDashPerfRangeActive = false; // true when a custom From/To filter is applied to Today's Performance
 
     var getLocalDateStr = function() { return new Date().toLocaleDateString('en-CA'); };
     var todayStr = getLocalDateStr(); 
@@ -1047,6 +1067,83 @@
         return { dTargets: dTargets, mTargets: mTargets };
     }
 
+    // Shows/hides the Today's Performance From/To filter bar when the filter
+    // icon next to the heading is clicked. Purely a visibility toggle — does
+    // not affect any filter values or trigger any data reload.
+    function toggleDashPerfFilter() {
+        document.getElementById('dash-perf-filter-bar').classList.toggle('hidden');
+    }
+
+    // Paints the three "Today's Performance" cards (target / achievement / %).
+    // Used both by the default today-only flow (loadDashboard) and by the
+    // custom From/To range filter, so the two never duplicate rendering logic.
+    function renderTodayPerfCards(target, achieve, opts) {
+        document.getElementById('today-perf-heading').innerText = opts.heading;
+        document.getElementById('dash-today-target-label').innerText = opts.targetLabel;
+        document.getElementById('dash-today-achieve-label').innerText = opts.achieveLabel;
+        document.getElementById('dash-today-pct-label').innerText = opts.pctLabel;
+        document.getElementById('dash-today-target-sub').innerText = opts.targetSub;
+        document.getElementById('dash-today-achieve-sub').innerText = opts.achieveSub;
+
+        document.getElementById('dash-today-target').innerText = formatNumber(target);
+        document.getElementById('dash-today-achieve').innerText = formatNumber(achieve);
+        document.getElementById('dash-today-pct').innerText = target > 0 ? ((achieve/target)*100).toFixed(1) + '%' : '0%';
+    }
+
+    // Applies a custom From/To date range to the Today's Performance cards only.
+    // Monthly Performance and the Ranking table are untouched — they continue to
+    // be driven exclusively by loadDashboard()'s existing logic.
+    async function applyDashPerfRange() {
+        var fromDate = document.getElementById('dash-perf-from').value;
+        var toDate = document.getElementById('dash-perf-to').value;
+
+        if (!fromDate || !toDate) { showToast('Please select both From and To dates.'); return; }
+        if (fromDate > toDate) { showToast('From date must be before To date.'); return; }
+
+        // Target: carry-forward the latest known daily target per employee as of
+        // the range END date, mirroring the same carry-forward approach used
+        // elsewhere in the app (e.g. the Detailed Report), then sum across employees.
+        var preQuery = sbClient.from('daily_targets').select('*').lte('date', toDate).order('date', { ascending: false });
+        var resPre = await preQuery;
+        var preTargets = resPre.data || [];
+        var latestTargetMap = {};
+        preTargets.forEach(function(t) {
+            if (!(t.employee_id in latestTargetMap)) {
+                latestTargetMap[t.employee_id] = parseFloat(t.target_amount);
+            }
+        });
+        var rangeTargets = employeesCache.map(function(emp) {
+            return latestTargetMap[emp.employee_id] || 0;
+        }).filter(function(v) { return v > 0; });
+        var totalRangeTarget = rangeTargets.reduce(function(a,b) { return a + b; }, 0);
+
+        // Achievement: sum of all sales within the inclusive range.
+        var resSales = await sbClient.from('sales').select('amount').gte('date', fromDate).lte('date', toDate);
+        var salesData = resSales.data || [];
+        var totalRangeSales = salesData.reduce(function(a,b) { return a + parseFloat(b.amount); }, 0);
+
+        isDashPerfRangeActive = true;
+
+        var rangeLabel = (fromDate === toDate) ? fromDate : (fromDate + ' to ' + toDate);
+        renderTodayPerfCards(totalRangeTarget, totalRangeSales, {
+            heading: 'Performance (' + rangeLabel + ')',
+            targetLabel: 'Target',
+            achieveLabel: 'Achievement',
+            pctLabel: 'Ach. %',
+            targetSub: 'Latest known daily target as of ' + toDate,
+            achieveSub: 'Total sales from ' + fromDate + ' to ' + toDate
+        });
+    }
+
+    // Clears the custom range filter and restores the default "Today's Performance"
+    // cards by simply re-running the existing, unmodified loadDashboard() flow.
+    function resetDashPerfRange() {
+        document.getElementById('dash-perf-from').value = '';
+        document.getElementById('dash-perf-to').value = '';
+        isDashPerfRangeActive = false;
+        loadDashboard();
+    }
+
     async function loadDashboard() {
         var result = await getMonthlyTargetData(currentMonthStr);
         var dTargets = result.dTargets;
@@ -1106,9 +1203,20 @@
         var monthSalesData = resMonthSales.data || [];
         var totalMonthSales = monthSalesData.reduce(function(a,b) { return a + parseFloat(b.amount); }, 0);
 
-        document.getElementById('dash-today-target').innerText = formatNumber(totalDayTarget);
-        document.getElementById('dash-today-achieve').innerText = formatNumber(totalDaySales);
-        document.getElementById('dash-today-pct').innerText = totalDayTarget > 0 ? ((totalDaySales/totalDayTarget)*100).toFixed(1) + '%' : '0%';
+        // Only paint the Today's Performance cards from this calculation if no
+        // custom date range filter is currently applied. If a range IS applied,
+        // those three cards are owned by applyDashPerfRange() instead, and this
+        // function leaves them untouched so the filter result isn't clobbered.
+        if (!isDashPerfRangeActive) {
+            renderTodayPerfCards(totalDayTarget, totalDaySales, {
+                heading: "Today's Performance",
+                targetLabel: "Today's Target",
+                achieveLabel: "Today's Achievement",
+                pctLabel: "Today's Ach. %",
+                targetSub: "Sum of all daily targets",
+                achieveSub: "Total sales today (All Employees)"
+            });
+        }
 
         document.getElementById('dash-month-target').innerText = formatNumber(totalMonthTarget);
         document.getElementById('dash-month-achieve').innerText = formatNumber(totalMonthSales);
