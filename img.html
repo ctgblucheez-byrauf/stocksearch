@@ -2,134 +2,649 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Style Code Image Search</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>SKU Product Search — Blucheez Fashion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-body{
-    font-family: Arial;
-    background:#f4f4f4;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-}
+  :root{
+    --bg:#F6F5F1;
+    --bg-alt:#FFFFFF;
+    --img-bg:#ECEAE3;
+    --ink:#1C2027;
+    --ink-soft:#5B6270;
+    --accent:#1F5C4D;
+    --accent-dark:#163F35;
+    --accent-soft:#E4EFE9;
+    --gold:#A97A35;
+    --line:#E3E1DA;
+    --shadow-1:0 1px 2px rgba(28,32,39,.06), 0 8px 24px -14px rgba(28,32,39,.16);
+    --shadow-2:0 4px 10px rgba(28,32,39,.08), 0 22px 40px -16px rgba(28,32,39,.26);
+  }
 
-.container{
-    background:white;
-    padding:25px;
-    border-radius:10px;
-    box-shadow:0 0 10px rgba(0,0,0,0.1);
-    width:350px;
-    text-align:center;
-}
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Manrope', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  img{ max-width:100%; display:block; }
+  button{ font-family:inherit; }
 
-input{
+  ::selection{ background:var(--accent-soft); color:var(--accent-dark); }
+
+  /* ---------- Header ---------- */
+  .site-header{
+    position:sticky; top:0; z-index:30;
+    background:rgba(246,245,241,.92);
+    -webkit-backdrop-filter:blur(10px);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .header-inner{
+    max-width:1180px; margin:0 auto;
+    padding:14px 24px;
+    display:flex; align-items:center; gap:14px;
+  }
+  .logo-badge{
+    width:42px; height:42px; border-radius:11px;
+    background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces', serif; font-weight:600; font-size:1.15rem;
+    flex-shrink:0;
+    box-shadow:0 4px 10px -2px rgba(31,92,77,.45);
+  }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.2; min-width:0; }
+  .eyebrow{
+    font-size:.66rem; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-soft); font-weight:700;
+  }
+  .page-title{
+    font-family:'Fraunces', serif; font-weight:600; font-size:1.28rem;
+    color:var(--ink); letter-spacing:-.01em;
+  }
+  .header-count{
+    margin-left:auto;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.78rem; color:var(--ink-soft);
+    background:var(--accent-soft);
+    color:var(--accent-dark);
+    padding:6px 12px; border-radius:20px;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  @media (max-width:480px){
+    .header-count{ display:none; }
+    .page-title{ font-size:1.1rem; }
+  }
+
+  /* ---------- Search ---------- */
+  .search-section{ max-width:720px; margin:38px auto 6px; padding:0 24px; }
+  .search-box{ position:relative; }
+  .search-icon{
+    position:absolute; left:18px; top:50%; transform:translateY(-50%);
+    color:var(--ink-soft); pointer-events:none; display:flex;
+  }
+  .search-input{
     width:100%;
-    padding:10px;
-    margin-top:10px;
-    font-size:16px;
-}
+    padding:17px 52px 17px 50px;
+    border-radius:14px;
+    border:1.5px solid var(--line);
+    background:var(--bg-alt);
+    font-size:1rem;
+    font-family:'Manrope', sans-serif;
+    color:var(--ink);
+    box-shadow:var(--shadow-1);
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .search-input::placeholder{ color:#9CA0AB; }
+  .search-input:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 4px var(--accent-soft);
+  }
+  .clear-btn{
+    position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    width:30px; height:30px; border-radius:50%;
+    border:none; background:var(--line);
+    display:none; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--ink-soft);
+    transition:background .15s ease;
+  }
+  .clear-btn:hover{ background:#D8D6CD; }
+  .search-hint{
+    margin:10px 2px 0; font-size:.78rem; color:var(--ink-soft);
+  }
 
-button{
-    margin-top:10px;
-    padding:10px;
-    width:100%;
-    background:black;
-    color:white;
-    border:none;
+  .results-meta{
+    max-width:1180px; margin:22px auto 6px; padding:0 24px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.78rem; color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+
+  /* ---------- Results grid ---------- */
+  .results-section{ max-width:1180px; margin:0 auto; padding:8px 24px 70px; }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));
+    gap:22px;
+  }
+  @media (max-width:620px){
+    .grid{ grid-template-columns:repeat(2, 1fr); gap:14px; }
+  }
+  @media (max-width:380px){
+    .grid{ grid-template-columns:1fr; }
+  }
+
+  .card{
+    background:var(--bg-alt);
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:var(--shadow-1);
     cursor:pointer;
-}
+    display:flex; flex-direction:column;
+    transition:transform .22s ease, box-shadow .22s ease;
+    border:1px solid transparent;
+    animation:cardIn .35s ease both;
+  }
+  @keyframes cardIn{
+    from{ opacity:0; transform:translateY(8px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-2); }
+  .card:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
 
-img{
-    margin-top:15px;
-    max-width:100%;
-    border-radius:8px;
-}
+  .card-img-wrap{
+    aspect-ratio:1/1; background:var(--img-bg); overflow:hidden; position:relative;
+  }
+  .card-img-wrap img{
+    width:100%; height:100%; object-fit:cover;
+    transition:transform .45s ease;
+  }
+  .card:hover .card-img-wrap img{ transform:scale(1.045); }
 
-#status{
-    margin-top:10px;
-    color:#666;
-}
+  .card-body{
+    padding:14px 15px 17px;
+    display:flex; flex-direction:column; gap:10px; flex:1;
+  }
+  .card-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+
+  /* Signature element: punch-tag SKU chip */
+  .sku-tag{
+    position:relative;
+    display:inline-flex; align-items:center;
+    background:var(--accent-soft); color:var(--accent-dark);
+    font-family:'IBM Plex Mono', monospace; font-weight:600;
+    font-size:.74rem; letter-spacing:.01em;
+    padding:6px 10px 6px 19px;
+    border-radius:5px;
+    max-width:62%;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .sku-tag::before{
+    content:""; position:absolute; left:7px; top:50%; transform:translateY(-50%);
+    width:5px; height:5px; border-radius:50%;
+    background:var(--bg-alt);
+    box-shadow:0 0 0 1.3px var(--accent);
+  }
+
+  .price{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700; color:var(--gold); font-size:.84rem;
+    white-space:nowrap;
+  }
+
+  .card-desc{
+    font-size:.83rem; line-height:1.5; color:var(--ink-soft); margin:0;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+
+  /* ---------- Loading / Empty / Error ---------- */
+  .state-block{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:100px 20px; gap:14px; text-align:center; color:var(--ink-soft);
+  }
+  .spinner{
+    width:36px; height:36px; border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--accent);
+    animation:spin .75s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .state-block h3{
+    font-family:'Fraunces', serif; font-size:1.25rem; color:var(--ink);
+    font-weight:600; margin:0;
+  }
+  .state-block p{ margin:0; font-size:.9rem; max-width:340px; }
+  .state-block svg{ width:48px; height:48px; color:#C9C7BD; }
+
+  .btn-primary{
+    background:var(--accent); color:#fff; border:none;
+    padding:10px 22px; border-radius:10px; font-weight:700; font-size:.88rem;
+    cursor:pointer; transition:background .18s ease; margin-top:4px;
+  }
+  .btn-primary:hover{ background:var(--accent-dark); }
+
+  .hidden{ display:none !important; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:100;
+    background:rgba(18,20,16,.55);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    opacity:0; pointer-events:none;
+    transition:opacity .22s ease;
+  }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+
+  .modal{
+    background:var(--bg-alt);
+    border-radius:20px;
+    max-width:780px; width:100%;
+    max-height:88vh; overflow:auto;
+    display:grid; grid-template-columns:1fr 1fr;
+    position:relative;
+    transform:translateY(14px) scale(.97);
+    transition:transform .25s ease;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.4);
+  }
+  .modal-overlay.open .modal{ transform:translateY(0) scale(1); }
+  @media (max-width:680px){
+    .modal{ grid-template-columns:1fr; }
+  }
+
+  .modal-img-wrap{ background:var(--img-bg); min-height:240px; }
+  .modal-img-wrap img{ width:100%; height:100%; object-fit:cover; min-height:240px; }
+
+  .modal-body{
+    padding:30px 28px 32px;
+    display:flex; flex-direction:column; gap:16px;
+  }
+  .modal-close{
+    position:absolute; top:14px; right:14px;
+    width:36px; height:36px; border-radius:50%;
+    border:none; background:rgba(255,255,255,.92);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.16);
+    color:var(--ink); z-index:5;
+    transition:transform .15s ease;
+  }
+  .modal-close:hover{ transform:rotate(90deg); }
+
+  .modal-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .modal-price{
+    font-family:'IBM Plex Mono', monospace; font-size:1.5rem; font-weight:700;
+    color:var(--gold);
+  }
+  .modal-title{
+    font-family:'Fraunces', serif; font-weight:600; font-size:1.05rem; color:var(--ink-soft);
+  }
+  .modal-desc{ font-size:.93rem; line-height:1.7; color:var(--ink-soft); }
+  .modal-desc p{ margin:0 0 12px; }
+  .modal-desc p:last-child{ margin-bottom:0; }
+
+  footer.app-footer{
+    text-align:center; padding:30px 20px 40px;
+    font-size:.76rem; color:var(--ink-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+  }
 </style>
 </head>
-
 <body>
 
-<div class="container">
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo-badge" aria-hidden="true">B</div>
+      <div class="brand-text">
+        <span class="eyebrow">Blucheez Fashion</span>
+        <span class="page-title">SKU Product Search</span>
+      </div>
+      <span class="header-count" id="headerCount">Loading…</span>
+    </div>
+  </header>
 
-<h2>Style Code Search 🔎</h2>
+  <section class="search-section">
+    <div class="search-box">
+      <span class="search-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </span>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-input"
+        placeholder="Search by SKU — e.g. BMP-457"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Search by SKU"
+        disabled
+      >
+      <button class="clear-btn" id="clearBtn" type="button" aria-label="Clear search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <p class="search-hint">Search matches any part of the SKU, case-insensitive.</p>
+  </section>
 
-<input type="text" id="styleInput" placeholder="Enter style code (BBMP-038)" />
+  <div class="results-meta" id="resultsMeta"></div>
 
-<button onclick="searchImage()">Search</button>
+  <main class="results-section">
 
-<div id="status"></div>
+    <div class="state-block" id="loadingState">
+      <div class="spinner" role="status" aria-label="Loading products"></div>
+      <h3>Loading products…</h3>
+      <p>Fetching the latest catalog from Blucheez Fashion.</p>
+    </div>
 
-<div id="imageResult"></div>
+    <div class="state-block hidden" id="errorState">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="13"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      <h3>Couldn't load products</h3>
+      <p id="errorMessage">Something went wrong while fetching the catalog.</p>
+      <button class="btn-primary" id="retryBtn" type="button">Try again</button>
+    </div>
 
-</div>
+    <div class="state-block hidden" id="emptyState">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 23 1 13V3h10l9.59 9.59a2 2 0 0 1 0 2.82Z"></path><circle cx="6.5" cy="7.5" r="1.2"></circle><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+      <h3>No Product Found</h3>
+      <p>Try a different SKU, or just part of one — like "BMP" or "457".</p>
+    </div>
+
+    <div class="grid hidden" id="grid"></div>
+
+  </main>
+
+  <footer class="app-footer">Blucheez Fashion · Internal SKU lookup tool</footer>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalSku">
+      <button class="modal-close" id="modalClose" type="button" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="modal-img-wrap">
+        <img id="modalImg" src="" alt="">
+      </div>
+      <div class="modal-body">
+        <div class="modal-row">
+          <span class="sku-tag" id="modalSku" style="font-size:.9rem; max-width:100%;"></span>
+          <span class="modal-price" id="modalPrice"></span>
+        </div>
+        <span class="modal-title">Description</span>
+        <div class="modal-desc" id="modalDesc"></div>
+      </div>
+    </div>
+  </div>
 
 <script>
+(function(){
+  "use strict";
 
-// --- SUPABASE CONFIG ---
-const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyc2RweW9kZmVqanVpaHV0Z2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU1MjAsImV4cCI6MjA4MzI4MTUyMH0.lHEpLJDfeHBRWElnW11wggWr59yXSgRAff3n1ZFTeDE";
+  var BASE_URL = "https://blucheez.fashion/products.json";
+  var PLACEHOLDER_IMG = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23ECEAE3'/%3E%3Cpath d='M60 130 L90 95 L115 120 L135 90 L150 130 Z' fill='%23D9D6CB'/%3E%3Ccircle cx='75' cy='75' r='10' fill='%23D9D6CB'/%3E%3C/svg%3E";
 
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  var allProducts = [];
 
+  // DOM refs
+  var searchInput = document.getElementById('searchInput');
+  var clearBtn = document.getElementById('clearBtn');
+  var grid = document.getElementById('grid');
+  var loadingState = document.getElementById('loadingState');
+  var errorState = document.getElementById('errorState');
+  var errorMessage = document.getElementById('errorMessage');
+  var retryBtn = document.getElementById('retryBtn');
+  var emptyState = document.getElementById('emptyState');
+  var resultsMeta = document.getElementById('resultsMeta');
+  var headerCount = document.getElementById('headerCount');
 
-// --- SEARCH FUNCTION ---
-async function searchImage(){
+  var modalOverlay = document.getElementById('modalOverlay');
+  var modalClose = document.getElementById('modalClose');
+  var modalImg = document.getElementById('modalImg');
+  var modalSku = document.getElementById('modalSku');
+  var modalPrice = document.getElementById('modalPrice');
+  var modalDesc = document.getElementById('modalDesc');
 
-    let styleCode = document.getElementById("styleInput").value.trim().toUpperCase();
+  function escapeHtml(str){
+    if(str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, function(m){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+    });
+  }
 
-    if(!styleCode){
-        document.getElementById("status").innerText = "Please enter style code";
-        return;
+  function htmlToText(html){
+    if(!html) return '';
+    var processed = html
+      .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+      .replace(/<br\s*\/?>/gi, '\n');
+    var tmp = document.createElement('div');
+    tmp.innerHTML = processed;
+    var text = tmp.textContent || tmp.innerText || '';
+    text = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+    return text;
+  }
+
+  function shortDescription(text, max){
+    max = max || 110;
+    var clean = (text || '').replace(/\s+/g, ' ').trim();
+    if(!clean) return 'No description available.';
+    if(clean.length <= max) return clean;
+    return clean.slice(0, max).trim() + '…';
+  }
+
+  function formatPrice(price){
+    var num = parseFloat(price);
+    if(isNaN(num)) return '৳' + (price || '0.00');
+    return '৳' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function transformProduct(product){
+    var image = (product.images && product.images.length > 0) ? product.images[0].src : '';
+    var variant = (product.variants && product.variants.length > 0) ? product.variants[0] : null;
+    var sku = (variant && variant.sku) ? String(variant.sku).trim() : '';
+    var price = (variant && variant.price) ? variant.price : '0.00';
+    var description = htmlToText(product.body_html || '');
+    return {
+      id: product.id,
+      title: product.title || '',
+      image: image,
+      sku: sku,
+      price: price,
+      description: description
+    };
+  }
+
+  // ---------- Core: load products with pagination ----------
+  async function loadProducts(){
+    showLoading();
+    var page = 1;
+    var MAX_PAGES = 200;
+    var combined = [];
+
+    try{
+      while(page <= MAX_PAGES){
+        var url = BASE_URL + '?limit=250&page=' + page;
+        var res = await fetch(url);
+
+        if(!res.ok){
+          if(page === 1){
+            throw new Error('Request failed with status ' + res.status);
+          }
+          break;
+        }
+
+        var data = await res.json();
+        var products = (data && data.products) ? data.products : [];
+
+        if(products.length === 0) break;
+
+        combined = combined.concat(products);
+        page++;
+      }
+
+      allProducts = combined
+        .map(transformProduct)
+        .filter(function(p){ return p.sku && p.sku.length > 0; });
+
+      hideLoading();
+      searchInput.disabled = false;
+      headerCount.textContent = allProducts.length + ' SKUs loaded';
+
+      renderResults(allProducts);
+
+    } catch(err){
+      hideLoading();
+      errorMessage.textContent = (err && err.message) ? err.message : 'Unable to reach the product catalog.';
+      errorState.classList.remove('hidden');
+      headerCount.textContent = 'Error';
+    }
+  }
+
+  // ---------- Core: search ----------
+  function searchProducts(query){
+    var q = (query || '').trim().toLowerCase();
+    if(!q) return allProducts;
+    return allProducts.filter(function(p){
+      return p.sku.toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  // ---------- Rendering ----------
+  function showLoading(){
+    loadingState.classList.remove('hidden');
+    errorState.classList.add('hidden');
+    emptyState.classList.add('hidden');
+    grid.classList.add('hidden');
+    resultsMeta.textContent = '';
+  }
+
+  function hideLoading(){
+    loadingState.classList.add('hidden');
+  }
+
+  function renderResults(list){
+    grid.innerHTML = '';
+    errorState.classList.add('hidden');
+
+    if(list.length === 0){
+      grid.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      resultsMeta.textContent = '0 results';
+      return;
     }
 
-    document.getElementById("status").innerText = "Searching...";
-    document.getElementById("imageResult").innerHTML = "";
+    emptyState.classList.add('hidden');
+    grid.classList.remove('hidden');
+    resultsMeta.textContent = list.length + ' result' + (list.length !== 1 ? 's' : '');
 
-    const { data, error } = await client
-        .from("product_images")
-        .select("image_url")
-        .eq("style_code", styleCode);
+    var frag = document.createDocumentFragment();
 
-    if(error){
-        document.getElementById("status").innerText = "Error loading image";
-        console.error(error);
-        return;
-    }
+    list.forEach(function(p){
+      var card = document.createElement('article');
+      card.className = 'card';
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', 'View details for SKU ' + p.sku);
 
-    if(data.length === 0){
-        document.getElementById("status").innerText = "No image found";
-        return;
-    }
+      card.innerHTML =
+        '<div class="card-img-wrap">' +
+          '<img src="' + escapeHtml(p.image || PLACEHOLDER_IMG) + '" alt="' + escapeHtml(p.sku) + '" loading="lazy">' +
+        '</div>' +
+        '<div class="card-body">' +
+          '<div class="card-row">' +
+            '<span class="sku-tag" title="' + escapeHtml(p.sku) + '">' + escapeHtml(p.sku) + '</span>' +
+            '<span class="price">' + escapeHtml(formatPrice(p.price)) + '</span>' +
+          '</div>' +
+          '<p class="card-desc">' + escapeHtml(shortDescription(p.description)) + '</p>' +
+        '</div>';
 
-    document.getElementById("status").innerText = "Found ✅";
+      var imgEl = card.querySelector('img');
+      imgEl.addEventListener('error', function(){ imgEl.src = PLACEHOLDER_IMG; });
 
-    let html = "";
+      card.addEventListener('click', function(){ openModal(p); });
+      card.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          openModal(p);
+        }
+      });
 
-    data.forEach(item=>{
-        html += `<img src="${item.image_url}">`;
+      frag.appendChild(card);
     });
 
-    document.getElementById("imageResult").innerHTML = html;
+    grid.appendChild(frag);
+  }
 
-}
+  // ---------- Modal ----------
+  function openModal(p){
+    modalImg.src = p.image || PLACEHOLDER_IMG;
+    modalImg.alt = p.sku;
+    modalImg.onerror = function(){ modalImg.src = PLACEHOLDER_IMG; };
+    modalSku.textContent = p.sku;
+    modalPrice.textContent = formatPrice(p.price);
 
-
-// --- ENTER KEY SUPPORT ---
-document.getElementById("styleInput")
-.addEventListener("keypress", function(e){
-    if(e.key === "Enter"){
-        searchImage();
+    modalDesc.innerHTML = '';
+    var paragraphs = (p.description || '').split(/\n+/).map(function(s){ return s.trim(); }).filter(Boolean);
+    if(paragraphs.length === 0){
+      var none = document.createElement('p');
+      none.textContent = 'No description available.';
+      modalDesc.appendChild(none);
+    } else {
+      paragraphs.forEach(function(par){
+        var pEl = document.createElement('p');
+        pEl.textContent = par;
+        modalDesc.appendChild(pEl);
+      });
     }
-});
 
+    modalOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    modalClose.focus();
+  }
+
+  function closeModal(){
+    modalOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  modalClose.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', function(e){
+    if(e.target === modalOverlay) closeModal();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && modalOverlay.classList.contains('open')) closeModal();
+  });
+
+  // ---------- Search input wiring ----------
+  searchInput.addEventListener('input', function(){
+    var q = searchInput.value;
+    clearBtn.style.display = q ? 'flex' : 'none';
+    renderResults(searchProducts(q));
+  });
+
+  clearBtn.addEventListener('click', function(){
+    searchInput.value = '';
+    clearBtn.style.display = 'none';
+    renderResults(allProducts);
+    searchInput.focus();
+  });
+
+  retryBtn.addEventListener('click', function(){
+    loadProducts();
+  });
+
+  // ---------- Init ----------
+  loadProducts();
+
+})();
 </script>
 
 </body>
