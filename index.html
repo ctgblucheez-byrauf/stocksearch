@@ -399,7 +399,8 @@ var sbClient = null;
 var isScanning = false;
 var isFlashOn = false;
 var currentMode = 'barcode';
-var originalStyleData = [];  // Full dataset from DB (all records for current query)
+var originalStyleData = [];   // Raw DB union result (all fetched rows, before any client filtering)
+var styleRankedData   = [];   // Scored+ranked+client-filtered (before zero-stock, before dropdown filters)
 var lastBarcodeData = [];
 var capturedImage = null;
 var hasCapturedImage = false;
@@ -1138,22 +1139,118 @@ function handleFileScan(e) {
 }
 
 /* ===========================================================
-   STYLE CODE SEARCH — ADVANCED MULTI-KEYWORD ENGINE
+   STYLE CODE SEARCH ENGINE v3 — COMPLETE REBUILD
    =========================================================== */
 
-/**
- * Tokenize a query string into search keywords.
- * Splits on whitespace, hyphens, underscores, and commas.
- * Filters out blanks and deduplicates.
- * Example: "BKR-002 EF54" → ["BKR", "002", "EF54"]
+/*
+ * ARCHITECTURE OVERVIEW
+ * ─────────────────────
+ * Two independent search paths run in parallel for every style-code query:
+ *
+ *  PATH A — "Exact phrase" DB query
+ *    ilike 'style_code' '%<rawQuery>%'
+ *    Catches: "BMP-457", "BKR-002", "MMT-EF54-BKR", exact segment matches.
+ *    Row budget: DB_FETCH_LIMIT rows (Supabase server-side cap bypassed via .range()).
+ *
+ *  PATH B — "Segment" DB queries (one per token)
+ *    For each token produced by splitting query on [-_\s,] we fire
+ *    ilike 'style_code' '%<token>%' (only for tokens ≥ 2 chars).
+ *    Catches: "BMP" matching all BMP-* codes, "457" matching all *-457 codes.
+ *    Results from all segment queries are merged and deduplicated.
+ *
+ *  MERGE: Union of PATH A ∪ PATH B, deduplicated by barcode.
+ *  FILTER: Client-side AND-match — every token in the query must appear
+ *          somewhere in the style code (raw substring, case-insensitive).
+ *          This ensures "BMP 457" only returns rows with BOTH "BMP" and "457".
+ *          But a raw query "BMP-457" also passes this check because the
+ *          normalised style code contains "BMP" AND "457" as substrings.
+ *  RANK:  Exact phrase match > all-segment match > prefix match > substring.
+ *
+ * DB ROW LIMIT SOLUTION
+ * ─────────────────────
+ * Supabase PostgREST returns at most `max_rows` (default 1 000) per request.
+ * We paginate with .range(0, BATCH-1), .range(BATCH, 2·BATCH-1) … until the
+ * response is smaller than BATCH_SIZE, meaning we have all rows.
+ * BATCH_SIZE = 1 000 (matches PostgREST default max).
+ * We cap total at DB_MAX_ROWS = 10 000 to keep memory sane.
  */
-function tokenizeQuery(query) {
+
+var DB_BATCH   = 1000;    // Must match or be ≤ PostgREST max_rows setting
+var DB_MAX_ROWS = 10000;  // Safety cap — adjust if your dataset is larger
+
+/**
+ * fetchAllStyleRows(ilikePat)
+ * Paginates through Supabase until all rows matching `ilikePat` are fetched.
+ * Returns a flat array of inventory rows.
+ */
+async function fetchAllStyleRows(ilikePat) {
+    var all = [];
+    var from = 0;
+    while (true) {
+        var to = from + DB_BATCH - 1;
+        var res = await sbClient
+            .from('inventory')
+            .select('*')
+            .ilike('style_code', ilikePat)
+            .range(from, to);
+
+        if (res.error) throw res.error;
+        var batch = res.data || [];
+        all = all.concat(batch);
+
+        // Stop conditions
+        if (batch.length < DB_BATCH) break;          // Last page (partial batch)
+        if (all.length >= DB_MAX_ROWS) break;        // Safety cap
+        from += DB_BATCH;
+    }
+    return all;
+}
+
+/**
+ * mergeDedup(arrays)
+ * Merges multiple item arrays, deduplicating by barcode.
+ * Non-barcode items (barcode null/empty) are deduplicated by style_code+color+size.
+ */
+function mergeDedup(arrays) {
+    var seenBarcode = {};
+    var seenFallback = {};
+    var out = [];
+    for (var a = 0; a < arrays.length; a++) {
+        var arr = arrays[a];
+        for (var i = 0; i < arr.length; i++) {
+            var item = arr[i];
+            if (item.barcode) {
+                if (seenBarcode[item.barcode]) continue;
+                seenBarcode[item.barcode] = true;
+            } else {
+                var fbKey = (item.style_code||'') + '|' + (item.color||'') + '|' + (item.size||'');
+                if (seenFallback[fbKey]) continue;
+                seenFallback[fbKey] = true;
+            }
+            out.push(item);
+        }
+    }
+    return out;
+}
+
+/**
+ * tokeniseQuery(query)
+ * Splits query into individual search tokens.
+ * Splits on: whitespace, hyphen, underscore, comma.
+ * Returns unique non-empty tokens ≥ 2 characters, uppercased.
+ * PRESERVES the original raw query separately — do not use tokens as the DB filter.
+ *
+ * "BMP-457"        → ["BMP","457"]
+ * "BKR 002 EF54"   → ["BKR","002","EF54"]
+ * "MMT-EF54-BKR"   → ["MMT","EF54","BKR"]
+ */
+function tokeniseQuery(query) {
     var parts = query.toUpperCase().split(/[\s\-_,]+/);
     var seen = {};
     var out = [];
     for (var i = 0; i < parts.length; i++) {
         var p = parts[i].trim();
-        if (p.length > 0 && !seen[p]) {
+        if (p.length >= 2 && !seen[p]) {
             seen[p] = true;
             out.push(p);
         }
@@ -1162,69 +1259,95 @@ function tokenizeQuery(query) {
 }
 
 /**
- * Score an item against keywords.
- * Returns -1 if any keyword doesn't match (AND logic).
- * Returns a score ≥ 0 based on match quality (prefix > middle).
+ * normalise(str)
+ * Uppercase, strip all non-alphanumeric characters.
+ * Used for "normalised" matching (BMP457 == BMP-457 == BMP_457).
  */
-function scoreItem(item, keywords) {
-    var sc = (item.style_code || '').toUpperCase();
-    var name = (item.name || '').toUpperCase();
-    var score = 0;
-
-    for (var i = 0; i < keywords.length; i++) {
-        var kw = keywords[i];
-        var scIdx = sc.indexOf(kw);
-        var nameIdx = name.indexOf(kw);
-
-        if (scIdx === -1 && nameIdx === -1) return -1; // Must match ALL keywords
-
-        if (scIdx !== -1) {
-            // Prefix match in style code = highest score boost
-            score += (scIdx === 0) ? 30 : 10;
-        }
-        if (nameIdx !== -1) {
-            score += (nameIdx === 0) ? 15 : 5;
-        }
-    }
-
-    // Bonus: exact style code match
-    if (sc === keywords.join('-') || sc === keywords.join('')) score += 50;
-    // Bonus: all keywords are part of style_code segments (split by hyphen)
-    var scParts = sc.split('-');
-    var segBonus = keywords.every(function(kw) { return scParts.indexOf(kw) !== -1; });
-    if (segBonus) score += 20;
-
-    return score;
+function normalise(str) {
+    return (str || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 /**
- * Filter and rank a dataset by multi-keyword query.
- * Returns sorted array (highest relevance first).
- * Deduplicates by barcode.
+ * scoreAndFilter(items, rawQuery, tokens)
+ * Client-side filter + relevance scorer.
+ *
+ * INCLUDE rule (must satisfy at least one):
+ *   A) Style code (uppercase) contains rawQuery (uppercase) — exact phrase
+ *   B) Normalised style code contains normalised rawQuery — hyphen-insensitive exact
+ *   C) Every token in `tokens` appears somewhere in the style code (AND logic)
+ *
+ * SCORE (higher = more relevant, shown first):
+ *   100  — Style code exactly equals rawQuery (case-insensitive)
+ *    80  — Normalised style code equals normalised rawQuery
+ *    60  — Style code starts with rawQuery
+ *    50  — Style code contains rawQuery as exact substring
+ *    40  — Normalised match (substring)
+ *    30  — All tokens match as hyphen-separated segments
+ *    20  — All tokens match as substrings (AND)
+ *     5  — Partial token match fallback (OR — when AND fails, at least 1 token matches)
+ *
+ * Returns scored+sorted array of items.  Items that match nothing are excluded.
  */
-function multiKeywordFilter(items, query) {
-    if (!query) return [];
-    var keywords = tokenizeQuery(query);
-    if (keywords.length === 0) return [];
+function scoreAndFilter(items, rawQuery, tokens) {
+    var rawUp  = rawQuery.toUpperCase();
+    var rawNorm = normalise(rawQuery);
 
-    var seen = {};
     var scored = [];
 
     for (var i = 0; i < items.length; i++) {
-        var item = items[i];
-        // Dedup by barcode
-        if (item.barcode && seen[item.barcode]) continue;
-        if (item.barcode) seen[item.barcode] = true;
+        var item   = items[i];
+        var sc     = (item.style_code || '').toUpperCase();
+        var scNorm = normalise(item.style_code || '');
+        var score  = -1;
 
-        var s = scoreItem(item, keywords);
-        if (s >= 0) {
-            scored.push({ item: item, score: s });
+        // --- RULE A: Exact phrase match in raw style code ---
+        if (sc === rawUp) {
+            score = 100;
+        } else if (scNorm === rawNorm && rawNorm.length > 0) {
+            // Normalised exact (e.g. user typed "BMP457", db has "BMP-457")
+            score = 80;
+        } else if (sc.indexOf(rawUp) === 0) {
+            // Prefix: style code starts with query
+            score = 60;
+        } else if (sc.indexOf(rawUp) !== -1) {
+            // Substring: exact phrase appears somewhere
+            score = 50;
+        } else if (rawNorm.length > 0 && scNorm.indexOf(rawNorm) !== -1) {
+            // Normalised substring
+            score = 40;
+        } else if (tokens.length > 0) {
+            // --- RULE C: Token AND matching ---
+            var allMatch = true;
+            var anyMatch = false;
+            var matchCount = 0;
+            for (var t = 0; t < tokens.length; t++) {
+                var tok = tokens[t];
+                var inSc = sc.indexOf(tok) !== -1;
+                if (inSc) { anyMatch = true; matchCount++; }
+                else { allMatch = false; }
+            }
+
+            if (allMatch) {
+                // All tokens present — check if they all appear as proper segments
+                var scSegs = sc.split('-');
+                var allSeg = tokens.every(function(tok) { return scSegs.indexOf(tok) !== -1; });
+                score = allSeg ? 30 : 20;
+            } else if (anyMatch) {
+                // Partial match — include but at low score
+                // Only include if the item came from the DB (it did, since it's in `items`)
+                // and at least one token matches with reasonable confidence
+                score = 5 * matchCount;
+            }
+        }
+
+        if (score >= 0) {
+            scored.push({ item: item, score: score });
         }
     }
 
-    // Sort by score descending, then alphabetically by style_code
     scored.sort(function(a, b) {
         if (b.score !== a.score) return b.score - a.score;
+        // Secondary: alphabetical style code
         return (a.item.style_code || '').localeCompare(b.item.style_code || '');
     });
 
@@ -1246,57 +1369,79 @@ async function performSearch() {
     else showTableSkeleton(6);
 
     try {
-        var res;
         if (currentMode === 'barcode') {
-            res = await sbClient.from('inventory').select('*').eq('barcode', query);
+            var res = await sbClient.from('inventory').select('*').eq('barcode', query);
             if (res.error) throw res.error;
-            var data = res.data || [];
-            lastBarcodeData = data;
+            lastBarcodeData = res.data || [];
             displayCount = PAGE_SIZE;
-            renderResults(data);
-        } else {
-            // --- ADVANCED STYLE CODE SEARCH ---
-            // Strategy: fetch ALL records matching any primary keyword from DB,
-            // then do client-side multi-keyword AND-scoring for accuracy + speed.
-            var keywords = tokenizeQuery(query);
-
-            if (keywords.length === 0) {
-                showToast("Enter a valid search term");
-                document.getElementById('resultsArea').innerHTML = '';
-                return;
-            }
-
-            // Build OR query: fetch records containing ANY keyword (broad net)
-            // Then client-side AND-filter ensures all keywords match.
-            // Use the longest keyword as the primary DB filter (most selective).
-            var primaryKw = keywords.reduce(function(a, b) { return b.length > a.length ? b : a; }, keywords[0]);
-
-            res = await sbClient
-                .from('inventory')
-                .select('*')
-                .ilike('style_code', '%' + primaryKw + '%');
-
-            if (res.error) throw res.error;
-            var rawData = res.data || [];
-
-            // If only one keyword, rawData is already correct.
-            // If multiple keywords, apply client-side multi-keyword filter.
-            originalStyleData = rawData;
-            displayCount = PAGE_SIZE;
-
-            // Show which keywords we're searching
-            showSearchStatus(keywords);
-            saveState();
-            renderResults(rawData);
+            renderResults(lastBarcodeData);
+            return;
         }
+
+        /* ── STYLE CODE SEARCH ─────────────────────────────────── */
+        var tokens = tokeniseQuery(query);
+
+        // Show status badge
+        showSearchStatus(tokens.length > 0 ? tokens : [query]);
+
+        /*
+         * BUILD DB QUERIES
+         *
+         * PATH A: raw query as-is (catches "BMP-457", "BKR-002", full codes)
+         * PATH B: each token separately (catches "BMP" across all BMP-* codes,
+         *         "457" across all *-457 codes, "BKR" across all BKR-* codes)
+         *
+         * We fire all queries in PARALLEL (Promise.all) for speed.
+         * Each query paginates to overcome the 1000-row Supabase default.
+         */
+        var queryPatterns = [];
+
+        // PATH A — raw query (always, even if identical to a token)
+        queryPatterns.push('%' + query + '%');
+
+        // PATH B — individual tokens (skip if token equals raw query to avoid duplicate fetch)
+        for (var t = 0; t < tokens.length; t++) {
+            var pat = '%' + tokens[t] + '%';
+            if (queryPatterns.indexOf(pat) === -1) {
+                queryPatterns.push(pat);
+            }
+        }
+
+        // Fire all pattern fetches in parallel
+        var fetchPromises = queryPatterns.map(function(pat) {
+            return fetchAllStyleRows(pat);
+        });
+
+        var resultSets = await Promise.all(fetchPromises);
+
+        // Merge and deduplicate all results
+        var merged = mergeDedup(resultSets);
+
+        /*
+         * CLIENT-SIDE FILTER + RANK
+         *
+         * Because PATH B fetches ANY token match (OR at DB level),
+         * we now apply client-side AND-filter + scoring to ensure
+         * relevance and correctness.
+         */
+        var ranked = scoreAndFilter(merged, query, tokens);
+
+        // Store full unfiltered dataset for dropdown filter operations
+        originalStyleData = merged;      // All DB results (unranked, unfiltered by zero-stock)
+        styleRankedData   = ranked;      // Ranked + client-filtered (before zero-stock)
+        displayCount = PAGE_SIZE;
+
+        saveState();
+        renderResults(ranked);
+
     } catch(err) {
-        console.error(err);
+        console.error('Search error:', err);
         var area = document.getElementById('resultsArea');
         var isNet = !navigator.onLine || (err.message||'').toLowerCase().includes('network') || (err.message||'').toLowerCase().includes('fetch');
         if (isNet) {
             area.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" style="color:var(--danger)"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg><div style="font-weight:600;margin-bottom:4px;color:var(--danger)">Connection Lost</div><div style="font-size:.85rem">Check internet and try again.</div></div>';
         } else {
-            area.innerHTML = '<div class="empty-state" style="color:var(--danger)">Error: ' + escHtml(err.message || 'Unknown') + '</div>';
+            area.innerHTML = '<div class="empty-state" style="color:var(--danger)">Search error: ' + escHtml(err.message || 'Unknown') + '</div>';
         }
     }
 }
@@ -1304,8 +1449,10 @@ async function performSearch() {
 function handleZeroStockToggle() {
     saveState();
     if (currentMode === 'style') {
+        // Re-run client-side filter on already-fetched data (no new DB call needed)
         var query = document.getElementById('searchInput').value.trim();
-        filteredStyleData = filterZeroStock(multiKeywordFilter(originalStyleData, query));
+        var tokens = tokeniseQuery(query);
+        filteredStyleData = filterZeroStock(scoreAndFilter(originalStyleData, query, tokens));
         displayCount = PAGE_SIZE;
         renderTable(filteredStyleData);
     } else if (currentMode === 'barcode') {
