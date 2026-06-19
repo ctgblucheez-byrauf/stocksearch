@@ -1,1076 +1,1749 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-    <meta name="theme-color" content="#000000">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="description" content="Fast, lightweight mobile barcode scanner">
-    <title>ScanFlow</title>
-    <link rel="manifest" id="pwa-manifest">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-        :root{
-            --accent:#00e5a0;--accent-glow:rgba(0,229,160,0.35);--accent-dim:rgba(0,229,160,0.1);
-            --surface:rgba(10,10,10,0.88);--text:#f0f0f0;--text-sec:#777;
-            --danger:#ff4757;--border:rgba(255,255,255,0.08);
-            --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
-        }
-        html,body{width:100%;height:100%;overflow:hidden;background:#000;color:var(--text);
-            font-family:'Space Grotesk',system-ui,sans-serif;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>SKU Product Search — Blucheez Fashion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<!-- Lucide Icons Library for beautiful iconography -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Supabase Client Dynamic CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        /* Screens */
-        .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
-            justify-content:center;z-index:100;transition:opacity .3s,visibility .3s}
-        .screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
-        #loading-screen{background:#000}
-        #permission-screen,#error-screen{background:#000;gap:20px;padding:32px;text-align:center}
-        .loader{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);
-            border-radius:50%;animation:spin .8s linear infinite}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .screen-icon{width:64px;height:64px;margin-bottom:8px;opacity:.7}
-        .screen-title{font-size:22px;font-weight:700;line-height:1.3}
-        .screen-desc{font-size:14px;color:var(--text-sec);line-height:1.5;max-width:300px}
+<style>
+  :root {
+    --bg: #F6F5F1;
+    --bg-alt: #FFFFFF;
+    --img-bg: #ECEAE3;
+    --ink: #1C2027;
+    --ink-soft: #5B6270;
+    --accent: #1F5C4D;
+    --accent-dark: #163F35;
+    --accent-soft: #E4EFE9;
+    --gold: #A97A35;
+    --line: #E3E1DA;
+    --shadow-1: 0 1px 2px rgba(28,32,39,.06), 0 8px 24px -14px rgba(28,32,39,.16);
+    --shadow-2: 0 4px 10px rgba(28,32,39,.08), 0 22px 40px -16px rgba(28,32,39,.26);
+  }
 
-        /* Buttons */
-        .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;
-            border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:600;
-            cursor:pointer;transition:all .15s;outline:none}
-        .btn:focus-visible{box-shadow:0 0 0 3px var(--accent-glow)}
-        .btn-primary{background:var(--accent);color:#000}
-        .btn-primary:active{transform:scale(.96);filter:brightness(.9)}
-        .btn-ghost{background:rgba(255,255,255,.08);color:var(--text)}
-        .btn-ghost:active{background:rgba(255,255,255,.14)}
-        .btn-icon{width:48px;height:48px;padding:0;border-radius:14px;background:rgba(255,255,255,.1);
-            border:1px solid var(--border);color:var(--text);cursor:pointer;display:flex;align-items:center;
-            justify-content:center;transition:all .2s;font-size:0}
-        .btn-icon:active{background:rgba(255,255,255,.18);transform:scale(.92)}
-        .btn-icon.active{background:var(--accent-dim);border-color:rgba(0,229,160,.3);color:var(--accent)}
-        .btn-icon svg{width:22px;height:22px}
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Manrope', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  img { max-width: 100%; display: block; }
+  button { font-family: inherit; }
 
-        /* Scanner View */
-        #scanner-view{position:fixed;inset:0;display:flex;flex-direction:column;
-            opacity:0;visibility:hidden;transition:opacity .4s}
-        #scanner-view.active{opacity:1;visibility:visible}
-        #camera-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-        #scan-canvas{display:none}
+  ::selection { background: var(--accent-soft); color: var(--accent-dark); }
 
-        /* Scan Overlay */
-        #scan-overlay{position:absolute;inset:0;z-index:2;pointer-events:none}
-        #scan-region{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-            width:min(78vw,300px);height:min(32vh,170px);
-            box-shadow:0 0 0 9999px rgba(0,0,0,.55);transition:box-shadow .3s}
-        #scan-region.detected{box-shadow:0 0 0 9999px rgba(0,0,0,.3),0 0 30px var(--accent-glow)}
-        .corner{position:absolute;width:24px;height:24px;border-color:var(--accent);border-style:solid;border-width:0}
-        .corner.tl{top:-1px;left:-1px;border-top-width:3px;border-left-width:3px;border-top-left-radius:6px}
-        .corner.tr{top:-1px;right:-1px;border-top-width:3px;border-right-width:3px;border-top-right-radius:6px}
-        .corner.bl{bottom:-1px;left:-1px;border-bottom-width:3px;border-left-width:3px;border-bottom-left-radius:6px}
-        .corner.br{bottom:-1px;right:-1px;border-bottom-width:3px;border-right-width:3px;border-bottom-right-radius:6px}
-        #scan-line{position:absolute;left:8px;right:8px;height:2px;
-            background:linear-gradient(90deg,transparent 0%,var(--accent) 30%,var(--accent) 70%,transparent 100%);
-            box-shadow:0 0 12px var(--accent-glow),0 0 4px var(--accent-glow);
-            animation:scan-move 2.5s ease-in-out infinite;opacity:0;transition:opacity .3s}
-        #scan-line.active{opacity:1}
-        @keyframes scan-move{0%,100%{top:8%}50%{top:88%}}
+  /* ---------- Header ---------- */
+  .site-header {
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+  .header-inner {
+    max-width: 1200px; margin: 0 auto;
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  }
+  .header-brand {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-badge {
+    width: 40px; height: 40px; border-radius: 11px;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.15rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px -2px rgba(31,92,77,.45);
+  }
+  .brand-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .eyebrow {
+    font-size: .64rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-soft); font-weight: 700;
+  }
+  .page-title {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.25rem;
+    color: var(--ink); letter-spacing: -.01em;
+  }
+  
+  .header-controls {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .db-status-pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .74rem; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+    border-radius: 20px; padding: 6px 14px;
+    cursor: pointer; transition: all 0.2s;
+    user-select: none;
+    border: 1px solid transparent;
+  }
+  .db-status-pill.configured {
+    background: var(--accent-soft); color: var(--accent-dark);
+    border-color: rgba(31,92,77,0.15);
+  }
+  .db-status-pill.configured:hover {
+    background: #d5e7dd;
+  }
+  .db-status-pill.offline {
+    background: #FCF2E6; color: var(--gold);
+    border-color: rgba(169,122,53,0.15);
+  }
+  .db-status-pill.offline:hover {
+    background: #fae6ce;
+  }
+  
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .status-dot.active { background: var(--accent); }
+  .status-dot.inactive { background: var(--gold); }
 
-        /* Top Bar */
-        #top-bar{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;
-            align-items:center;justify-content:space-between;
-            padding:calc(12px + var(--safe-t)) 16px 12px;
-            background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent)}
-        .mode-badge{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;
-            letter-spacing:.6px;text-transform:uppercase;background:var(--accent-dim);color:var(--accent);
-            border:1px solid rgba(0,229,160,.2);transition:all .2s}
-        .top-actions{display:flex;gap:8px}
+  .header-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .76rem; color: var(--ink-soft);
+    background: var(--img-bg);
+    padding: 6px 14px; border-radius: 20px;
+    white-space: nowrap; flex-shrink: 0;
+  }
 
-        /* Bottom Controls */
-        #bottom-controls{position:absolute;bottom:0;left:0;right:0;z-index:10;
-            display:flex;align-items:center;justify-content:space-around;
-            padding:16px 24px calc(20px + var(--safe-b));
-            background:linear-gradient(to top,rgba(0,0,0,.7),transparent)}
-        #scan-toggle{width:64px;height:64px;border-radius:50%;border:3px solid var(--accent);
-            background:transparent;color:var(--accent);cursor:pointer;display:flex;
-            align-items:center;justify-content:center;transition:all .25s;font-size:0}
-        #scan-toggle:active{transform:scale(.9)}
-        #scan-toggle.scanning{background:var(--danger);border-color:var(--danger);color:#fff}
-        #scan-toggle svg{width:24px;height:24px;fill:currentColor;stroke:none}
+  @media (max-width: 640px) {
+    .header-inner { padding: 12px 16px; }
+    .logo-badge { width: 34px; height: 34px; font-size: 1rem; }
+    .page-title { font-size: 1.05rem; }
+    .db-status-pill .pill-text-long { display: none; }
+  }
 
-        /* Result Panel */
-        #result-panel{position:absolute;bottom:0;left:0;right:0;z-index:20;
-            padding:20px 20px calc(24px + var(--safe-b));background:var(--surface);
-            backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-            border-top:1px solid var(--border);border-radius:20px 20px 0 0;
-            transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);pointer-events:auto}
-        #result-panel.visible{transform:translateY(0)}
-        .result-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);margin:0 auto 16px}
-        .result-format{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;
-            font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--accent-dim);
-            color:var(--accent);margin-bottom:8px}
-        .result-text{font-size:19px;font-weight:700;word-break:break-all;line-height:1.4;margin-bottom:16px}
-        .result-actions{display:flex;gap:10px}
-        .result-actions .btn{flex:1;padding:12px 16px;font-size:14px}
+  /* ---------- Database Credentials Collapse Panel ---------- */
+  .db-settings-panel {
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--line);
+    max-height: 0; opacity: 0; overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .db-settings-panel.open {
+    max-height: 800px; opacity: 1;
+  }
+  .db-settings-inner {
+    max-width: 900px; margin: 0 auto;
+    padding: 24px;
+    display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px;
+  }
+  @media (max-width: 768px) {
+    .db-settings-inner { grid-template-columns: 1fr; gap: 24px; padding: 16px; }
+  }
+  .db-form-sec h3, .sql-desc-sec h3 {
+    margin: 0 0 10px 0; font-family: 'Fraunces', serif; font-size: 1.15rem;
+    display: flex; align-items: center; gap: 8px; color: var(--ink);
+  }
+  .db-form-sec p {
+    font-size: 0.8rem; color: var(--ink-soft); line-height: 1.5; margin: 0 0 16px 0;
+  }
+  .form-group { margin-bottom: 12px; }
+  .form-group label {
+    display: block; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+    color: var(--ink-soft); font-weight: 600; margin-bottom: 4px;
+  }
+  .form-input {
+    width: 100%; padding: 10px 12px; border-radius: 8px;
+    border: 1.5px solid var(--line); font-size: 0.78rem; font-family: sans-serif;
+    color: var(--ink); outline: none; transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-actions { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  
+  .btn-submit {
+    background: var(--accent); color: #fff; border: none;
+    padding: 9px 18px; border-radius: 8px; font-weight: 700; font-size: 0.78rem;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .btn-submit:hover { background: var(--accent-dark); }
+  .btn-disconnect {
+    background: transparent; color: #DC2626; border: none;
+    font-size: 0.75rem; font-weight: 600; cursor: pointer; padding: 6px;
+  }
+  .btn-disconnect:hover { text-decoration: underline; }
 
-        /* History Panel */
-        #history-panel{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.92);
-            backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-            transform:translateX(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);
-            display:flex;flex-direction:column;overflow:hidden}
-        #history-panel.open{transform:translateX(0)}
-        .history-header{display:flex;align-items:center;justify-content:space-between;
-            padding:calc(16px + var(--safe-t)) 20px 16px;border-bottom:1px solid var(--border)}
-        .history-header h2{font-size:20px;font-weight:700}
-        .history-list{flex:1;overflow-y:auto;padding:12px 16px;-webkit-overflow-scrolling:touch}
-        .history-item{display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;
-            background:rgba(255,255,255,.04);border:1px solid var(--border);margin-bottom:8px;
-            transition:background .15s}
-        .history-item:active{background:rgba(255,255,255,.08)}
-        .history-item-info{flex:1;min-width:0}
-        .history-item-text{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .history-item-meta{font-size:12px;color:var(--text-sec);margin-top:2px}
-        .history-empty{text-align:center;padding:60px 20px;color:var(--text-sec)}
-        .history-empty svg{width:48px;height:48px;margin-bottom:12px;opacity:.3}
-        .hdr-btns{display:flex;gap:8px}
+  .sql-desc-sec {
+    background: var(--bg); p-radius: 12px; border-radius: 14px;
+    border: 1px solid var(--line); padding: 18px;
+  }
+  .sql-header-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px;
+  }
+  .sql-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+    font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 6px;
+  }
+  .btn-copy-sql {
+    background: transparent; border: none; color: var(--ink-soft);
+    font-size: 0.72rem; font-weight: 600; cursor: pointer; display: flex;
+    align-items: center; gap: 4px; padding: 4px;
+  }
+  .btn-copy-sql:hover { color: var(--ink); }
+  .sql-code-box {
+    background: #FFFFFF; font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem;
+    color: var(--ink-soft); padding: 12px; border-radius: 8px; border: 1px solid var(--line);
+    overflow-x: auto; max-height: 145px; margin: 0; line-height: 1.5;
+  }
 
-        /* Manual Input Modal */
-        #manual-modal{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;
-            justify-content:center;background:rgba(0,0,0,.6);opacity:0;visibility:hidden;transition:all .25s}
-        #manual-modal.open{opacity:1;visibility:visible}
-        .modal-content{width:100%;max-width:480px;padding:24px 20px calc(24px + var(--safe-b));
-            background:#111;border-radius:20px 20px 0 0;
-            transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1)}
-        #manual-modal.open .modal-content{transform:translateY(0)}
-        .modal-content h3{font-size:18px;font-weight:700;margin-bottom:16px}
-        .input-row{display:flex;gap:10px}
-        .input-row input{flex:1;padding:14px 16px;border:1px solid var(--border);border-radius:12px;
-            background:rgba(255,255,255,.06);color:var(--text);font-family:inherit;font-size:16px;
-            outline:none;transition:border-color .2s}
-        .input-row input:focus{border-color:var(--accent)}
-        .input-row input::placeholder{color:var(--text-sec)}
+  /* ---------- Search & Filters ---------- */
+  .search-section { max-width: 720px; margin: 38px auto 0; padding: 0 24px; width: 100%; }
+  .search-box { position: relative; }
+  .search-icon {
+    position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-soft); pointer-events: none; display: flex;
+  }
+  .search-input {
+    width: 100%;
+    padding: 16px 52px 16px 50px;
+    border-radius: 14px;
+    border: 1.5px solid var(--line);
+    background: var(--bg-alt);
+    font-size: 1rem;
+    font-family: 'Manrope', sans-serif;
+    color: var(--ink);
+    box-shadow: var(--shadow-1);
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .search-input::placeholder { color: #9CA0AB; }
+  .search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+  .clear-btn {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 30px; height: 30px; border-radius: 50%;
+    border: none; background: var(--line);
+    display: none; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--ink-soft);
+    transition: background .15s ease;
+  }
+  .clear-btn:hover { background: #D8D6CD; }
+  .search-hint-row {
+    margin: 10px 2px 0; font-size: .78rem; color: var(--ink-soft);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
 
-        /* Toast */
-        #toast{position:fixed;top:calc(20px + var(--safe-t));left:50%;
-            transform:translateX(-50%) translateY(-120%);z-index:200;padding:12px 24px;
-            border-radius:12px;background:var(--surface);backdrop-filter:blur(16px);
-            -webkit-backdrop-filter:blur(16px);border:1px solid var(--border);
-            font-size:14px;font-weight:600;white-space:nowrap;
-            transition:transform .3s cubic-bezier(.32,.72,0,1)}
-        #toast.show{transform:translateX(-50%) translateY(0)}
+  /* Filter bar wrapper */
+  .control-panel {
+    max-width: 1200px; width: 100%; margin: 24px auto 6px; padding: 12px 24px;
+    background: var(--bg-alt); border-radius: 16px; border: 1px solid var(--line);
+    box-shadow: var(--shadow-1);
+    display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  @media (max-width: 768px) {
+    .control-panel { flex-direction: column; align-items: stretch; margin-top: 16px; }
+  }
+  .filter-group {
+    display: flex; flex-wrap: wrap; items-center: center; gap: 8px;
+  }
+  .filter-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; font-weight: 600;
+    color: var(--ink-soft); text-transform: uppercase; margin-right: 6px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .filter-btn {
+    background: var(--bg); border: none; color: var(--ink-soft);
+    padding: 6px 14px; border-radius: 8px; font-size: 0.76rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .filter-btn:hover { background: #ECEAE3; color: var(--ink); }
+  .filter-btn.active {
+    background: var(--accent); color: #fff;
+  }
 
-        /* Animations */
-        @keyframes fade-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        .fade-in{animation:fade-in .4s ease both}
+  .sort-group {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sort-select {
+    padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); font-size: 0.76rem; font-weight: 600; color: var(--ink);
+    outline: none; cursor: pointer;
+  }
 
-        @media(prefers-reduced-motion:reduce){
-            #scan-line{animation:none}
-            .loader{animation-duration:2s}
-            *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}
-        }
-        @media(max-width:360px){
-            #scan-region{width:86vw;height:26vh}
-            .corner{width:18px;height:18px}
-            .result-text{font-size:17px}
-            #scan-toggle{width:56px;height:56px}
-        }
-        .history-list::-webkit-scrollbar{width:4px}
-        .history-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
-    </style>
+  .results-count-msg {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-soft);
+  }
+
+  /* ---------- Results Grid ---------- */
+  .results-section { max-width: 1200px; width: 100%; margin: 0 auto; padding: 8px 24px 70px; flex: 1; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  @media (max-width: 600px) {
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  }
+  @media (max-width: 380px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--bg-alt);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-1);
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    transition: transform .22s ease, box-shadow .22s ease;
+    border: 1px solid transparent;
+    animation: cardIn .35s ease both;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-2); border-color: rgba(31,92,77,0.15); }
+
+  .card-img-wrap {
+    aspect-ratio: 1/1; background: var(--img-bg); overflow: hidden; position: relative;
+  }
+  .card-img-wrap img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform .45s ease;
+  }
+  .card:hover .card-img-wrap img { transform: scale(1.04); }
+
+  .pending-tag {
+    position: absolute; inset: 0; background: rgba(28,32,39,0.35);
+    backdrop-filter: blur(1px); display: flex; align-items: center; justify-content: center;
+    color: #fff; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; font-weight: 700;
+    text-transform: uppercase; tracking-wider: 0.05em; text-align: center; padding: 10px;
+  }
+  .custom-tag {
+    position: absolute; top: 10px; left: 10px;
+    background: var(--gold); color: #fff; font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem; font-weight: 600; text-transform: uppercase; padding: 3px 8px;
+    border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .override-tag {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--accent); color: #fff; font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem; font-weight: 600; text-transform: uppercase; padding: 3px 8px;
+    border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .card-body {
+    padding: 14px 15px 17px;
+    display: flex; flex-direction: column; gap: 8px; flex: 1;
+  }
+  .card-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+
+  /* Signature element: punch-tag SKU chip */
+  .sku-tag {
+    position: relative;
+    display: inline-flex; align-items: center;
+    background: var(--accent-soft); color: var(--accent-dark);
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600;
+    font-size: .74rem; letter-spacing: .01em;
+    padding: 6px 10px 6px 19px;
+    border-radius: 5px;
+    max-width: 65%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sku-tag::before {
+    content: ""; position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--bg-alt);
+    box-shadow: 0 0 0 1.3px var(--accent);
+  }
+
+  .price {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700; color: var(--gold); font-size: .84rem;
+    white-space: nowrap;
+  }
+
+  .card-title {
+    font-size: 0.8rem; font-weight: 700; color: var(--ink); margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .card-desc {
+    font-size: .76rem; line-height: 1.5; color: var(--ink-soft); margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ---------- Loading / Empty / Error State BLOCKS ---------- */
+  .state-block {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 80px 20px; gap: 14px; text-align: center; color: var(--ink-soft);
+    background: var(--bg-alt); border-radius: 24px; border: 1px solid var(--line);
+    margin: 20px 0; box-shadow: var(--shadow-1);
+  }
+  .spinner {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 3px solid var(--line); border-top-color: var(--accent);
+    animation: spin .75s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .state-block h3 {
+    font-family: 'Fraunces', serif; font-size: 1.25rem; color: var(--ink);
+    font-weight: 600; margin: 0;
+  }
+  .state-block p { margin: 0; font-size: .84rem; max-width: 380px; line-height: 1.5; }
+  .state-block svg { width: 44px; height: 44px; color: #C9C7BD; }
+
+  .btn-primary {
+    background: var(--accent); color: #fff; border: none;
+    padding: 10px 22px; border-radius: 10px; font-weight: 700; font-size: .82rem;
+    cursor: pointer; transition: background .18s ease; margin-top: 4px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary:hover { background: var(--accent-dark); }
+
+  /* Message Suggestion Box (when search 0 yields) */
+  .manual-upload-suggestion {
+    background: #FCF2E6; color: var(--gold); border: 1.2px solid rgba(169,122,53,0.18);
+    border-radius: 12px; padding: 12px 20px; font-size: 0.82rem; font-weight: 600;
+    display: inline-block; margin: 12px auto; max-width: 500px;
+    box-shadow: 0 2px 6px rgba(169,122,53,0.04);
+  }
+
+  .hidden { display: none !important; }
+
+  /* ---------- Manual Registration Desk ---------- */
+  .registration-desk {
+    background: var(--bg-alt); border-radius: 24px; border: 1px solid var(--line);
+    box-shadow: var(--shadow-1); overflow: hidden; margin-top: 24px;
+    animation: cardIn .4s ease both;
+  }
+  .desk-header {
+    background: rgba(31,92,77,0.04); border-bottom: 1px solid var(--line);
+    padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .desk-header-title {
+    margin: 0; font-family: 'Fraunces', serif; font-size: 1.1rem; color: var(--accent);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .desk-badge {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; font-weight: 700;
+    background: var(--accent-soft); color: var(--accent-dark); padding: 4px 8px; border-radius: 4px;
+  }
+  .desk-grid {
+    padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  }
+  @media (max-width: 680px) {
+    .desk-grid { grid-template-columns: 1fr; gap: 20px; padding: 16px; }
+  }
+
+  .grid-col-left { display: flex; flex-direction: column; gap: 14px; }
+  .grid-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-col-right { display: flex; flex-direction: column; gap: 14px; justify-content: space-between; }
+
+  .desk-label {
+    display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    color: var(--ink-soft); letter-spacing: 0.05em; margin-bottom: 5px;
+  }
+  .desk-input, .desk-textarea {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--line);
+    font-size: 0.78rem; font-family: inherit; color: var(--ink); outline: none; transition: border-color 0.2s;
+  }
+  .desk-input:focus, .desk-textarea:focus { border-color: var(--accent); }
+  .desk-textarea { resize: none; }
+
+  .upload-dropzone {
+    border: 2px dashed var(--line); border-radius: 12px; height: 170px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px; text-align: center; cursor: pointer; background: var(--bg);
+    transition: all 0.2s ease; position: relative; overflow: hidden;
+  }
+  .upload-dropzone:hover { border-color: var(--accent); }
+  .upload-dropzone.dragging { border-color: var(--accent); background: var(--accent-soft); }
+  
+  .upload-preview-wrap {
+    position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  }
+  .upload-preview-img {
+    max-height: 130px; border-radius: 6px; object-fit: contain; box-shadow: var(--shadow-1);
+  }
+  .btn-remove-preview {
+    position: absolute; top: 0; right: 0; background: #fee2e2; border: none;
+    color: #991b1b; width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .status-info-bar {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+    color: var(--accent); display: flex; align-items: center; justify-content: center;
+    gap: 6px; text-align: center; min-height: 20px;
+  }
+
+  /* ---------- Product Detail Dialog Modal ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(18,20,16,.55);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .22s ease;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .modal {
+    background: var(--bg-alt);
+    border-radius: 20px;
+    max-width: 760px; width: 100%;
+    max-height: 88vh; overflow: auto;
+    display: grid; grid-template-columns: 1fr 1fr;
+    position: relative;
+    transform: translateY(14px) scale(.97);
+    transition: transform .25s ease;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,.4);
+  }
+  .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+  @media (max-width: 680px) {
+    .modal { grid-template-columns: 1fr; }
+  }
+
+  .modal-img-wrap { background: var(--img-bg); min-height: 280px; position: relative; }
+  .modal-img-wrap img { width: 100%; height: 100%; object-fit: cover; min-height: 280px; }
+
+  .modal-body {
+    padding: 30px 28px 32px;
+    display: flex; flex-direction: column; gap: 16px; justify-content: space-between;
+  }
+  .modal-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: none; background: rgba(255,255,255,.94);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.16);
+    color: var(--ink); z-index: 5;
+    transition: transform .15s ease;
+  }
+  .modal-close:hover { transform: rotate(90deg); }
+
+  .modal-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .modal-price {
+    font-family: 'IBM Plex Mono', monospace; font-size: 1.4rem; font-weight: 700;
+    color: var(--gold);
+  }
+  .modal-title {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.15rem; color: var(--ink); margin: 0;
+  }
+  .modal-desc-heading {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase; tracking-wider: 0.05em; color: var(--ink-soft);
+  }
+  .modal-desc {
+    font-size: .8rem; line-height: 1.6; color: var(--ink-soft); max-height: 120px; overflow-y: auto;
+  }
+  .modal-desc p { margin: 0 0 8px; }
+  .modal-desc p:last-child { margin-bottom: 0; }
+
+  /* Override interactive section inside Modal */
+  .modal-upload-sec {
+    border-top: 1px solid var(--line); padding-top: 16px; margin-top: auto;
+  }
+  .override-notice {
+    background: #E4EFE9; color: var(--accent-dark); border-radius: 10px;
+    padding: 10px 14px; font-size: 0.74rem; line-height: 1.5; border: 1px solid rgba(31,92,77,0.1);
+  }
+  .override-notice h5 { margin: 0 0 3px 0; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+  
+  .modal-dropzone {
+    border: 2px dashed var(--line); border-radius: 10px; padding: 12px;
+    text-align: center; font-size: 0.74rem; cursor: pointer; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: all 0.2s;
+  }
+  .modal-dropzone:hover { border-color: var(--accent); }
+  .modal-dropzone.dragging { border-color: var(--accent); background: var(--accent-soft); }
+
+  .progress-wrap { display: flex; align-items: center; gap: 6px; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--accent); }
+
+  /* ---------- App Footer ---------- */
+  footer.app-footer {
+    text-align: center; padding: 30px 20px 35px;
+    font-size: .74rem; color: var(--ink-soft);
+    background: var(--bg-alt); border-top: 1px solid var(--line);
+    display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+    max-width: 100vw; margin-top: auto;
+  }
+  .footer-inner {
+    max-width: 1200px; width: 100%; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 15px;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 600px) {
+    .footer-inner { flex-direction: column; text-align: center; gap: 10px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
 </head>
 <body>
 
-    <!-- Loading Screen -->
-    <div id="loading-screen" class="screen">
-        <div class="loader"></div>
-    </div>
-
-    <!-- Permission Screen -->
-    <div id="permission-screen" class="screen hidden">
-        <svg class="screen-icon" viewBox="0 0 64 64" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round">
-            <rect x="10" y="18" width="44" height="32" rx="4"/><circle cx="32" cy="34" r="8"/><path d="M26 18v-4a6 6 0 0112 0v4"/>
-        </svg>
-        <h1 class="screen-title">Camera Access Required</h1>
-        <p class="screen-desc">ScanFlow needs access to your camera to scan barcodes. Everything is processed on-device — your video feed never leaves your phone.</p>
-        <button class="btn btn-primary" id="grant-permission-btn">Allow Camera</button>
-    </div>
-
-    <!-- Error Screen -->
-    <div id="error-screen" class="screen hidden">
-        <svg class="screen-icon" viewBox="0 0 64 64" fill="none" stroke="var(--danger)" stroke-width="2.5" stroke-linecap="round">
-            <circle cx="32" cy="32" r="24"/><path d="M22 22l20 20M42 22L22 42"/>
-        </svg>
-        <h1 class="screen-title" id="error-title">Something Went Wrong</h1>
-        <p class="screen-desc" id="error-desc">An unexpected error occurred. Please try again.</p>
-        <button class="btn btn-primary" id="retry-btn">Retry</button>
-    </div>
-
-    <!-- Main Scanner View -->
-    <section id="scanner-view" aria-label="Barcode scanner">
-        <video id="camera-video" autoplay playsinline muted></video>
-        <canvas id="scan-canvas"></canvas>
-
-        <div id="scan-overlay">
-            <div id="scan-region">
-                <div class="corner tl"></div>
-                <div class="corner tr"></div>
-                <div class="corner bl"></div>
-                <div class="corner br"></div>
-                <div id="scan-line"></div>
-            </div>
+  <!-- ---------- Header ---------- -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="logo-badge" aria-hidden="true">B</div>
+        <div class="brand-text">
+          <span class="eyebrow">Blucheez Fashion</span>
+          <span class="page-title">SKU Product Search</span>
         </div>
-
-        <header id="top-bar">
-            <div class="mode-badge" id="mode-badge">Continuous</div>
-            <div class="top-actions">
-                <button class="btn-icon" id="manual-btn" aria-label="Manual input" title="Manual input">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h12M6 14h8"/>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="history-btn" aria-label="Scan history" title="History">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
-                    </svg>
-                </button>
-            </div>
-        </header>
-
-        <nav id="bottom-controls" aria-label="Scanner controls">
-            <button class="btn-icon" id="flash-btn" aria-label="Toggle flashlight" title="Flashlight">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M13 2L7 14h5l-2 8 6-12h-5l2-8z"/>
-                </svg>
-            </button>
-            <button class="btn-icon" id="mode-btn" aria-label="Toggle scan mode" title="Scan mode">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 12a8 8 0 0114-5M20 12a8 8 0 01-14 5"/><path d="M17 3v5h-5M7 21v-5h5"/>
-                </svg>
-            </button>
-            <button id="scan-toggle" aria-label="Start scanning">
-                <svg id="icon-play" viewBox="0 0 24 24"><polygon points="8,4 20,12 8,20"/></svg>
-                <svg id="icon-stop" viewBox="0 0 24 24" style="display:none"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-            </button>
-            <div style="width:48px"></div>
-            <div style="width:48px"></div>
-        </nav>
-
-        <div id="result-panel" role="alert">
-            <div class="result-handle"></div>
-            <div class="result-format" id="result-format">EAN-13</div>
-            <div class="result-text" id="result-text">-</div>
-            <div class="result-actions">
-                <button class="btn btn-primary" id="copy-btn">Copy</button>
-                <button class="btn btn-ghost" id="scan-again-btn">Scan Again</button>
-            </div>
+      </div>
+      <div class="header-controls">
+        <div class="db-status-pill offline" id="dbStatusPill" title="Configure Supabase cloud connection credentials">
+          <i data-lucide="database" style="width: 14px; height: 14px;"></i>
+          <span class="pill-text-long" id="dbStatusLabel">Demo Local DB Active</span>
+          <div class="status-dot inactive" id="dbStatusDot"></div>
         </div>
+        <span class="header-count" id="headerCount">Loading…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ---------- Database config panel ---------- -->
+  <section class="db-settings-panel" id="dbSettingsPanel">
+    <div class="db-settings-inner">
+      <div class="db-form-sec">
+        <h3><i data-lucide="database" style="color: var(--accent);"></i> Connection Credentials</h3>
+        <p>
+          Supply your Supabase project keys below to load and store overrides directly in the cloud. 
+          Without credentials, the search engine falls back to standard browser LocalStorage seamlessly.
+        </p>
+        <form id="dbSettingsForm" autocomplete="off">
+          <div class="form-group">
+            <label for="dbUrlInput">SUPABASE_URL</label>
+            <input type="url" id="dbUrlInput" class="form-input" placeholder="https://your-project-id.supabase.co">
+          </div>
+          <div class="form-group">
+            <label for="dbKeyInput">SUPABASE_ANON_KEY</label>
+            <input type="password" id="dbKeyInput" class="form-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-submit">Save and Synchronize</button>
+            <button type="button" class="btn-disconnect" id="dbDisconnectBtn">Disconnect</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="sql-desc-sec">
+        <div class="sql-header-row">
+          <span class="sql-label"><i data-lucide="file-code"></i> REQUIRED SUPABASE SQL SETUP</span>
+          <button class="btn-copy-sql" id="copySqlBtn" type="button">
+            <i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy SQL
+          </button>
+        </div>
+        <p style="font-size: 0.72rem; color: var(--ink-soft); line-height: 1.4; margin: 0 0 10px 0;">
+          Execute this script inside your Supabase project's SQL Editor to set up the mapping schema and allow public overrides:
+        </p>
+        <pre class="sql-code-box" id="sqlCodeBlock">-- Create table for overrides and virtual custom SKUs
+create table if not exists sku_images (
+  sku text primary key,
+  image_url text not null,       -- Base64 encoded file data
+  title text,                    -- Title string override
+  price text,                    -- Retail price string
+  description text,              -- Overridden specs or instructions
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable default Row Level Security
+alter table sku_images enable row level security;
+
+-- Configure global access rights mapping policies
+create policy "Allow general select" on sku_images for select using (true);
+create policy "Allow general insert" on sku_images for insert with check (true);
+create policy "Allow general update" on sku_images for update using (true);</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Search Box ---------- -->
+  <section class="search-section">
+    <div class="search-box">
+      <span class="search-icon" aria-hidden="true">
+        <i data-lucide="search" style="width: 20px; height: 20px;"></i>
+      </span>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-input"
+        placeholder="Search by SKU — e.g. BMP-457 or BWP-104..."
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Search by SKU"
+        disabled
+      >
+      <button class="clear-btn" id="clearBtn" type="button" aria-label="Clear search">
+        <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+      </button>
+    </div>
+    <div class="search-hint-row">
+      <span>Search matches any contiguous part of the SKU, case-insensitive.</span>
+      <span id="syncWarningOffline" style="color: var(--gold); display:none;">⚠️ Running in local storage fallback mode</span>
+    </div>
+  </section>
+
+  <!-- ---------- Control Panel Filters & Sorts ---------- -->
+  <section class="control-panel">
+    <div class="filter-group">
+      <span class="filter-label"><i data-lucide="sliders-horizontal" style="width: 14px; height: 14px;"></i> Filters:</span>
+      <button class="filter-btn active" data-filter="all" id="filterAll">All items</button>
+      <button class="filter-btn" data-filter="with_img" id="filterWithImg">With Stock Photo</button>
+      <button class="filter-btn" data-filter="missing_img" id="filterMissingImg">Missing Original Image</button>
+      <button class="filter-btn" data-filter="overridden_img" id="filterOverridden">Uploaded Overrides</button>
+    </div>
+
+    <div class="sort-group">
+      <span class="filter-label">Sort:</span>
+      <select class="sort-select" id="sortSelect">
+        <option value="none">Default Listing</option>
+        <option value="price_asc">Price: Low to High</option>
+        <option value="price_desc">Price: High to Low</option>
+        <option value="sku_asc">SKU Code (A - Z)</option>
+      </select>
+      <span class="results-count-msg" id="resultsCountMsg">0 visible</span>
+    </div>
+  </section>
+
+  <!-- ---------- Results & State Blocks Main Stage ---------- -->
+  <main class="results-section">
+
+    <!-- Loading catalogues -->
+    <div class="state-block" id="loadingState">
+      <div class="spinner" role="status" aria-label="Loading products"></div>
+      <h3 id="loadingTitle">Loading products catalog…</h3>
+      <p id="loadingMsg">Fetching the latest master inventory list from Blucheez Fashion.</p>
+    </div>
+
+    <!-- Error connection state -->
+    <div class="state-block hidden" id="errorState">
+      <i data-lucide="alert-triangle" style="width: 44px; height: 44px; color: var(--gold);"></i>
+      <h3>Catalog unreachable</h3>
+      <p id="errorMessage">Unable to download original inventory. Check connection or reload.</p>
+      <button class="btn-primary" id="retryBtn" type="button">
+        <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Try again
+      </button>
+    </div>
+
+    <!-- Empty lookups and Suggestion display -->
+    <div class="state-block hidden" id="emptyState">
+      <i data-lucide="search-code" style="width: 44px; height: 44px; color: #C9C7BD;"></i>
+      <h3>No Product Found</h3>
+      <p>Try searching another tag, or part of a product code like "BMP" or "457".</p>
+      
+      <div class="manual-upload-suggestion">
+        💡 “This SKU has no image in the database. You can upload one manually below.”
+      </div>
+    </div>
+
+    <!-- Grid presentation mapping -->
+    <div class="grid hidden" id="grid"></div>
+
+    <!-- ---------- Manual SKU Registration Desk (Renders specifically at bottom or when 0 items) ---------- -->
+    <section class="registration-desk hidden" id="registrationDeskPanel">
+      <div class="desk-header">
+        <h4 class="desk-header-title">
+          <i data-lucide="boxes" style="width: 18px; height: 18px;"></i> Manual SKU override registration
+        </h4>
+        <span class="desk-badge">Supabase Active</span>
+      </div>
+
+      <form id="skuRegisterForm" autocomplete="off">
+        <div class="desk-grid">
+          <div class="grid-col-left">
+            <div>
+              <label class="desk-label" for="regSkuCode">SKU Code <span style="color:#DC2626;">*</span></label>
+              <input type="text" id="regSkuCode" required class="desk-input" placeholder="e.g. BMP-457" style="font-family:monospace; font-weight:700;">
+            </div>
+
+            <div>
+              <label class="desk-label" for="regTitle">Product Title</label>
+              <input type="text" id="regTitle" class="desk-input" placeholder="e.g. Premium Cotton Polo Shirt">
+            </div>
+
+            <div class="grid-row-2">
+              <div>
+                <label class="desk-label" for="regPrice">Retail Price (৳)</label>
+                <input type="text" id="regPrice" class="desk-input" placeholder="e.g. 1450.00" style="font-family:monospace; color:var(--gold); font-weight:700;">
+              </div>
+              <div>
+                <label class="desk-label">Stock section</label>
+                <div style="background:var(--bg); border: 1px solid var(--line); border-radius:8px; padding:10px; font-family:monospace; font-size:0.7rem; color:var(--ink-soft);">
+                  D-4 Override Stock
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="desk-label" for="regDesc">Sku Details / Custom Specifications</label>
+              <textarea id="regDesc" class="desk-textarea" rows="3" placeholder="Enter sizing indices, storage code, color tags or tags..."></textarea>
+            </div>
+          </div>
+
+          <div class="grid-col-right">
+            <div>
+              <label class="desk-label">Image File <span style="color:#DC2626;">*</span></label>
+              <input type="file" id="regFileInput" accept="image/*" class="hidden">
+              <div class="upload-dropzone" id="regDropzone">
+                <div id="regZonePlaceholder">
+                  <i data-lucide="upload-cloud" style="width: 32px; height: 32px; color: var(--ink-soft); margin-bottom: 8px;"></i>
+                  <p style="margin: 0; font-size: 0.78rem; font-weight: 600; color: var(--accent);">Click or drag image file here</p>
+                  <p style="margin: 4px 0 0; font-size: 0.65rem; color: var(--ink-soft);">PNG, JPG or WEBP format up to 5MB</p>
+                </div>
+                <div id="regZonePreview" class="hidden">
+                  <div class="upload-preview-wrap">
+                    <img id="regPreviewImg" src="" alt="Selected Preview" class="upload-preview-img">
+                    <button type="button" class="btn-remove-preview" id="btnRemovePreview" title="Remove preview">
+                      <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px;">
+              <button type="submit" class="btn-submit" id="btnRegisterSubmit" style="width:100%; padding: 12px; font-size: 0.82rem;" disabled>
+                Save and Register SKU Catalog Overrides
+              </button>
+              <div class="status-info-bar" id="regSubmitStatus"></div>
+            </div>
+          </div>
+        </div>
+      </form>
     </section>
 
-    <!-- History Panel -->
-    <aside id="history-panel" aria-label="Scan history">
-        <div class="history-header">
-            <h2>History</h2>
-            <div class="hdr-btns">
-                <button class="btn-icon" id="clear-history-btn" aria-label="Clear all history" title="Clear all" style="width:40px;height:40px">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
-                        <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="close-history-btn" aria-label="Close history" title="Close" style="width:40px;height:40px">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:18px;height:18px"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                </button>
-            </div>
-        </div>
-        <div class="history-list" id="history-list"></div>
-    </aside>
+  </main>
 
-    <!-- Manual Input Modal -->
-    <div id="manual-modal" role="dialog" aria-label="Manual barcode input">
-        <div class="modal-content">
-            <h3>Enter Barcode Manually</h3>
-            <div class="input-row">
-                <input type="text" id="manual-input" placeholder="Type or paste barcode value..." autocomplete="off" inputmode="numeric">
-                <button class="btn btn-primary" id="manual-submit-btn" style="padding:14px 20px">Add</button>
-            </div>
-        </div>
+  <!-- ---------- Footer ---------- -->
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <span>Blucheez Fashion © 2026 · Internal Warehouse Inventory Search Client</span>
+      <span style="font-family: monospace; font-size: 0.68rem;" id="localSyncModeLabel">Client Sandboxed Mode (Local)</span>
     </div>
+  </footer>
 
-    <!-- Toast -->
-    <div id="toast" role="status" aria-live="polite"></div>
+  <!-- ---------- Product Detail Overrides Modal ---------- -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalSku">
+      <button class="modal-close" id="modalClose" type="button" aria-label="Close">
+        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+      </button>
+      
+      <div class="modal-img-wrap">
+        <img id="modalImg" src="" alt="">
+        <div class="pending-tag hidden" id="modalImgPendingLabel">Image Pending Override</div>
+      </div>
+      
+      <div class="modal-body">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="modal-row">
+            <span class="sku-tag" id="modalSku" style="font-size:.9rem; max-width:100%;"></span>
+            <span class="modal-price" id="modalPrice"></span>
+          </div>
+          
+          <h4 class="modal-title" id="modalTitle">Description</h4>
+          
+          <div class="modal-desc-heading">Product Details</div>
+          <div class="modal-desc" id="modalDesc"></div>
+        </div>
 
-    <!-- ZXing Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+        <!-- Overrides management block -->
+        <div class="modal-upload-sec">
+          <!-- Shown if original photo is available: cannot override -->
+          <div class="override-notice hidden" id="modalStockPhotoNotice">
+            <h5><i data-lucide="check-circle" style="width: 14px; height: 14px;"></i> Master photo exists</h5>
+            This item contains a valid original photo from Shopify catalogue. Overrides are active only when catalogue photos are pending or completely empty.
+          </div>
 
-    <script>
-    /* ================================================================
-       ScanFlow — High-Performance Mobile Barcode Scanner
-       Single-file, zero-dependency (except ZXing CDN)
-       ================================================================ */
+          <!-- Shown if original photo is missing: can override with Supabase mapping -->
+          <div id="modalPhotoUploadZone" class="hidden" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span class="modal-desc-heading" style="color: var(--gold);"><i data-lucide="image" style="width:12px; height:12px; vertical-align:middle; margin-right:3px;"></i> Manual upload Override</span>
+              <span id="modalOverrideStateLabel" style="font-family:monospace; font-size: 0.62rem; color: var(--accent); font-weight:700;">No manual photo loaded</span>
+            </div>
 
-    // ===== Configuration =====
-    const CONFIG = {
-        SCAN_INTERVAL: 250,
-        DECODE_WIDTH: 360,
-        DUPLICATE_WINDOW: 2000,
-        RESULT_AUTO_HIDE: 4000,
-        WORKER_TIMEOUT: 6000,
-        ZXING_CDN: 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js',
-        HISTORY_KEY: 'scanflow_history',
-        MAX_HISTORY: 200
-    };
+            <input type="file" id="modalFileInput" accept="image/*" class="hidden">
+            <div class="modal-dropzone" id="modalDropzone">
+              <i data-lucide="upload" style="width: 20px; height: 20px; color: var(--ink-soft);"></i>
+              <span style="font-weight:700; color: var(--accent);">Upload or Drop Image File</span>
+              <span style="font-size: 0.65rem; color: var(--ink-soft);">Saves base64 directly to mapping library</span>
+            </div>
 
-    const FORMAT_NAMES = {
-        EAN_13:'EAN-13', EAN_8:'EAN-8', UPC_A:'UPC-A', UPC_E:'UPC-E',
-        CODE_128:'Code 128', CODE_39:'Code 39', CODE_93:'Code 93',
-        QR_CODE:'QR Code', DATA_MATRIX:'Data Matrix', PDF_417:'PDF 417',
-        AZTEC:'Aztec', ITF:'ITF', CODABAR:'Codabar'
-    };
+            <div class="progress-wrap hidden" id="modalUploadProgress">
+              <div class="spinner" style="width:14px; height:14px; border-width:2px; border-top-color:var(--accent);"></div>
+              Uploading image...
+            </div>
+            <div id="modalUploadStatus" style="font-family:monospace; font-size: 0.68rem; text-align: center; font-weight: 700; min-height: 14px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    // ===== Application State =====
-    const state = {
-        scanning: false,
-        mode: 'continuous',
-        flashOn: false,
-        lastText: '',
-        lastTime: 0,
-        resultTimer: null,
-        scanTimer: null,
-        cameraStream: null,
-        worker: null,
-        useWorker: false,
-        paused: false
-    };
+<script>
+(function(){
+  "use strict";
 
-    // ===== DOM References =====
-    const $ = (s) => document.querySelector(s);
-    const dom = {
-        loadingScreen:    $('#loading-screen'),
-        permissionScreen: $('#permission-screen'),
-        errorScreen:      $('#error-screen'),
-        errorTitle:       $('#error-title'),
-        errorDesc:        $('#error-desc'),
-        scannerView:      $('#scanner-view'),
-        video:            $('#camera-video'),
-        canvas:           $('#scan-canvas'),
-        scanRegion:       $('#scan-region'),
-        scanLine:         $('#scan-line'),
-        scanToggle:       $('#scan-toggle'),
-        iconPlay:         $('#icon-play'),
-        iconStop:         $('#icon-stop'),
-        flashBtn:         $('#flash-btn'),
-        modeBtn:          $('#mode-btn'),
-        modeBadge:        $('#mode-badge'),
-        manualBtn:        $('#manual-btn'),
-        historyBtn:       $('#history-btn'),
-        resultPanel:      $('#result-panel'),
-        resultFormat:     $('#result-format'),
-        resultText:       $('#result-text'),
-        copyBtn:          $('#copy-btn'),
-        scanAgainBtn:     $('#scan-again-btn'),
-        historyPanel:     $('#history-panel'),
-        historyList:      $('#history-list'),
-        closeHistoryBtn:  $('#close-history-btn'),
-        clearHistoryBtn:  $('#clear-history-btn'),
-        manualModal:      $('#manual-modal'),
-        manualInput:      $('#manual-input'),
-        manualSubmitBtn:  $('#manual-submit-btn'),
-        toast:            $('#toast'),
-        grantPermBtn:     $('#grant-permission-btn'),
-        retryBtn:         $('#retry-btn')
-    };
+  var PLACEHOLDER_IMG = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23ECEAE3'/%3E%3Cpath d='M60 130 L90 95 L115 120 L135 90 L150 130 Z' fill='%23D9D6CB'/%3E%3Ccircle cx='75' cy='75' r='10' fill='%23D9D6CB'/%3E%3C/svg%3E";
 
-    // ===== Screen Management =====
-    function showScreen(name) {
-        ['loadingScreen', 'permissionScreen', 'errorScreen'].forEach((k) => {
-            dom[k].classList.toggle('hidden', k !== name);
+  // System Catalog Storage
+  var shopifyProducts = []; // Loaded from blucheez fashion
+  var supabaseOverrides = {}; // Map of SKU to overridden image URLs and metas
+
+  // App settings representing active connection
+  var credentials = {
+    url: localStorage.getItem('supabase_url') || '',
+    anonKey: localStorage.getItem('supabase_anon_key') || ''
+  };
+
+  // State
+  var currentSearchQuery = '';
+  var currentFilter = 'all';
+  var currentSort = 'none';
+  var activeProductInModal = null;
+  var registerFormImageBase64 = null;
+
+  // DOM elements cache
+  var searchInput = document.getElementById('searchInput');
+  var clearBtn = document.getElementById('clearBtn');
+  var grid = document.getElementById('grid');
+  var loadingState = document.getElementById('loadingState');
+  var loadingTitle = document.getElementById('loadingTitle');
+  var loadingMsg = document.getElementById('loadingMsg');
+  var errorState = document.getElementById('errorState');
+  var errorMessage = document.getElementById('errorMessage');
+  var retryBtn = document.getElementById('retryBtn');
+  var emptyState = document.getElementById('emptyState');
+  var resultsCountMsg = document.getElementById('resultsCountMsg');
+  var headerCount = document.getElementById('headerCount');
+  var syncWarningOffline = document.getElementById('syncWarningOffline');
+
+  // Supabase Controls
+  var dbStatusPill = document.getElementById('dbStatusPill');
+  var dbStatusLabel = document.getElementById('dbStatusLabel');
+  var dbStatusDot = document.getElementById('dbStatusDot');
+  var dbSettingsPanel = document.getElementById('dbSettingsPanel');
+  var dbSettingsForm = document.getElementById('dbSettingsForm');
+  var dbUrlInput = document.getElementById('dbUrlInput');
+  var dbKeyInput = document.getElementById('dbKeyInput');
+  var dbDisconnectBtn = document.getElementById('dbDisconnectBtn');
+  var localSyncModeLabel = document.getElementById('localSyncModeLabel');
+  var copySqlBtn = document.getElementById('copySqlBtn');
+
+  // Modal Controls
+  var modalOverlay = document.getElementById('modalOverlay');
+  var modalClose = document.getElementById('modalClose');
+  var modalImg = document.getElementById('modalImg');
+  var modalImgPendingLabel = document.getElementById('modalImgPendingLabel');
+  var modalSku = document.getElementById('modalSku');
+  var modalPrice = document.getElementById('modalPrice');
+  var modalTitle = document.getElementById('modalTitle');
+  var modalDesc = document.getElementById('modalDesc');
+  var modalStockPhotoNotice = document.getElementById('modalStockPhotoNotice');
+  var modalPhotoUploadZone = document.getElementById('modalPhotoUploadZone');
+  var modalOverrideStateLabel = document.getElementById('modalOverrideStateLabel');
+  var modalDropzone = document.getElementById('modalDropzone');
+  var modalFileInput = document.getElementById('modalFileInput');
+  var modalUploadProgress = document.getElementById('modalUploadProgress');
+  var modalUploadStatus = document.getElementById('modalUploadStatus');
+
+  // Registration form elements
+  var registrationDeskPanel = document.getElementById('registrationDeskPanel');
+  var skuRegisterForm = document.getElementById('skuRegisterForm');
+  var regSkuCode = document.getElementById('regSkuCode');
+  var regTitle = document.getElementById('regTitle');
+  var regPrice = document.getElementById('regPrice');
+  var regDesc = document.getElementById('regDesc');
+  var regFileInput = document.getElementById('regFileInput');
+  var regDropzone = document.getElementById('regDropzone');
+  var regZonePlaceholder = document.getElementById('regZonePlaceholder');
+  var regZonePreview = document.getElementById('regZonePreview');
+  var regPreviewImg = document.getElementById('regPreviewImg');
+  var btnRemovePreview = document.getElementById('btnRemovePreview');
+  var btnRegisterSubmit = document.getElementById('btnRegisterSubmit');
+  var regSubmitStatus = document.getElementById('regSubmitStatus');
+
+  // Filter Buttons
+  var filterAll = document.getElementById('filterAll');
+  var filterWithImg = document.getElementById('filterWithImg');
+  var filterMissingImg = document.getElementById('filterMissingImg');
+  var filterOverridden = document.getElementById('filterOverridden');
+  var sortSelect = document.getElementById('sortSelect');
+
+  // Helpers
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, function(m) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+    });
+  }
+
+  function htmlToText(html) {
+    if (!html) return '';
+    try {
+      var processed = html
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/<\/li>/gi, '\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '') // Strip HTML tags
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      return processed;
+    } catch(e) {
+      return String(html);
+    }
+  }
+
+  function shortDescription(text, max) {
+    max = max || 95;
+    var clean = (text || '').replace(/\s+/g, ' ').trim();
+    if (!clean) return 'No description available.';
+    if (clean.length <= max) return clean;
+    return clean.slice(0, max).trim() + '…';
+  }
+
+  function formatPrice(price) {
+    var num = parseFloat(price);
+    if (isNaN(num)) return '৳' + (price || '0.00');
+    return '৳' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // ---------- Dynamic Supabase API Layer ----------
+  function getSupabaseClient() {
+    if (credentials.url && credentials.anonKey) {
+      try {
+        return supabase.createClient(credentials.url, credentials.anonKey);
+      } catch (err) {
+        console.error("Failed to compile Supabase Client constructor:", err);
+      }
+    }
+    return null;
+  }
+
+  async function syncDatabaseOverrides() {
+    var client = getSupabaseClient();
+    if (client) {
+      try {
+        var queryResponse = await client.from('sku_images').select('*');
+        if (queryResponse.error) {
+          console.warn("Supabase fetch database query error:", queryResponse.error);
+          useLocalStorageFallback();
+          return;
+        }
+        var dataRows = queryResponse.data || [];
+        var tempMap = {};
+        dataRows.forEach(function(row) {
+          if (row.sku) {
+            tempMap[row.sku.toUpperCase().trim()] = {
+              sku: row.sku,
+              image_url: row.image_url,
+              title: row.title || '',
+              price: row.price || '',
+              description: row.description || ''
+            };
+          }
         });
+        supabaseOverrides = tempMap;
+        updateDbUIState(true);
+        return;
+      } catch (err) {
+        console.error("Unreachable Supabase Cloud URL endpoints:", err);
+      }
     }
+    useLocalStorageFallback();
+  }
 
-    // ===== Toast Notification =====
-    let toastTimer = null;
-    function showToast(msg, duration) {
-        duration = duration || 2000;
-        clearTimeout(toastTimer);
-        dom.toast.textContent = msg;
-        dom.toast.classList.add('show');
-        toastTimer = setTimeout(function() {
-            dom.toast.classList.remove('show');
-        }, duration);
+  function useLocalStorageFallback() {
+    try {
+      var stored = JSON.parse(localStorage.getItem('supabase_sku_images_fallback') || '{}');
+      supabaseOverrides = stored;
+    } catch (e) {
+      console.error("Local Storage reading error:", e);
+      supabaseOverrides = {};
     }
+    updateDbUIState(false);
+  }
 
-    // ===== Audio Beep via Web Audio API =====
-    let audioCtx = null;
-    function playBeep() {
-        try {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            var osc = audioCtx.createOscillator();
-            var gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(1800, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-            osc.start(audioCtx.currentTime);
-            osc.stop(audioCtx.currentTime + 0.15);
-        } catch (e) { /* Audio not supported */ }
-    }
-
-    // ===== PWA Setup (Dynamic Manifest + Service Worker) =====
-    function setupPWA() {
-        var iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
-            '<rect width="512" height="512" rx="80" fill="#000"/>' +
-            '<path d="M140 220v-52a36 36 0 0136-36h52M140 292v52a36 36 0 0036 36h52M372 220v-52a36 36 0 00-36-36h-52M372 292v52a36 36 0 01-36 36h-52" stroke="#00e5a0" stroke-width="20" fill="none" stroke-linecap="round"/>' +
-            '<rect x="196" y="236" width="120" height="40" rx="6" stroke="#00e5a0" stroke-width="16" fill="none"/>' +
-            '</svg>';
-        var iconDataUri = 'data:image/svg+xml;base64,' + btoa(iconSvg);
-
-        var manifest = {
-            name: 'ScanFlow Barcode Scanner',
-            short_name: 'ScanFlow',
-            start_url: '.',
-            display: 'standalone',
-            background_color: '#000000',
-            theme_color: '#000000',
-            icons: [{ src: iconDataUri, sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }]
+  async function writeSkuToDatabase(sku, imageBase64, extraMeta) {
+    var cleanSku = sku.toUpperCase().trim();
+    extraMeta = extraMeta || {};
+    
+    var client = getSupabaseClient();
+    if (client) {
+      try {
+        var payload = {
+          sku: cleanSku,
+          image_url: imageBase64,
+          title: extraMeta.title || '',
+          price: extraMeta.price || '',
+          description: extraMeta.description || ''
         };
-        var blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-        $('#pwa-manifest').href = URL.createObjectURL(blob);
-
-        // Service worker (blob-based, may be blocked by some browsers)
-        if ('serviceWorker' in navigator) {
-            try {
-                var swCode =
-                    "var CACHE='scanflow-v1';" +
-                    "var ASSETS=['./','" + CONFIG.ZXING_CDN + "'];" +
-                    "self.addEventListener('install',function(e){e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(ASSETS)}));self.skipWaiting()});" +
-                    "self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==CACHE}).map(function(k){return caches.delete(k)}))}));self.clients.claim()});" +
-                    "self.addEventListener('fetch',function(e){e.respondWith(caches.match(e.request).then(function(r){return r||fetch(e.request).catch(function(){return caches.match('./')})}))});";
-                var swBlob = new Blob([swCode], { type: 'application/javascript' });
-                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function() {});
-            } catch (e) { /* Expected on many browsers */ }
-        }
-    }
-
-    // ===== Camera Management =====
-    function initCamera() {
-        return new Promise(function(resolve, reject) {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                reject(new Error('CAMERA_UNSUPPORTED'));
-                return;
-            }
-            navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { ideal: 'environment' },
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                },
-                audio: false
-            }).then(function(stream) {
-                state.cameraStream = stream;
-                dom.video.srcObject = stream;
-                dom.video.onloadedmetadata = function() {
-                    dom.video.play().then(resolve).catch(reject);
-                };
-                dom.video.onerror = function() {
-                    reject(new Error('VIDEO_ERROR'));
-                };
-                setTimeout(function() { reject(new Error('VIDEO_TIMEOUT')); }, 8000);
-            }).catch(reject);
-        });
-    }
-
-    function stopCamera() {
-        if (state.cameraStream) {
-            state.cameraStream.getTracks().forEach(function(t) { t.stop(); });
-            state.cameraStream = null;
-        }
-        dom.video.srcObject = null;
-    }
-
-    // ===== Flashlight (Torch) Toggle =====
-    function toggleFlash() {
-        if (!state.cameraStream) return;
-        var track = state.cameraStream.getVideoTracks()[0];
-        if (!track) return;
-        state.flashOn = !state.flashOn;
-        track.applyConstraints({
-            advanced: [{ torch: state.flashOn }]
-        }).then(function() {
-            dom.flashBtn.classList.toggle('active', state.flashOn);
-        }).catch(function() {
-            state.flashOn = false;
-            dom.flashBtn.classList.remove('active');
-            showToast('Flashlight not available');
-        });
-    }
-
-    // ===== Web Worker Initialization =====
-    function initWorker() {
-        return new Promise(function(resolve) {
-            try {
-                var code =
-                    "importScripts('" + CONFIG.ZXING_CDN + "');" +
-                    "var reader=null;" +
-                    "var hints=new Map();" +
-                    "hints.set(ZXing.DecodeHintType.TRY_HARDER,true);" +
-                    "self.onmessage=function(e){" +
-                        "var d=e.data;" +
-                        "if(d.type==='init'){" +
-                            "try{reader=new ZXing.MultiFormatReader();reader.setHints(hints);self.postMessage({type:'ready'})}" +
-                            "catch(err){self.postMessage({type:'error',msg:err.message})}" +
-                            "return" +
-                        "}" +
-                        "if(d.type==='decode'&&reader){" +
-                            "try{" +
-                                "var src=new ZXing.RGBLuminanceSource(d.width,d.height,d.data);" +
-                                "var bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(src));" +
-                                "var result=reader.decode(bmp);" +
-                                "self.postMessage({type:'result',success:true,text:result.getText(),format:result.getBarcodeFormat().toString()})" +
-                            "}catch(err){self.postMessage({type:'result',success:false})}" +
-                        "}" +
-                    "};";
-                var blob = new Blob([code], { type: 'application/javascript' });
-                var w = new Worker(URL.createObjectURL(blob));
-
-                var timeout = setTimeout(function() {
-                    w.terminate();
-                    resolve(false);
-                }, CONFIG.WORKER_TIMEOUT);
-
-                w.onmessage = function(e) {
-                    if (e.data.type === 'ready') {
-                        clearTimeout(timeout);
-                        state.worker = w;
-                        resolve(true);
-                    } else if (e.data.type === 'error') {
-                        clearTimeout(timeout);
-                        w.terminate();
-                        resolve(false);
-                    }
-                };
-                w.onerror = function() {
-                    clearTimeout(timeout);
-                    w.terminate();
-                    resolve(false);
-                };
-                w.postMessage({ type: 'init' });
-            } catch (e) {
-                resolve(false);
-            }
-        });
-    }
-
-    // ===== Frame Capture (cropped center region) =====
-    function getVisibleVideoRect() {
-        var vw = dom.video.videoWidth;
-        var vh = dom.video.videoHeight;
-        var cw = dom.video.clientWidth;
-        var ch = dom.video.clientHeight;
-        if (!vw || !vh || !cw || !ch) return null;
-
-        var videoAspect = vw / vh;
-        var containerAspect = cw / ch;
-        var visW, visH, offX, offY;
-
-        if (videoAspect > containerAspect) {
-            visH = vh; visW = vh * containerAspect;
-            offX = (vw - visW) / 2; offY = 0;
-        } else {
-            visW = vw; visH = vw / containerAspect;
-            offX = 0; offY = (vh - visH) / 2;
-        }
-        return { x: offX, y: offY, w: visW, h: visH, cw: cw, ch: ch };
-    }
-
-    function captureFrame() {
-        var rect = getVisibleVideoRect();
-        if (!rect) return false;
-
-        var boxRect = dom.scanRegion.getBoundingClientRect();
-        var videoRect = dom.video.getBoundingClientRect();
-
-        var relX = (boxRect.left - videoRect.left) / rect.cw;
-        var relY = (boxRect.top - videoRect.top) / rect.ch;
-        var relW = boxRect.width / rect.cw;
-        var relH = boxRect.height / rect.ch;
-
-        var sx = rect.x + relX * rect.w;
-        var sy = rect.y + relY * rect.h;
-        var sw = Math.max(10, relW * rect.w);
-        var sh = Math.max(10, relH * rect.h);
-
-        var aspect = sh / sw;
-        var dw = CONFIG.DECODE_WIDTH;
-        var dh = Math.max(10, Math.round(dw * aspect));
-
-        var ctx = dom.canvas.getContext('2d', { willReadFrequently: true });
-        dom.canvas.width = dw;
-        dom.canvas.height = dh;
-        ctx.drawImage(dom.video, sx, sy, sw, sh, 0, 0, dw, dh);
+        var response = await client.from('sku_images').upsert(payload, { onConflict: 'sku' });
+        if (response.error) throw response.error;
+        await syncDatabaseOverrides();
         return true;
+      } catch (e) {
+        console.error("Upsert failed inside cloud database:", e);
+        alert("Failed to save to Cloud database. Saving to Local Browser fallback storage instead.");
+      }
     }
 
-    // ===== Main-thread Decoding Fallback =====
-    var mainReader = null;
-    function decodeMainThread() {
-        if (!mainReader) {
-            var hints = new Map();
-            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-            mainReader = new ZXing.MultiFormatReader();
-            mainReader.setHints(hints);
-        }
-        var ctx = dom.canvas.getContext('2d', { willReadFrequently: true });
-        var imgData = ctx.getImageData(0, 0, dom.canvas.width, dom.canvas.height);
-        var src = new ZXing.RGBLuminanceSource(imgData.width, imgData.height, imgData.data);
-        var bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(src));
-        var result = mainReader.decode(bmp);
-        return { text: result.getText(), format: result.getBarcodeFormat().toString() };
+    // fallback
+    try {
+      var fallback = JSON.parse(localStorage.getItem('supabase_sku_images_fallback') || '{}');
+      fallback[cleanSku] = {
+        sku: cleanSku,
+        image_url: imageBase64,
+        title: extraMeta.title || '',
+        price: extraMeta.price || '',
+        description: extraMeta.description || ''
+      };
+      localStorage.setItem('supabase_sku_images_fallback', JSON.stringify(fallback));
+      useLocalStorageFallback();
+      return true;
+    } catch (err) {
+      console.error("Saving fallback storage error:", err);
+      return false;
     }
+  }
 
-    // ===== Scan Loop (throttled) =====
-    function scheduleScan() {
-        if (!state.scanning || state.paused) return;
-        state.scanTimer = setTimeout(function() {
-            if (!state.scanning || state.paused) return;
-            attemptScan();
-        }, CONFIG.SCAN_INTERVAL);
-    }
-
-    function attemptScan() {
-        if (!captureFrame()) { scheduleScan(); return; }
-
-        if (state.useWorker && state.worker) {
-            var ctx = dom.canvas.getContext('2d', { willReadFrequently: true });
-            var imgData = ctx.getImageData(0, 0, dom.canvas.width, dom.canvas.height);
-            state.worker.postMessage({
-                type: 'decode',
-                data: imgData.data,
-                width: imgData.width,
-                height: imgData.height
-            });
-            // Worker result handled via setupWorkerHandler()
-        } else {
-            try {
-                var result = decodeMainThread();
-                handleResult(result.text, result.format);
-            } catch (e) { /* No barcode found */ }
-            scheduleScan();
-        }
-    }
-
-    function setupWorkerHandler() {
-        if (!state.worker) return;
-        state.worker.onmessage = function(e) {
-            if (e.data.type === 'result') {
-                if (e.data.success) {
-                    handleResult(e.data.text, e.data.format);
-                }
-                scheduleScan();
-            }
-        };
-    }
-
-    // ===== Result Handling =====
-    function handleResult(text, format) {
-        var now = Date.now();
-        // Deduplicate within time window
-        if (text === state.lastText && now - state.lastTime < CONFIG.DUPLICATE_WINDOW) return;
-        state.lastText = text;
-        state.lastTime = now;
-
-        // Multi-sensory feedback
-        playBeep();
-        if (navigator.vibrate) navigator.vibrate([40, 25, 40]);
-
-        // Visual flash on scan region
-        dom.scanRegion.classList.add('detected');
-        setTimeout(function() { dom.scanRegion.classList.remove('detected'); }, 400);
-
-        // Persist to history
-        saveToHistory(text, format);
-
-        // Display result
-        showResult(text, format);
-
-        // Single-scan: stop after first detection
-        if (state.mode === 'single') {
-            stopScanning();
-        }
-    }
-
-    function showResult(text, format) {
-        clearTimeout(state.resultTimer);
-        dom.resultFormat.textContent = FORMAT_NAMES[format] || format;
-        dom.resultText.textContent = text;
-        dom.resultPanel.classList.add('visible');
-
-        if (state.mode === 'continuous' && state.scanning) {
-            state.resultTimer = setTimeout(function() {
-                dom.resultPanel.classList.remove('visible');
-            }, CONFIG.RESULT_AUTO_HIDE);
-        }
-    }
-
-    function hideResult() {
-        clearTimeout(state.resultTimer);
-        dom.resultPanel.classList.remove('visible');
-    }
-
-    // ===== Start / Stop Scanning =====
-    function startScanning() {
-        if (state.scanning) return;
-        state.scanning = true;
-        state.paused = false;
-        state.lastText = '';
-        state.lastTime = 0;
-
-        dom.scanToggle.classList.add('scanning');
-        dom.iconPlay.style.display = 'none';
-        dom.iconStop.style.display = '';
-        dom.scanLine.classList.add('active');
-
-        setupWorkerHandler();
-        scheduleScan();
-    }
-
-    function stopScanning() {
-        state.scanning = false;
-        state.paused = false;
-        clearTimeout(state.scanTimer);
-
-        dom.scanToggle.classList.remove('scanning');
-        dom.iconPlay.style.display = '';
-        dom.iconStop.style.display = 'none';
-        dom.scanLine.classList.remove('active');
-    }
-
-    // ===== Scan Mode Toggle =====
-    function toggleMode() {
-        state.mode = state.mode === 'continuous' ? 'single' : 'continuous';
-        dom.modeBadge.textContent = state.mode === 'continuous' ? 'Continuous' : 'Single Scan';
-        showToast(state.mode === 'continuous' ? 'Continuous mode' : 'Single scan mode');
-    }
-
-    // ===== History (localStorage) =====
-    function loadHistory() {
-        try {
-            return JSON.parse(localStorage.getItem(CONFIG.HISTORY_KEY)) || [];
-        } catch (e) { return []; }
-    }
-
-    function saveToHistory(text, format) {
-        var history = loadHistory();
-        if (history.length && history[0].text === text) return;
-        history.unshift({
-            text: text,
-            format: FORMAT_NAMES[format] || format,
-            timestamp: Date.now()
-        });
-        if (history.length > CONFIG.MAX_HISTORY) history.length = CONFIG.MAX_HISTORY;
-        try { localStorage.setItem(CONFIG.HISTORY_KEY, JSON.stringify(history)); } catch (e) {}
-    }
-
-    function renderHistory() {
-        var history = loadHistory();
-        if (!history.length) {
-            dom.historyList.innerHTML =
-                '<div class="history-empty">' +
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
-                        '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' +
-                    '</svg>' +
-                    '<p>No scans yet</p>' +
-                '</div>';
-            return;
-        }
-        var html = '';
-        for (var i = 0; i < history.length; i++) {
-            var item = history[i];
-            var time = new Date(item.timestamp);
-            var timeStr = time.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
-                ' ' + time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-            var delay = Math.min(i * 30, 300);
-            html += '<div class="history-item fade-in" style="animation-delay:' + delay + 'ms" data-idx="' + i + '">' +
-                '<div class="history-item-info">' +
-                    '<div class="history-item-text">' + escapeHtml(item.text) + '</div>' +
-                    '<div class="history-item-meta">' + escapeHtml(item.format) + ' &middot; ' + timeStr + '</div>' +
-                '</div>' +
-                '<button class="btn-icon" onclick="copyHistoryItem(' + i + ')" aria-label="Copy" title="Copy" ' +
-                    'style="width:36px;height:36px;border-radius:10px;flex-shrink:0">' +
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:16px;height:16px">' +
-                        '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V4a2 2 0 012-2h12"/>' +
-                    '</svg>' +
-                '</button>' +
-            '</div>';
-        }
-        dom.historyList.innerHTML = html;
-    }
-
-    // Exposed globally for inline onclick
-    window.copyHistoryItem = function(idx) {
-        var history = loadHistory();
-        if (history[idx]) copyToClipboard(history[idx].text);
-    };
-
-    function clearHistory() {
-        try { localStorage.removeItem(CONFIG.HISTORY_KEY); } catch (e) {}
-        renderHistory();
-        showToast('History cleared');
-    }
-
-    // ===== Clipboard =====
-    function copyToClipboard(text) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function() {
-                showToast('Copied to clipboard');
-            }).catch(function() {
-                fallbackCopy(text);
-            });
-        } else {
-            fallbackCopy(text);
-        }
-    }
-
-    function fallbackCopy(text) {
-        var ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        try { document.execCommand('copy'); } catch (e) {}
-        document.body.removeChild(ta);
-        showToast('Copied to clipboard');
-    }
-
-    // ===== Manual Input =====
-    function openManualInput() {
-        dom.manualModal.classList.add('open');
-        setTimeout(function() { dom.manualInput.focus(); }, 350);
-    }
-
-    function closeManualInput() {
-        dom.manualModal.classList.remove('open');
-        dom.manualInput.value = '';
-    }
-
-    function submitManualInput() {
-        var val = dom.manualInput.value.trim();
-        if (!val) { dom.manualInput.focus(); return; }
-        playBeep();
-        if (navigator.vibrate) navigator.vibrate([40, 25, 40]);
-        saveToHistory(val, 'Manual');
-        showResult(val, 'Manual');
-        closeManualInput();
-        if (state.mode === 'single' && state.scanning) stopScanning();
-    }
-
-    // ===== History Panel =====
-    function openHistory() {
-        renderHistory();
-        dom.historyPanel.classList.add('open');
-    }
-
-    function closeHistory() {
-        dom.historyPanel.classList.remove('open');
-    }
-
-    // ===== Error Display =====
-    function showError(title, desc) {
-        dom.errorTitle.textContent = title;
-        dom.errorDesc.textContent = desc;
-        showScreen('errorScreen');
-    }
-
-    // ===== HTML Escape =====
-    function escapeHtml(str) {
-        var div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-
-    // ===== Visibility Change (pause/resume scan loop) =====
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden && state.scanning) {
-            state.paused = true;
-            clearTimeout(state.scanTimer);
-        } else if (!document.hidden && state.scanning && state.paused) {
-            state.paused = false;
-            scheduleScan();
-        }
-    });
-
-    // ===== Cleanup =====
-    window.addEventListener('beforeunload', function() {
-        stopScanning();
-        stopCamera();
-        if (state.worker) state.worker.terminate();
-    });
-
-    // ===== Camera Request with Full Error Handling =====
-    function requestCamera() {
-        showScreen('loadingScreen');
-        initCamera().then(function() {
-            showScreen('scannerView');
-            dom.scannerView.classList.add('active');
-            startScanning();
-        }).catch(function(e) {
-            var name = e.name || '';
-            var msg = e.message || '';
-            if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-                showError('Camera Access Denied',
-                    'Please go to your browser settings and allow camera access for this site, then try again.');
-            } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-                showError('No Camera Found',
-                    'No camera was detected on this device. Please connect a camera and try again.');
-            } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-                showError('Camera Unavailable',
-                    'Another app may be using the camera. Close other camera apps and try again.');
-            } else if (msg === 'VIDEO_TIMEOUT') {
-                showError('Camera Timeout',
-                    'The camera took too long to start. Please check your connection and try again.');
-            } else if (msg === 'CAMERA_UNSUPPORTED') {
-                showError('Unsupported Device',
-                    'Your browser or device does not support camera access. Try updating your browser.');
-            } else if (msg === 'VIDEO_ERROR') {
-                showError('Camera Error',
-                    'An error occurred while loading the video feed. Please try again.');
-            } else {
-                showError('Camera Error',
-                    'An unexpected error occurred while accessing the camera. Please try again.');
-            }
-            console.error('[ScanFlow] Camera error:', e);
-        });
-    }
-
-    // ===== Main Initialization =====
-    function init() {
-        showScreen('loadingScreen');
-        dom.scannerView.classList.remove('active');
-        stopScanning();
-        stopCamera();
-
-        // Required API check
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            showError('Unsupported Browser',
-                'Your browser does not support camera access. Please use a modern browser like Chrome, Firefox, or Edge.');
-            return;
-        }
-
-        // ZXing check
-        if (typeof ZXing === 'undefined') {
-            showError('Library Load Failed',
-                'Failed to load the barcode scanning library. Check your internet connection and reload.');
-            return;
-        }
-
-        // Initialize Web Worker in parallel
-        var workerPromise = initWorker();
-
-        workerPromise.then(function(workerReady) {
-            state.useWorker = workerReady;
-            console.log('[ScanFlow] Using', workerReady ? 'Web Worker' : 'main thread', 'for decoding');
-
-            // Check existing camera permission
-            var permCheck = Promise.resolve(false);
-            if (navigator.permissions && navigator.permissions.query) {
-                try {
-                    permCheck = navigator.permissions.query({ name: 'camera' }).then(function(r) {
-                        return r.state === 'granted';
-                    }).catch(function() { return false; });
-                } catch (e) { /* query not supported */ }
-            }
-
-            permCheck.then(function(hasPermission) {
-                if (hasPermission) {
-                    initCamera().then(function() {
-                        showScreen('scannerView');
-                        dom.scannerView.classList.add('active');
-                        startScanning();
-                    }).catch(function(e) {
-                        if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-                            showScreen('permissionScreen');
-                        } else {
-                            requestCamera();
-                        }
-                    });
-                } else {
-                    showScreen('permissionScreen');
-                }
-            });
-        });
-    }
-
-    // ===== Event Binding =====
-    function bindEvents() {
-        dom.grantPermBtn.addEventListener('click', requestCamera);
-        dom.retryBtn.addEventListener('click', init);
-        dom.scanToggle.addEventListener('click', function() {
-            state.scanning ? stopScanning() : startScanning();
-        });
-        dom.flashBtn.addEventListener('click', toggleFlash);
-        dom.modeBtn.addEventListener('click', toggleMode);
-        dom.manualBtn.addEventListener('click', openManualInput);
-        dom.historyBtn.addEventListener('click', openHistory);
-        dom.closeHistoryBtn.addEventListener('click', closeHistory);
-        dom.clearHistoryBtn.addEventListener('click', clearHistory);
-        dom.copyBtn.addEventListener('click', function() {
-            copyToClipboard(dom.resultText.textContent);
-        });
-        dom.scanAgainBtn.addEventListener('click', function() {
-            hideResult();
-            if (!state.scanning) startScanning();
-        });
-        dom.manualSubmitBtn.addEventListener('click', submitManualInput);
-        dom.manualInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') submitManualInput();
-        });
-        // Close modals on backdrop tap
-        dom.manualModal.addEventListener('click', function(e) {
-            if (e.target === dom.manualModal) closeManualInput();
-        });
-        dom.historyPanel.addEventListener('click', function(e) {
-            if (e.target === dom.historyPanel) closeHistory();
-        });
-    }
-
-    // ===== Bootstrap =====
-    function bootstrap() {
-        setupPWA();
-        bindEvents();
-
-        // Short delay so the loading spinner renders
-        setTimeout(function() {
-            if (typeof ZXing !== 'undefined') {
-                init();
-            } else {
-                // Poll for ZXing (CDN may still be loading)
-                var checks = 0;
-                var poll = setInterval(function() {
-                    checks++;
-                    if (typeof ZXing !== 'undefined') {
-                        clearInterval(poll);
-                        init();
-                    } else if (checks > 150) {
-                        clearInterval(poll);
-                        showError('Library Load Failed',
-                            'Failed to load the barcode scanning library. Check your internet connection and reload.');
-                    }
-                }, 100);
-            }
-        }, 300);
-    }
-
-    // Start
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bootstrap);
+  // ---------- UI State Managers ----------
+  function updateDbUIState(isCloud) {
+    if (isCloud) {
+      dbStatusPill.className = "db-status-pill configured";
+      dbStatusLabel.textContent = "Supabase Connected";
+      dbStatusDot.className = "status-dot active";
+      localSyncModeLabel.textContent = "⚡ Cloud Synced (Supabase Active)";
+      syncWarningOffline.style.display = "none";
     } else {
-        bootstrap();
+      dbStatusPill.className = "db-status-pill offline";
+      dbStatusLabel.textContent = "Demo Local DB Active";
+      dbStatusDot.className = "status-dot inactive";
+      localSyncModeLabel.textContent = "💾 Client Sandboxed Mode (Offline local storage)";
+      if (credentials.url) {
+        syncWarningOffline.style.display = "inline";
+        syncWarningOffline.textContent = "⚠️ Database Sync Error. Running locally.";
+      } else {
+        syncWarningOffline.style.display = "none";
+      }
     }
-    </script>
+  }
+
+  // ---------- Master products Catalogue Loader ----------
+  async function loadOriginalProducts() {
+    showLoadingState("Loading catalogs...", "Downloading the master inventory records from Blucheez Fashion database.");
+    var page = 1;
+    var MAX_PAGES = 15;
+    var merged = [];
+
+    try {
+      while(page <= MAX_PAGES) {
+        showLoadingState("Downloading Shopify Catalogue...", "Currently reading page " + page + " of master warehouse...");
+        var url = 'https://blucheez.fashion/products.json?limit=250&page=' + page;
+        var res = await fetch(url);
+        
+        if (!res.ok) {
+          if (page === 1) throw new Error("Catalog returned " + res.status);
+          break;
+        }
+
+        var data = await res.json();
+        var pageProducts = (data && data.products) ? data.products : [];
+        if (pageProducts.length === 0) break;
+
+        merged = merged.concat(pageProducts);
+        page++;
+      }
+
+      shopifyProducts = merged.map(function(item) {
+        var imgSource = (item.images && item.images.length > 0) ? item.images[0].src : '';
+        var variant = (item.variants && item.variants.length > 0) ? item.variants[0] : null;
+        var skuCode = (variant && variant.sku) ? String(variant.sku).trim() : '';
+        var priceTag = (variant && variant.price) ? variant.price : '0.00';
+        var descText = htmlToText(item.body_html || '');
+        return {
+          id: item.id,
+          title: item.title || '',
+          originalImage: imgSource,
+          sku: skuCode,
+          price: priceTag,
+          description: descText
+        };
+      }).filter(function(p) {
+        return p.sku && p.sku.length > 0;
+      });
+
+      hideLoadingState();
+      searchInput.disabled = false;
+      headerCount.textContent = shopifyProducts.length + ' SKUs loaded';
+
+      renderActiveCatalog();
+
+    } catch (err) {
+      hideLoadingState();
+      errorMessage.textContent = err && err.message ? err.message : "Unreachable master catalog endpoints.";
+      errorState.classList.remove('hidden');
+      headerCount.textContent = 'Error';
+    }
+  }
+
+  function showLoadingState(title, message) {
+    loadingState.classList.remove('hidden');
+    loadingTitle.textContent = title;
+    loadingMsg.textContent = message;
+    errorState.classList.add('hidden');
+    emptyState.classList.add('hidden');
+    grid.classList.add('hidden');
+  }
+
+  function hideLoadingState() {
+    loadingState.classList.add('hidden');
+  }
+
+  // ---------- Combined Overrides Rendering Logic ----------
+  function getProcessedCombinedProducts() {
+    var shopifySkusMap = {};
+    
+    // 1. Process Shopify products & overrides
+    var list = shopifyProducts.map(function(p) {
+      var activeSku = p.sku.toUpperCase().trim();
+      shopifySkusMap[activeSku] = true;
+
+      var override = supabaseOverrides[activeSku];
+      var hasOriginalImage = p.originalImage && p.originalImage.trim().length > 0;
+      
+      return {
+        id: p.id,
+        sku: p.sku,
+        originalImage: p.originalImage,
+        // The manually uploaded image should only be shown when the product image is not available in the original source
+        imageUrl: hasOriginalImage ? p.originalImage : (override ? override.image_url : ''),
+        hasOverrideImage: !hasOriginalImage && !!(override && override.image_url),
+        title: p.title || (override ? override.title : ''),
+        price: p.price || (override ? override.price : '0.00'),
+        description: p.description || (override ? override.description : 'No description available.'),
+        isCustom: false
+      };
+    });
+
+    // 2. Insert any virtual registrations from active database that do NOT exist in Shopify catalog
+    Object.keys(supabaseOverrides).forEach(function(skuKey) {
+      var cleanKey = skuKey.toUpperCase().trim();
+      if (!shopifySkusMap[cleanKey]) {
+        var overrideItem = supabaseOverrides[cleanKey];
+        list.push({
+          id: 'custom-' + overrideItem.sku,
+          sku: overrideItem.sku,
+          originalImage: '',
+          imageUrl: overrideItem.image_url,
+          hasOverrideImage: true,
+          title: overrideItem.title || 'Manually Registered: ' + overrideItem.sku,
+          price: overrideItem.price || '0.00',
+          description: overrideItem.description || 'Virtual custom custom catalog override item.',
+          isCustom: true
+        });
+      }
+    });
+
+    // 3. Apply search query
+    var query = currentSearchQuery.trim().toLowerCase();
+    if (query) {
+      list = list.filter(function(item) {
+        return item.sku.toLowerCase().indexOf(query) !== -1;
+      });
+    }
+
+    // 4. Apply status filters
+    if (currentFilter === 'with_img') {
+      list = list.filter(function(item) {
+        return !item.isCustom && item.originalImage && item.originalImage.trim().length > 0;
+      });
+    } else if (currentFilter === 'missing_img') {
+      list = list.filter(function(item) {
+        return !item.originalImage || item.originalImage.trim().length === 0;
+      });
+    } else if (currentFilter === 'overridden_img') {
+      list = list.filter(function(item) {
+        return item.hasOverrideImage;
+      });
+    }
+
+    // 5. Sorting
+    if (currentSort === 'price_asc') {
+      list.sort(function(a, b) {
+        return parseFloat(a.price || '0') - parseFloat(b.price || '0');
+      });
+    } else if (currentSort === 'price_desc') {
+      list.sort(function(a, b) {
+        return parseFloat(b.price || '0') - parseFloat(a.price || '0');
+      });
+    } else if (currentSort === 'sku_asc') {
+      list.sort(function(a, b) {
+        return a.sku.localeCompare(b.sku);
+      });
+    }
+
+    return list;
+  }
+
+  function renderActiveCatalog() {
+    var processedList = getProcessedCombinedProducts();
+    
+    grid.innerHTML = '';
+    errorState.classList.add('hidden');
+    
+    resultsCountMsg.textContent = processedList.length + ' visible SKU' + (processedList.length !== 1 ? 's' : '');
+
+    // Show empty states if size is 0
+    if (processedList.length === 0) {
+      grid.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      registrationDeskPanel.classList.remove('hidden'); // Expose manual registration forms instantly
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+    grid.classList.remove('hidden');
+    
+    // By default keep registration panel open but less prominent
+    registrationDeskPanel.classList.remove('hidden');
+
+    var frag = document.createDocumentFragment();
+
+    processedList.forEach(function(p) {
+      var card = document.createElement('article');
+      card.className = 'card';
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', 'View details for SKU ' + p.sku);
+
+      // Resolve final rendering image
+      var renderingImageSrc = p.imageUrl || PLACEHOLDER_IMG;
+      
+      var extraBadgesHtml = '';
+      if (p.isCustom) {
+        extraBadgesHtml += '<span class="custom-tag">Custom SKU</span>';
+      }
+      if (p.hasOverrideImage) {
+        extraBadgesHtml += '<span class="override-tag">Custom Photo</span>';
+      }
+
+      var missingOverlayHtml = '';
+      if (!p.originalImage && !p.hasOverrideImage) {
+        missingOverlayHtml += '<div class="pending-tag">Image Pending</div>';
+      }
+
+      card.innerHTML =
+        '<div class="card-img-wrap">' +
+          '<img src="' + escapeHtml(renderingImageSrc) + '" alt="' + escapeHtml(p.sku) + '" loading="lazy">' +
+          extraBadgesHtml +
+          missingOverlayHtml +
+        '</div>' +
+        '<div class="card-body">' +
+          '<div class="card-row">' +
+            '<span class="sku-tag" title="' + escapeHtml(p.sku) + '">' + escapeHtml(p.sku) + '</span>' +
+            '<span class="price">' + escapeHtml(formatPrice(p.price)) + '</span>' +
+          '</div>' +
+          '<h4 class="card-title" title="' + escapeHtml(p.title) + '">' + escapeHtml(p.title) + '</h4>' +
+          '<p class="card-desc">' + escapeHtml(shortDescription(p.description)) + '</p>' +
+        '</div>';
+
+      var imgEl = card.querySelector('img');
+      imgEl.addEventListener('error', function() { imgEl.src = PLACEHOLDER_IMG; });
+
+      card.addEventListener('click', function() { openDetailModal(p); });
+      card.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openDetailModal(p);
+        }
+      });
+
+      frag.appendChild(card);
+    });
+
+    grid.appendChild(frag);
+  }
+
+  // ---------- Detail Dialog Handlers ----------
+  function openDetailModal(product) {
+    activeProductInModal = product;
+    
+    // Bind base descriptors
+    modalImg.src = product.imageUrl || PLACEHOLDER_IMG;
+    modalImg.alt = product.sku;
+    modalImg.onerror = function() { modalImg.src = PLACEHOLDER_IMG; };
+
+    if (!product.imageUrl) {
+      modalImgPendingLabel.classList.remove('hidden');
+    } else {
+      modalImgPendingLabel.classList.add('hidden');
+    }
+
+    modalSku.textContent = product.sku;
+    modalPrice.textContent = formatPrice(product.price);
+    modalTitle.textContent = product.title || 'Blucheez Catalog Item';
+    
+    // Paragraph parsing
+    modalDesc.innerHTML = '';
+    var rawDesc = product.description || 'No database details available.';
+    var splitted = rawDesc.split(/\n+/).map(function(s){ return s.trim(); }).filter(Boolean);
+    if (splitted.length === 0) {
+      var emptyPara = document.createElement('p');
+      emptyPara.textContent = rawDesc;
+      modalDesc.appendChild(emptyPara);
+    } else {
+      splitted.forEach(function(par) {
+        var pElement = document.createElement('p');
+        pElement.textContent = par;
+        modalDesc.appendChild(pElement);
+      });
+    }
+
+    // Evaluate upload visibility depending on active photo status
+    if (product.originalImage && product.originalImage.trim().length > 0) {
+      modalStockPhotoNotice.classList.remove('hidden');
+      modalPhotoUploadZone.classList.add('hidden');
+    } else {
+      modalStockPhotoNotice.classList.add('hidden');
+      modalPhotoUploadZone.classList.remove('hidden');
+      
+      // Update override status caption
+      if (product.hasOverrideImage) {
+        modalOverrideStateLabel.textContent = "Custom overrides uploaded";
+        modalOverrideStateLabel.style.color = "var(--accent)";
+      } else {
+        modalOverrideStateLabel.textContent = "No manual photo uploaded";
+        modalOverrideStateLabel.style.color = "var(--gold)";
+      }
+    }
+
+    modalUploadStatus.textContent = '';
+    modalUploadProgress.classList.add('hidden');
+
+    modalOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    modalClose.focus();
+  }
+
+  function closeDetailModal() {
+    modalOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+    activeProductInModal = null;
+  }
+
+  // File Selector helper helper converter
+  function readFileAsBase64(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = function() { resolve(reader.result); };
+      reader.onerror = function(err) { reject(err); };
+    });
+  }
+
+  // Trigger modal file save sequence
+  async function performModalFileUpload(file) {
+    if (!activeProductInModal) return;
+    if (!file.type.startsWith('image/')) {
+      alert("Only valid photos/image files are supported.");
+      return;
+    }
+
+    modalUploadProgress.classList.remove('hidden');
+    modalUploadStatus.textContent = '';
+
+    try {
+      var base64Data = await readFileAsBase64(file);
+      var fine = await writeSkuToDatabase(activeProductInModal.sku, base64Data, {
+        title: activeProductInModal.title,
+        price: activeProductInModal.price,
+        description: activeProductInModal.description
+      });
+
+      if (fine) {
+        modalUploadStatus.textContent = "✓ Image uploaded successfully override!";
+        modalUploadStatus.style.color = "var(--accent)";
+        
+        // update immediate view
+        modalImg.src = base64Data;
+        modalImgPendingLabel.classList.add('hidden');
+        modalOverrideStateLabel.textContent = "Custom overrides uploaded";
+        modalOverrideStateLabel.style.color = "var(--accent)";
+        
+        // Refresh catalog listing without closing modal
+        renderActiveCatalog();
+      } else {
+        modalUploadStatus.textContent = "✗ Connection failed. Saved block locally instead.";
+        modalUploadStatus.style.color = "#991b1b";
+      }
+    } catch (e) {
+      console.error(e);
+      modalUploadStatus.textContent = "Error saving: " + e.message;
+      modalUploadStatus.style.color = "#991b1b";
+    } finally {
+      modalUploadProgress.classList.add('hidden');
+    }
+  }
+
+  // ---------- Form Registration Handlers ----------
+  function setRegisterPreviewImage(base64) {
+    registerFormImageBase64 = base64;
+    if (base64) {
+      regPreviewImg.src = base64;
+      regZonePlaceholder.classList.add('hidden');
+      regZonePreview.classList.remove('hidden');
+      btnRegisterSubmit.disabled = false;
+    } else {
+      regPreviewImg.src = '';
+      regZonePlaceholder.classList.remove('hidden');
+      regZonePreview.classList.add('hidden');
+      btnRegisterSubmit.disabled = true;
+    }
+  }
+
+  // ---------- Event Listeners Setup ----------
+
+  // Dynamic header status panel toggler
+  dbStatusPill.addEventListener('click', function() {
+    dbSettingsPanel.classList.toggle('open');
+  });
+
+  // DB credentials save
+  dbSettingsForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var enteredUrl = dbUrlInput.value.trim();
+    var enteredKey = dbKeyInput.value.trim();
+    
+    localStorage.setItem('supabase_url', enteredUrl);
+    localStorage.setItem('supabase_anon_key', enteredKey);
+    credentials.url = enteredUrl;
+    credentials.anonKey = enteredKey;
+
+    await syncDatabaseOverrides();
+    dbSettingsPanel.classList.remove('open');
+    renderActiveCatalog();
+  });
+
+  dbDisconnectBtn.addEventListener('click', function() {
+    localStorage.removeItem('supabase_url');
+    localStorage.removeItem('supabase_anon_key');
+    dbUrlInput.value = '';
+    dbKeyInput.value = '';
+    credentials.url = '';
+    credentials.anonKey = '';
+    useLocalStorageFallback();
+    dbSettingsPanel.classList.remove('open');
+    renderActiveCatalog();
+  });
+
+  copySqlBtn.addEventListener('click', function() {
+    var rawText = document.getElementById('sqlCodeBlock').textContent;
+    navigator.clipboard.writeText(rawText).then(function() {
+      copySqlBtn.innerHTML = '<i data-lucide="check" style="width:12px; height:12px; color:var(--accent);"></i> Copied!';
+      lucide.createIcons();
+      setTimeout(function() {
+        copySqlBtn.innerHTML = '<i data-lucide="copy" style="width:12px; height:12px;"></i> Copy SQL';
+        lucide.createIcons();
+      }, 2000);
+    });
+  });
+
+  // Filters Click events
+  var filterBtns = [filterAll, filterWithImg, filterMissingImg, filterOverridden];
+  filterBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      filterBtns.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentFilter = btn.getAttribute('data-filter');
+      renderActiveCatalog();
+    });
+  });
+
+  sortSelect.addEventListener('change', function() {
+    currentSort = sortSelect.value;
+    renderActiveCatalog();
+  });
+
+  // Input Search Box Wiring
+  searchInput.addEventListener('input', function() {
+    currentSearchQuery = searchInput.value;
+    clearBtn.style.display = currentSearchQuery ? 'flex' : 'none';
+    renderActiveCatalog();
+
+    // Auto-populate manual entry SKU code with uppered string
+    if (currentSearchQuery) {
+      regSkuCode.value = currentSearchQuery.toUpperCase().replace(/[^A-Z0-9-]/gi, '').trim();
+    }
+  });
+
+  clearBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    currentSearchQuery = '';
+    clearBtn.style.display = 'none';
+    renderActiveCatalog();
+    searchInput.focus();
+  });
+
+  retryBtn.addEventListener('click', function() {
+    loadOriginalProducts();
+  });
+
+  // Modal actions links
+  modalClose.addEventListener('click', closeDetailModal);
+  modalOverlay.addEventListener('click', function(e) {
+    if (e.target === modalOverlay) closeDetailModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeDetailModal();
+  });
+
+  // Dropzone modal events
+  modalDropzone.addEventListener('click', function() {
+    modalFileInput.click();
+  });
+  modalFileInput.addEventListener('change', function() {
+    if (modalFileInput.files && modalFileInput.files[0]) {
+      performModalFileUpload(modalFileInput.files[0]);
+    }
+  });
+  modalDropzone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    modalDropzone.classList.add('dragging');
+  });
+  modalDropzone.addEventListener('dragleave', function() {
+    modalDropzone.classList.remove('dragging');
+  });
+  modalDropzone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    modalDropzone.classList.remove('dragging');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      performModalFileUpload(e.dataTransfer.files[0]);
+    }
+  });
+
+  // Registration Desk Dropzone events
+  regDropzone.addEventListener('click', function() {
+    regFileInput.click();
+  });
+  regFileInput.addEventListener('change', async function() {
+    if (regFileInput.files && regFileInput.files[0]) {
+      var base64 = await readFileAsBase64(regFileInput.files[0]);
+      setRegisterPreviewImage(base64);
+    }
+  });
+  regDropzone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    regDropzone.classList.add('dragging');
+  });
+  regDropzone.addEventListener('dragleave', function() {
+    regDropzone.classList.remove('dragging');
+  });
+  regDropzone.addEventListener('drop', async function(e) {
+    e.preventDefault();
+    regDropzone.classList.remove('dragging');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      var file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        var base64 = await readFileAsBase64(file);
+        setRegisterPreviewImage(base64);
+      }
+    }
+  });
+
+  btnRemovePreview.addEventListener('click', function(e) {
+    e.stopPropagation();
+    setRegisterPreviewImage(null);
+  });
+
+  // Registration Submission form triggers
+  skuRegisterForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var skuVal = regSkuCode.value.toUpperCase().replace(/[^A-Z0-9-]/gi, '').trim();
+    if (!skuVal) {
+      alert("Invalid clean SKU identifier.");
+      return;
+    }
+    if (!registerFormImageBase64) {
+      alert("Please upload/drag a stock image override.");
+      return;
+    }
+
+    regSubmitStatus.textContent = "Inserting custom SKU details...";
+    regSubmitStatus.style.color = "var(--ink-soft)";
+
+    var ok = await writeSkuToDatabase(skuVal, registerFormImageBase64, {
+      title: regTitle.value.trim() || ("Manually Overridden SKU: " + skuVal),
+      price: regPrice.value.trim() || '0.00',
+      description: regDesc.value.trim() || 'Manually catalogued custom specifications override.'
+    });
+
+    if (ok) {
+      regSubmitStatus.textContent = "✓ Sku override created successfully!";
+      regSubmitStatus.style.color = "var(--accent)";
+      
+      // clear
+      regSkuCode.value = '';
+      regTitle.value = '';
+      regPrice.value = '';
+      regDesc.value = '';
+      setRegisterPreviewImage(null);
+      
+      // Auto clear alert status
+      setTimeout(function() {
+        regSubmitStatus.textContent = '';
+      }, 5000);
+
+      renderActiveCatalog();
+    } else {
+      regSubmitStatus.textContent = "✗ Reverted save flow to Local fallback.";
+      regSubmitStatus.style.color = "#991b1b";
+    }
+  });
+
+  // ---------- Init Start ----------
+  async function initApplication() {
+    // Render icon library tags
+    lucide.createIcons();
+
+    // Fill credentials placeholders
+    if (credentials.url) {
+      dbUrlInput.value = credentials.url;
+      dbKeyInput.value = credentials.anonKey;
+    }
+
+    // Call first database override readings
+    await syncDatabaseOverrides();
+    
+    // Call catalog fetch loop
+    await loadOriginalProducts();
+    
+    // Re-trigger icon updates is essential
+    lucide.createIcons();
+  }
+
+  initApplication();
+
+})();
+</script>
+
 </body>
 </html>
