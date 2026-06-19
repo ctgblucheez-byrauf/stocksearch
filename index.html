@@ -1259,12 +1259,61 @@ function tokeniseQuery(query) {
 }
 
 /**
+ * tokenizeQuery(query)
+ * Alias for tokeniseQuery — kept so both spellings resolve to the same
+ * tokeniser. Other parts of this file (e.g. the table-highlighter) call
+ * the American spelling; this prevents a ReferenceError there.
+ */
+function tokenizeQuery(query) {
+    return tokeniseQuery(query);
+}
+
+/**
  * normalise(str)
  * Uppercase, strip all non-alphanumeric characters.
  * Used for "normalised" matching (BMP457 == BMP-457 == BMP_457).
  */
 function normalise(str) {
     return (str || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/**
+ * multiKeywordFilter(items, query)
+ * Final client-side AND-match gate described in the architecture comment
+ * above: every token in the query must appear somewhere in the item's
+ * style code for the item to survive. This runs on raw (unranked) data
+ * in applyFilters(), and on already-ranked data in renderResults() — in
+ * both cases it just needs to be a pure filter, not a sorter.
+ *
+ * Falls back to a plain substring check on the raw query when it doesn't
+ * tokenise into multiple parts (e.g. a single short word).
+ */
+function multiKeywordFilter(items, query) {
+    var list = items || [];
+    var q = (query || '').trim();
+    if (!q) return list;
+
+    var tokens = tokeniseQuery(q);
+    var rawUp = q.toUpperCase();
+    var rawNorm = normalise(q);
+
+    return list.filter(function(item) {
+        var sc = (item.style_code || '').toUpperCase();
+        var scNorm = normalise(item.style_code || '');
+
+        // Exact phrase (raw or normalised) always counts as a match
+        if (sc.indexOf(rawUp) !== -1) return true;
+        if (rawNorm && scNorm.indexOf(rawNorm) !== -1) return true;
+
+        // Otherwise require every token to be present (AND logic)
+        if (tokens.length > 0) {
+            for (var t = 0; t < tokens.length; t++) {
+                if (sc.indexOf(tokens[t]) === -1) return false;
+            }
+            return true;
+        }
+        return false;
+    });
 }
 
 /**
