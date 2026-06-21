@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean Sales Summary & Top Invoices</title>
+<style>
+  :root {
+    --primary: #185FA5;
+    --primary-light: #E6F1FB;
+    --primary-dark: #0C447C;
+    --success: #3B6D11;
+    --success-light: #EAF3DE;
+    --danger: #A32D2D;
+    --danger-light: #FCEBEB;
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface2: #f8fafc;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --text-hint: #94a3b8;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 14px;
+  }
+
+  /* ── Layout ───────────────────────────── */
+  .page { max-width: 1280px; margin: 0 auto; padding: 24px 20px 48px; }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header .logo {
+    width: 40px; height: 40px;
+    background: var(--primary);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .page-header .logo svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .page-header h1 { font-size: 20px; font-weight: 600; color: var(--text); }
+  .page-header p { font-size: 13px; color: var(--text-muted); margin-top: 1px; }
+
+  /* ── Cards ───────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .step {
+    width: 20px; height: 20px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Form Elements ───────────────────── */
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  textarea {
+    width: 100%;
+    height: 160px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--surface2);
+    resize: vertical;
+    transition: border-color 0.15s;
+  }
+
+  textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    color: var(--text-muted);
+    font-size: 13px;
+    background: var(--surface2);
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 12px;
+  }
+
+  .drop-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+  .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop-zone .drop-icon { font-size: 24px; margin-bottom: 6px; display: block; }
+
+  .divider { text-align: center; font-size: 12px; color: var(--text-hint); margin: 12px 0; position: relative; }
+  .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: calc(50% - 24px); height: 1px; background: var(--border); }
+  .divider::before { left: 0; }
+  .divider::after { right: 0; }
+
+  /* ── Buttons ─────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary-dark); }
+  .btn-primary:hover { background: var(--primary-dark); }
+
+  .btn-ghost { background: transparent; color: var(--text); border-color: var(--border-strong); }
+  .btn-ghost:hover { background: var(--surface2); }
+
+  .btn-success { background: var(--success); color: #fff; display: none; }
+  .btn-success:hover { background: #27500A; }
+  .btn-success.visible { display: inline-flex; }
+
+  .btn-sort {
+    background: var(--amber-light);
+    color: var(--amber);
+    border-color: #e8c97a;
+    font-weight: 600;
+  }
+  .btn-sort:hover { background: #f5e4b5; }
+  .btn-sort.active {
+    background: var(--amber);
+    color: #fff;
+    border-color: #9a6010;
+    box-shadow: 0 0 0 3px rgba(186,117,23,0.18);
+  }
+  .btn-sort.active:hover { background: #9a6010; }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+
+  select {
+    padding: 7px 28px 7px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: border-color 0.15s;
+  }
+
+  select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
+
+  /* ── Info Box ───────────────────────── */
+  .info-box {
+    background: var(--primary-light);
+    border: 1px solid #b5d4f4;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #185FA5;
+    line-height: 1.7;
+    margin-top: 12px;
+  }
+
+  /* ── Stats Grid ─────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .stat-value { font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.2; }
+  .stat-value.money { font-size: 16px; color: var(--primary); }
+
+  /* ── Sort Banner ─────────────────────── */
+  .sort-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--amber-light);
+    border: 1px solid #e8c97a;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--amber);
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+
+  .sort-banner.visible { display: flex; }
+
+  .sort-banner svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; flex-shrink: 0; }
+
+  /* ── Table Controls ─────────────────── */
+  .tbl-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .tbl-controls-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* ── Table ───────────────────────────── */
+  .tbl-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-height: 520px;
+    box-shadow: var(--shadow);
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 1120px; }
+
+  thead {
+    background: var(--surface2);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 0 var(--border);
+  }
+
+  th {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    cursor: default;
+    user-select: none;
+  }
+
+  th.sortable { cursor: pointer; }
+  th.sortable:hover { color: var(--primary); background: var(--primary-light); }
+  th.sorted-asc, th.sorted-desc { color: var(--primary); background: var(--primary-light); }
+
+  th.num, td.num { text-align: right; font-family: "SF Mono", "Fira Code", monospace; }
+
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+
+  /* rank badge for sorted view */
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--amber-light);
+    color: var(--amber);
+    border: 1px solid #e8c97a;
+    flex-shrink: 0;
+  }
+
+  .rank-badge.top1 { background: #FFF8E1; color: #b45309; border-color: #f59e0b; }
+  .rank-badge.top2 { background: #F1F5F9; color: #475569; border-color: #94a3b8; }
+  .rank-badge.top3 { background: #FDF2F2; color: #9a3412; border-color: #fca5a5; }
+
+  td.net-cell { font-weight: 600; color: var(--primary); font-family: "SF Mono", "Fira Code", monospace; text-align: right; }
+  td.net-cell.highlight { color: var(--success); }
+
+  .date-badge {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid #b5d4f4;
+    white-space: nowrap;
+  }
+
+  tfoot { background: var(--surface2); position: sticky; bottom: 0; box-shadow: 0 -1px 0 var(--border); }
+
+  tfoot td {
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 12px;
+    border-top: 2px solid var(--border-strong);
+    border-bottom: none;
+  }
+
+  tfoot .total-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  /* ── Empty / Row count ───────────────── */
+  .row-count { font-size: 12px; color: var(--text-muted); text-align: right; margin-top: 8px; }
+
+  /* ── Toast ───────────────────────────── */
+  #toast-root {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--text);
+    box-shadow: var(--shadow-md);
+    animation: toastIn 0.2s ease;
+    pointer-events: auto;
+    max-width: 280px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toast.ok { border-left: 3px solid var(--success); }
+  .toast.err { border-left: 3px solid var(--danger); }
+  .toast.info { border-left: 3px solid var(--primary); }
+
+  @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    </div>
+    <div>
+      <h1>Clean Sales Summary & Top Invoices</h1>
+      <p>Process raw invoice data into a clean, structured report</p>
+    </div>
+  </div>
+
+  <!-- INPUT SECTION -->
+  <div class="card">
+    <div class="card-title"><span class="step">1</span> Input data</div>
+
+    <div class="drop-zone">
+      <span class="drop-icon">⬆</span>
+      Drag &amp; drop a CSV or TXT file, or click to browse
+      <input type="file" id="fileIn" accept=".csv,.txt">
+    </div>
+
+    <div class="divider">or paste below</div>
+
+    <label class="field-label" for="dataIn">Raw tab-separated data</label>
+    <textarea id="dataIn" placeholder="Paste raw data here…&#10;Expected columns: INVOICE NO · VALUE · DISC AMT · SP DISC. · SD AMT · VAT AMT · RTN AMT · ADJ AMT · NET AMT · CASH AMT · CARD AMT · CARD NAME"></textarea>
+
+    <div class="info-box">
+      <strong>Auto-detection:</strong> Date rows (e.g. <em>04-Apr-2026</em>) and Total Sale rows (e.g. <em>30,520.00</em>) are extracted automatically from the INVOICE NO column into their own columns. All other columns are preserved as-is.
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="processData()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+        Generate report
+      </button>
+      <button class="btn btn-ghost" onclick="loadSample()">Load sample data</button>
+      <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+    </div>
+  </div>
+
+  <!-- OUTPUT SECTION -->
+  <div id="outputSection" class="hidden">
+
+    <!-- Stat Cards -->
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <!-- Report Card -->
+    <div class="card">
+      <div class="card-title"><span class="step">2</span> Report preview</div>
+
+      <!-- Sort banner -->
+      <div class="sort-banner" id="sortBanner">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+        Sorted by Net Amount — highest to lowest. 
+        <span style="font-weight:400; margin-left:4px;">Click <strong>Reset order</strong> to restore original sequence.</span>
+      </div>
+
+      <!-- Table controls -->
+      <div class="tbl-controls">
+        <div class="tbl-controls-right" style="justify-content:flex-start; flex:1;">
+          <!-- Sort button — primary new feature -->
+          <button class="btn btn-sort" id="sortBtn" onclick="toggleSort()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+            Top invoices by Net Amount
+          </button>
+        </div>
+        <div class="tbl-controls-right">
+          <select id="dateFilter" onchange="renderTable()">
+            <option value="all">All dates</option>
+          </select>
+          <button class="btn btn-success" id="dlBtn" onclick="downloadCSV()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Download CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th id="th-rank" class="hidden" style="width:42px;">#</th>
+              <th>Date</th>
+              <th>Total Sale</th>
+              <th>Invoice No</th>
+              <th class="num">Value</th>
+              <th class="num">Disc Amt</th>
+              <th class="num">SP Disc.</th>
+              <th class="num">SD Amt</th>
+              <th class="num">VAT Amt</th>
+              <th class="num">Rtn Amt</th>
+              <th class="num">Adj Amt</th>
+              <th class="num" style="color: var(--primary);">Net Amt ↕</th>
+              <th class="num">Cash Amt</th>
+              <th class="num">Card Amt</th>
+              <th>Card Name</th>
+            </tr>
+          </thead>
+          <tbody id="tBody"></tbody>
+          <tfoot id="tFoot"></tfoot>
+        </table>
+      </div>
+      <div class="row-count" id="rowCount"></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast-root"></div>
+
+<script>
+  /* ── State ────────────────────────────── */
+  let processed   = [];   // all parsed invoice objects
+  let sortActive  = false; // is Top-Invoices sort on?
+
+  /* ── Regex Patterns ───────────────────── */
+  const RX_DATE       = /^\d{1,2}-[A-Za-z]+-\d{4}$/;
+  const RX_INVOICE    = /^\d{10,}$/;
+  const RX_TOTAL_SALE = /^[\d,]+\.\d{2}$/;
+
+  /* ── File Input ──────────────────────── */
+  document.getElementById('fileIn').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      document.getElementById('dataIn').value = ev.target.result;
+      toast('File loaded — click Generate report', 'ok');
+    };
+    r.readAsText(f);
+  });
+
+  /* ── Helpers ─────────────────────────── */
+  function parseNum(s) {
+    if (s === undefined || s === null || s === '') return 0;
+    const n = parseFloat(String(s).replace(/,/g, ''));
+    return isNaN(n) ? 0 : n;
+  }
+
+  function fmtNum(n) {
+    if (n === 0) return '';
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function detectDelimiter(lines) {
+    for (const l of lines) { if (l.includes('\t')) return '\t'; }
+    return ',';
+  }
+
+  function isDateRow(v)      { return RX_DATE.test(v.trim()); }
+  function isInvoiceRow(v)   { return RX_INVOICE.test(v.trim()); }
+  function isTotalSaleRow(v) { return RX_TOTAL_SALE.test(v.trim()); }
+
+  /* ── Process Data ────────────────────── */
+  function processData() {
+    const raw = document.getElementById('dataIn').value.trim();
+    if (!raw) { toast('Paste some data first', 'err'); return; }
+
+    const lines = raw.split(/\r?\n/);
+    const delim = detectDelimiter(lines);
+
+    const rows = lines
+      .map(l => l.split(delim).map(c => {
+        let v = c.trim();
+        if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
+        return v;
+      }))
+      .filter(r => r.some(c => c !== ''));
+
+    let currentDate      = '';
+    let currentTotalSale = '';
+    const result         = [];
+    const dateSet        = new Set();
+
+    for (let i = 0; i < rows.length; i++) {
+      const row  = rows[i];
+      const colA = row[0] ? row[0].trim() : '';
+
+      if (colA === '') continue;
+
+      /* skip header rows */
+      if (colA.toLowerCase().startsWith('invoice no')) continue;
+
+      /* skip summary rows (Invoice Total / Day Total) */
+      if (colA.toLowerCase().includes('total') && !isTotalSaleRow(colA)) continue;
+
+      /* date row */
+      if (isDateRow(colA)) { currentDate = colA; currentTotalSale = ''; continue; }
+
+      /* total sale row */
+      if (isTotalSaleRow(colA) && !isInvoiceRow(colA)) { currentTotalSale = colA; continue; }
+
+      /* invoice data row */
+      if (isInvoiceRow(colA)) {
+        const invoiceNo = colA;
+        const value     = row[1]  || '';
+        const discAmt   = row[2]  || '';
+        const spDisc    = row[3]  || '';
+        const sdAmt     = row[4]  || '';
+        const vatAmt    = row[5]  || '';
+        const rtnAmt    = row[6]  || '';
+        const adjAmt    = row[7]  || '';
+        const netAmt    = row[8]  || '';
+        const cashAmt   = row[9]  || '';
+        const cardAmt   = row[10] || '';
+        const cardName  = row[11] || '';
+
+        result.push({
+          date: currentDate, totalSale: currentTotalSale,
+          invoiceNo, value, discAmt, spDisc, sdAmt,
+          vatAmt, rtnAmt, adjAmt, netAmt, cashAmt, cardAmt, cardName,
+          /* numeric cache for sorting */
+          _netAmt: parseNum(netAmt)
+        });
+
+        if (currentDate) dateSet.add(currentDate);
+      }
+    }
+
+    if (result.length === 0) {
+      toast('No invoice rows found — check your data format', 'err');
+      return;
+    }
+
+    processed  = result;
+    sortActive = false;
+
+    populateDateFilter(dateSet);
+    renderStats();
+    renderTable();
+
+    document.getElementById('outputSection').classList.remove('hidden');
+    document.getElementById('dlBtn').classList.add('visible');
+    document.getElementById('sortBtn').classList.remove('active');
+    document.getElementById('sortBanner').classList.remove('visible');
+    document.getElementById('th-rank').classList.add('hidden');
+
+    document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth' });
+    toast(`${result.length} invoice${result.length !== 1 ? 's' : ''} processed`, 'ok');
+  }
+
+  /* ── Date Filter ─────────────────────── */
+  function populateDateFilter(dateSet) {
+    const sel = document.getElementById('dateFilter');
+    sel.innerHTML = '<option value="all">All dates</option>';
+    [...dateSet].forEach(d => {
+      const o = document.createElement('option');
+      o.value = d; o.textContent = d;
+      sel.appendChild(o);
+    });
+  }
+
+  function getFiltered() {
+    const f = document.getElementById('dateFilter').value;
+    let rows = f === 'all' ? [...processed] : processed.filter(r => r.date === f);
+
+    /* ── SORT: Top Invoices by Net Amount (high → low) ── */
+    if (sortActive) {
+      rows.sort((a, b) => b._netAmt - a._netAmt);
+    }
+
+    return rows;
+  }
+
+  /* ── Toggle Sort ─────────────────────── */
+  function toggleSort() {
+    sortActive = !sortActive;
+
+    const btn    = document.getElementById('sortBtn');
+    const banner = document.getElementById('sortBanner');
+    const thRank = document.getElementById('th-rank');
+
+    if (sortActive) {
+      btn.classList.add('active');
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+        Reset order`;
+      banner.classList.add('visible');
+      thRank.classList.remove('hidden');
+      toast('Sorted: highest Net Amount first', 'info');
+    } else {
+      btn.classList.remove('active');
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+        Top invoices by Net Amount`;
+      banner.classList.remove('visible');
+      thRank.classList.add('hidden');
+      toast('Order restored to original', 'info');
+    }
+
+    renderTable();
+  }
+
+  /* ── Render Table ────────────────────── */
+  function renderTable() {
+    const tbody = document.getElementById('tBody');
+    const tfoot = document.getElementById('tFoot');
+    tbody.innerHTML = '';
+    tfoot.innerHTML = '';
+
+    const rows   = getFiltered();
+    let totals   = { value:0, discAmt:0, spDisc:0, sdAmt:0, vatAmt:0, rtnAmt:0, adjAmt:0, netAmt:0, cashAmt:0, cardAmt:0 };
+
+    rows.forEach((r, idx) => {
+      const tr = document.createElement('tr');
+
+      /* rank cell */
+      let rankCell = '';
+      if (sortActive) {
+        const rank    = idx + 1;
+        const cls     = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+        rankCell = `<td><span class="rank-badge ${cls}">${rank}</span></td>`;
+      }
+
+      const dateBadge  = r.date ? `<span class="date-badge">${r.date}</span>` : '';
+      const netCls     = sortActive && idx < 3 ? 'net-cell highlight' : 'net-cell';
+
+      tr.innerHTML = `
+        ${rankCell}
+        <td>${dateBadge}</td>
+        <td style="font-family:'SF Mono','Fira Code',monospace; font-size:11px; color:var(--text-muted);">${r.totalSale}</td>
+        <td style="font-family:'SF Mono','Fira Code',monospace;">${r.invoiceNo}</td>
+        <td class="num">${r.value}</td>
+        <td class="num">${r.discAmt}</td>
+        <td class="num">${r.spDisc}</td>
+        <td class="num">${r.sdAmt}</td>
+        <td class="num">${r.vatAmt}</td>
+        <td class="num">${r.rtnAmt}</td>
+        <td class="num">${r.adjAmt}</td>
+        <td class="${netCls}">${r.netAmt}</td>
+        <td class="num">${r.cashAmt}</td>
+        <td class="num">${r.cardAmt}</td>
+        <td>${r.cardName}</td>
+      `;
+      tbody.appendChild(tr);
+
+      totals.value   += parseNum(r.value);
+      totals.discAmt += parseNum(r.discAmt);
+      totals.spDisc  += parseNum(r.spDisc);
+      totals.sdAmt   += parseNum(r.sdAmt);
+      totals.vatAmt  += parseNum(r.vatAmt);
+      totals.rtnAmt  += parseNum(r.rtnAmt);
+      totals.adjAmt  += parseNum(r.adjAmt);
+      totals.netAmt  += parseNum(r.netAmt);
+      totals.cashAmt += parseNum(r.cashAmt);
+      totals.cardAmt += parseNum(r.cardAmt);
+    });
+
+    /* Totals row */
+    const tf = document.createElement('tr');
+    tf.innerHTML = `
+      ${sortActive ? '<td></td>' : ''}
+      <td colspan="3" class="total-label" style="text-align:right;">Totals</td>
+      <td class="num">${fmtNum(totals.value)}</td>
+      <td class="num">${fmtNum(totals.discAmt)}</td>
+      <td class="num">${fmtNum(totals.spDisc)}</td>
+      <td class="num">${fmtNum(totals.sdAmt)}</td>
+      <td class="num">${fmtNum(totals.vatAmt)}</td>
+      <td class="num">${fmtNum(totals.rtnAmt)}</td>
+      <td class="num">${fmtNum(totals.adjAmt)}</td>
+      <td class="num" style="color:var(--primary);">${fmtNum(totals.netAmt)}</td>
+      <td class="num">${fmtNum(totals.cashAmt)}</td>
+      <td class="num">${fmtNum(totals.cardAmt)}</td>
+      <td></td>
+    `;
+    tfoot.appendChild(tf);
+
+    document.getElementById('rowCount').textContent =
+      `${rows.length} invoice${rows.length !== 1 ? 's' : ''}${sortActive ? ' — sorted by Net Amount ↓' : ''}`;
+  }
+
+  /* ── Render Stats ────────────────────── */
+  function renderStats() {
+    let totalNet = 0, totalCash = 0, totalCard = 0;
+    const dateSet = new Set();
+    processed.forEach(r => {
+      totalNet  += r._netAmt;
+      totalCash += parseNum(r.cashAmt);
+      totalCard += parseNum(r.cardAmt);
+      if (r.date) dateSet.add(r.date);
+    });
+
+    document.getElementById('statsGrid').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Invoices</div>
+        <div class="stat-value">${processed.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Dates</div>
+        <div class="stat-value">${dateSet.size}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Net Amt</div>
+        <div class="stat-value money">${fmtNum(totalNet)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Cash</div>
+        <div class="stat-value money">${fmtNum(totalCash)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Card</div>
+        <div class="stat-value money">${fmtNum(totalCard)}</div>
+      </div>
+    `;
+  }
+
+  /* ── Download CSV ────────────────────── */
+  function downloadCSV() {
+    const rows = getFiltered();
+    const headers = ['Rank','Date','Total Sale','Invoice No','Value','Disc Amt','SP Disc.','SD Amt','VAT Amt','Rtn Amt','Adj Amt','Net Amt','Cash Amt','Card Amt','Card Name'];
+    const lines = [headers.join(',')];
+    rows.forEach((r, idx) => {
+      lines.push([
+        sortActive ? (idx + 1) : '',
+        r.date, r.totalSale, r.invoiceNo,
+        r.value, r.discAmt, r.spDisc, r.sdAmt,
+        r.vatAmt, r.rtnAmt, r.adjAmt, r.netAmt,
+        r.cashAmt, r.cardAmt, r.cardName
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+    });
+
+    const suffix = sortActive ? '_sorted_by_net' : '';
+    const uri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(lines.join('\r\n'));
+    const a = document.createElement('a');
+    a.href = uri;
+    a.download = `VAT_Report${suffix}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('CSV downloaded', 'ok');
+  }
+
+  /* ── Clear ───────────────────────────── */
+  function clearAll() {
+    document.getElementById('dataIn').value = '';
+    document.getElementById('fileIn').value = '';
+    document.getElementById('outputSection').classList.add('hidden');
+    processed  = [];
+    sortActive = false;
+  }
+
+  /* ── Sample Data ─────────────────────── */
+  function loadSample() {
+    document.getElementById('dataIn').value = [
+      'INVOICE NO\tVALUE\tDISC AMT\tSP DISC.\tSD AMT\tVAT AMT\tRTN AMT\tADJ AMT\tNET AMT\tCASH AMT\tCARD AMT\tCARD NAME',
+      '04-Apr-2026',
+      '0100040002426\t12500.00\t500.00\t0\t0\t1250.00\t0\t0\t13250.00\t13250.00\t0\t',
+      '0100040002427\t8200.00\t0\t0\t0\t820.00\t0\t0\t9020.00\t0\t9020.00\tVISA',
+      '0200040001384\t6300.00\t200.00\t0\t0\t630.00\t0\t0\t6730.00\t6730.00\t0\t',
+      '30,520.00',
+      '05-Apr-2026',
+      '0100040002430\t45000.00\t1200.00\t0\t0\t4500.00\t0\t0\t48300.00\t20000.00\t28300.00\tMastercard',
+      '0100040002431\t22000.00\t300.00\t0\t0\t2200.00\t0\t0\t23900.00\t23900.00\t0\t',
+      '0200040001386\t38000.00\t800.00\t0\t0\t3800.00\t0\t0\t41000.00\t0\t41000.00\tAmex',
+      '122,105.00',
+      '07-Apr-2026',
+      '0100040002440\t95000.00\t2000.00\t0\t0\t9500.00\t0\t0\t102500.00\t50000.00\t52500.00\tVISA',
+      '0100040002441\t3500.00\t0\t0\t0\t350.00\t0\t0\t3850.00\t3850.00\t0\t',
+      '0200040001392\t18000.00\t600.00\t0\t0\t1800.00\t0\t0\t19200.00\t19200.00\t0\t',
+      '48,010.00'
+    ].join('\n');
+    toast('Sample data loaded — click Generate report', 'ok');
+  }
+
+  /* ── Toast ───────────────────────────── */
+  function toast(msg, type) {
+    const root = document.getElementById('toast-root');
+    const el   = document.createElement('div');
+    el.className = `toast ${type || ''}`;
+    el.textContent = msg;
+    root.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 0.25s';
+      setTimeout(() => { if (el.parentNode) root.removeChild(el); }, 300);
+    }, 2800);
+  }
+</script>
+</body>
+</html>
