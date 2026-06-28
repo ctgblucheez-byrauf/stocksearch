@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Movement Tracker – Employee</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<!-- QR Scanner library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+/* ===================== TOKENS ===================== */
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #21263a;
+  --border: rgba(255,255,255,0.08);
+  --accent: #6c63ff;
+  --accent2: #ff6584;
+  --green: #22c55e;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --text: #f0f0f5;
+  --text2: #8b8fa8;
+  --text3: #555870;
+  --glass: rgba(26,29,39,0.85);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --font: 'Inter', sans-serif;
+  --nav-h: 68px;
+  --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+/* ===================== RESET ===================== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;}
+button{cursor:pointer;font-family:var(--font);border:none;outline:none;}
+input,select,textarea{font-family:var(--font);outline:none;}
+a{text-decoration:none;color:inherit;}
+
+/* ===================== SCROLLBAR ===================== */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ===================== LAYOUT ===================== */
+#app { display:flex; flex-direction:column; min-height:100vh; }
+.page { display:none; flex-direction:column; flex:1; padding-bottom:var(--nav-h); animation: fadeIn 0.3s ease; }
+.page.active { display:flex; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ===================== TOP BAR ===================== */
+.topbar {
+  position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px;
+  background:var(--glass);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.topbar-title { font-size:18px; font-weight:700; letter-spacing:-0.3px; }
+.topbar-sub { font-size:12px; color:var(--text2); margin-top:1px; }
+.topbar-avatar {
+  width:36px; height:36px; border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:700; color:#fff;
+  flex-shrink:0;
+}
+
+/* ===================== BOTTOM NAV ===================== */
+.bottom-nav {
+  position:fixed; bottom:0; left:0; right:0; z-index:200;
+  height:var(--nav-h);
+  display:flex; align-items:stretch;
+  background:var(--glass);
+  backdrop-filter:blur(24px);
+  border-top:1px solid var(--border);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-item {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; padding:8px 4px;
+  color:var(--text3); cursor:pointer;
+  transition:color var(--transition);
+  -webkit-tap-highlight-color:transparent;
+}
+.nav-item .material-icons-round { font-size:22px; transition:transform var(--transition); }
+.nav-item span.nav-label { font-size:10px; font-weight:500; letter-spacing:0.3px; }
+.nav-item.active { color:var(--accent); }
+.nav-item.active .material-icons-round { transform:scale(1.15); }
+.nav-item.cam-btn {
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  border-radius:var(--radius);
+  margin:8px 6px;
+  color:#fff;
+  box-shadow:0 4px 16px rgba(108,99,255,0.4);
+  flex:1.2;
+}
+.nav-item.cam-btn .material-icons-round { font-size:26px; }
+
+/* ===================== LOGIN ===================== */
+#login-page {
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  padding:24px; background:var(--bg);
+  background-image:radial-gradient(ellipse at 20% 50%, rgba(108,99,255,0.12) 0%, transparent 60%),
+                   radial-gradient(ellipse at 80% 20%, rgba(255,101,132,0.08) 0%, transparent 50%);
+}
+.login-card {
+  width:100%; max-width:400px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:36px 28px;
+  box-shadow:var(--shadow);
+}
+.login-logo {
+  width:56px; height:56px; border-radius:16px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 20px;
+  box-shadow:0 8px 24px rgba(108,99,255,0.35);
+}
+.login-logo .material-icons-round { font-size:28px; color:#fff; }
+.login-title { text-align:center; font-size:22px; font-weight:700; letter-spacing:-0.5px; margin-bottom:6px; }
+.login-sub { text-align:center; color:var(--text2); font-size:13px; margin-bottom:28px; }
+
+.field { margin-bottom:16px; }
+.field label { display:block; font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; }
+.field select, .field input {
+  width:100%; padding:14px 16px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text); font-size:15px;
+  transition:border-color var(--transition), box-shadow var(--transition);
+  -webkit-appearance:none; appearance:none;
+}
+.field select:focus, .field input:focus {
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(108,99,255,0.18);
+}
+.field-icon { position:relative; }
+.field-icon input { padding-right:48px; }
+.field-icon .toggle-pw {
+  position:absolute; right:14px; top:50%; transform:translateY(-50%);
+  color:var(--text3); cursor:pointer; background:none; padding:4px;
+}
+.field-icon .toggle-pw .material-icons-round { font-size:20px; }
+
+.btn-primary {
+  width:100%; padding:15px;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  color:#fff; font-size:15px; font-weight:600;
+  border-radius:var(--radius-sm); margin-top:8px;
+  box-shadow:0 4px 16px rgba(108,99,255,0.35);
+  transition:opacity var(--transition), transform var(--transition);
+}
+.btn-primary:active { opacity:0.85; transform:scale(0.98); }
+.btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+
+/* ===================== CARDS ===================== */
+.content { padding:20px; display:flex; flex-direction:column; gap:16px; }
+.card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.2);
+}
+
+/* ===================== STAT CARDS ===================== */
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.stat-card {
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:14px 10px;
+  text-align:center;
+}
+.stat-card .stat-val { font-size:22px; font-weight:700; margin-bottom:3px; }
+.stat-card .stat-lbl { font-size:10px; font-weight:500; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; }
+.stat-card.green .stat-val { color:var(--green); }
+.stat-card.red .stat-val { color:var(--red); }
+.stat-card.amber .stat-val { color:var(--amber); }
+
+/* ===================== HISTORY TABLE ===================== */
+.section-title { font-size:13px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px; }
+.movement-list { display:flex; flex-direction:column; gap:8px; }
+.movement-item {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  transition:transform var(--transition);
+}
+.movement-item:active { transform:scale(0.98); }
+.mv-icon {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.mv-icon.in { background:rgba(34,197,94,0.15); color:var(--green); }
+.mv-icon.out { background:rgba(239,68,68,0.15); color:var(--red); }
+.mv-icon .material-icons-round { font-size:18px; }
+.mv-info { flex:1; min-width:0; }
+.mv-status { font-size:13px; font-weight:600; }
+.mv-time { font-size:11px; color:var(--text2); margin-top:2px; }
+.mv-reason { font-size:11px; color:var(--text3); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mv-dur { font-size:12px; font-weight:600; color:var(--text2); flex-shrink:0; }
+
+/* ===================== OUTSIDE EMPLOYEES ===================== */
+.outside-item {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  margin-bottom:8px;
+}
+.outside-avatar {
+  width:38px; height:38px; border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; color:#fff; flex-shrink:0;
+}
+.outside-info { flex:1; min-width:0; }
+.outside-name { font-size:14px; font-weight:600; }
+.outside-dept { font-size:11px; color:var(--text2); margin-top:1px; }
+.outside-time { text-align:right; }
+.outside-time .exit-t { font-size:11px; color:var(--text2); }
+.outside-time .dur { font-size:13px; font-weight:700; color:var(--amber); }
+.badge-out {
+  display:inline-flex; align-items:center; gap:3px;
+  background:rgba(239,68,68,0.15); color:var(--red);
+  font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+  padding:2px 7px; border-radius:4px; margin-top:3px;
+}
+.badge-out::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--red); animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ===================== PROFILE ===================== */
+.profile-header {
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  padding:24px 20px;
+}
+.profile-avatar {
+  width:76px; height:76px; border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; font-weight:700; color:#fff;
+  box-shadow:0 8px 24px rgba(108,99,255,0.3);
+}
+.profile-name { font-size:20px; font-weight:700; }
+.profile-desig { font-size:13px; color:var(--text2); }
+.profile-rows { display:flex; flex-direction:column; gap:1px; margin-top:4px; }
+.profile-row {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 16px;
+  background:var(--surface2);
+  border-radius:0;
+  border-bottom:1px solid var(--border);
+  transition:background var(--transition);
+}
+.profile-row:first-child { border-radius:var(--radius-sm) var(--radius-sm) 0 0; }
+.profile-row:last-child { border-bottom:none; border-radius:0 0 var(--radius-sm) var(--radius-sm); }
+.profile-row .material-icons-round { font-size:20px; color:var(--accent); flex-shrink:0; }
+.profile-row-text .pr-label { font-size:11px; color:var(--text2); }
+.profile-row-text .pr-val { font-size:14px; font-weight:500; }
+
+.btn-logout {
+  width:100%; padding:14px;
+  background:rgba(239,68,68,0.12);
+  color:var(--red); font-size:14px; font-weight:600;
+  border:1px solid rgba(239,68,68,0.2);
+  border-radius:var(--radius-sm);
+  margin-top:16px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  transition:background var(--transition), transform var(--transition);
+}
+.btn-logout:active { background:rgba(239,68,68,0.22); transform:scale(0.98); }
+
+/* ===================== CAMERA PAGE ===================== */
+.camera-wrap {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  flex:1; padding:24px 20px;
+  gap:20px;
+}
+#qr-reader {
+  width:100%; max-width:320px;
+  border-radius:var(--radius);
+  overflow:hidden;
+  border:2px solid var(--accent);
+  box-shadow:0 0 40px rgba(108,99,255,0.3);
+}
+#qr-reader video { border-radius:var(--radius); }
+.qr-hint { text-align:center; }
+.qr-hint h3 { font-size:16px; font-weight:600; margin-bottom:6px; }
+.qr-hint p { font-size:13px; color:var(--text2); line-height:1.5; }
+.scan-btn {
+  padding:14px 32px;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  color:#fff; font-size:15px; font-weight:600;
+  border-radius:var(--radius-sm);
+  box-shadow:0 4px 16px rgba(108,99,255,0.35);
+  display:flex; align-items:center; gap:8px;
+  transition:opacity var(--transition), transform var(--transition);
+}
+.scan-btn:active { opacity:0.85; transform:scale(0.97); }
+.scan-status {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 16px;
+  border-radius:var(--radius-sm);
+  font-size:13px; font-weight:500;
+}
+.scan-status.in { background:rgba(34,197,94,0.12); color:var(--green); border:1px solid rgba(34,197,94,0.2); }
+.scan-status.out { background:rgba(239,68,68,0.12); color:var(--red); border:1px solid rgba(239,68,68,0.2); }
+
+/* ===================== MODAL ===================== */
+.modal-overlay {
+  position:fixed; inset:0; z-index:500;
+  background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(8px);
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.25s ease;
+}
+.modal-overlay.show { opacity:1; pointer-events:all; }
+.modal {
+  width:100%; max-width:480px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px 24px 0 0;
+  padding:24px 20px calc(24px + env(safe-area-inset-bottom));
+  transform:translateY(40px);
+  transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  max-height:85vh; overflow-y:auto;
+}
+.modal-overlay.show .modal { transform:translateY(0); }
+.modal-handle {
+  width:36px; height:4px; background:var(--border);
+  border-radius:2px; margin:0 auto 20px;
+}
+.modal-title { font-size:18px; font-weight:700; margin-bottom:6px; }
+.modal-sub { font-size:13px; color:var(--text2); margin-bottom:20px; }
+
+.reason-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:16px; }
+.reason-btn {
+  padding:12px 10px; border-radius:10px;
+  background:var(--surface2); border:2px solid var(--border);
+  color:var(--text2); font-size:13px; font-weight:500;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  transition:all var(--transition);
+}
+.reason-btn .material-icons-round { font-size:20px; }
+.reason-btn.selected { border-color:var(--accent); color:var(--accent); background:rgba(108,99,255,0.1); }
+.reason-btn:active { transform:scale(0.96); }
+
+.other-input {
+  width:100%; padding:12px 14px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); color:var(--text); font-size:14px;
+  margin-bottom:16px; resize:none;
+}
+.other-input:focus { border-color:var(--accent); }
+
+.modal-actions { display:flex; gap:10px; }
+.btn-ghost {
+  flex:1; padding:13px;
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text); font-size:14px; font-weight:500;
+  border-radius:var(--radius-sm);
+  transition:background var(--transition);
+}
+.btn-ghost:active { background:var(--border); }
+.btn-confirm {
+  flex:2; padding:13px;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  color:#fff; font-size:14px; font-weight:600;
+  border-radius:var(--radius-sm);
+  box-shadow:0 4px 12px rgba(108,99,255,0.3);
+  transition:opacity var(--transition);
+}
+.btn-confirm:active { opacity:0.85; }
+.btn-confirm:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* ===================== TOAST ===================== */
+.toast-container {
+  position:fixed; top:20px; left:50%; transform:translateX(-50%);
+  z-index:9999; display:flex; flex-direction:column; gap:8px;
+  pointer-events:none;
+}
+.toast {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:12px 18px;
+  display:flex; align-items:center; gap:10px;
+  font-size:13px; font-weight:500;
+  box-shadow:var(--shadow);
+  white-space:nowrap;
+  animation:toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+  pointer-events:all;
+  max-width:90vw;
+}
+.toast.success { border-color:rgba(34,197,94,0.3); }
+.toast.error { border-color:rgba(239,68,68,0.3); }
+.toast.success .material-icons-round { color:var(--green); }
+.toast.error .material-icons-round { color:var(--red); }
+.toast.info .material-icons-round { color:var(--accent); }
+@keyframes toastIn { from{opacity:0;transform:translateY(-12px) scale(0.92)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+/* ===================== EMPTY STATE ===================== */
+.empty {
+  display:flex; flex-direction:column; align-items:center;
+  padding:40px 20px; text-align:center; gap:10px;
+}
+.empty .material-icons-round { font-size:48px; color:var(--text3); }
+.empty h4 { font-size:15px; font-weight:600; color:var(--text2); }
+.empty p { font-size:13px; color:var(--text3); }
+
+/* ===================== SKELETON ===================== */
+.skeleton {
+  background:linear-gradient(90deg,var(--surface2) 25%,rgba(255,255,255,0.05) 50%,var(--surface2) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s infinite;
+  border-radius:6px;
+}
+@keyframes shimmer { from{background-position:200% 0} to{background-position:-200% 0} }
+.skel-item { height:60px; border-radius:var(--radius-sm); margin-bottom:8px; }
+
+/* ===================== DATE BADGE ===================== */
+.date-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; padding:6px 12px;
+  font-size:12px; font-weight:600; color:var(--text2);
+}
+.date-badge .material-icons-round { font-size:14px; color:var(--accent); }
+
+/* ===================== ALERT ===================== */
+.alert-box {
+  border-radius:var(--radius-sm); padding:14px 16px;
+  display:flex; gap:10px; align-items:flex-start;
+  font-size:13px; line-height:1.6;
+}
+.alert-box.warning {
+  background:rgba(245,158,11,0.1);
+  border:1px solid rgba(245,158,11,0.2);
+  color:var(--amber);
+}
+.alert-box.danger {
+  background:rgba(239,68,68,0.1);
+  border:1px solid rgba(239,68,68,0.2);
+  color:var(--red);
+}
+.alert-box .material-icons-round { font-size:18px; flex-shrink:0; margin-top:1px; }
+
+/* ===================== SUCCESS ANIMATION ===================== */
+.success-overlay {
+  position:fixed; inset:0; z-index:600;
+  background:rgba(0,0,0,0.85);
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:16px;
+  opacity:0; pointer-events:none; transition:opacity 0.3s;
+}
+.success-overlay.show { opacity:1; pointer-events:all; }
+.success-circle {
+  width:80px; height:80px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:38px;
+  animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.success-circle.in-c { background:rgba(34,197,94,0.2); color:var(--green); border:2px solid var(--green); }
+.success-circle.out-c { background:rgba(239,68,68,0.2); color:var(--red); border:2px solid var(--red); }
+@keyframes popIn { from{transform:scale(0.4)} to{transform:scale(1)} }
+.success-txt { font-size:18px; font-weight:700; }
+.success-sub { font-size:13px; color:var(--text2); }
+
+/* ===================== REFRESH BTN ===================== */
+.refresh-row {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:12px;
+}
+.btn-refresh {
+  display:flex; align-items:center; gap:4px;
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text2); padding:6px 12px; border-radius:8px;
+  font-size:12px; font-weight:500;
+  transition:background var(--transition);
+}
+.btn-refresh:active { background:var(--border); }
+.btn-refresh .material-icons-round { font-size:14px; }
+
+/* ===================== RESPONSIVE ===================== */
+@media (min-width:600px) {
+  .page { max-width:480px; margin:0 auto; }
+  .bottom-nav { max-width:480px; left:50%; transform:translateX(-50%); border-radius:0; }
+  .modal { border-radius:24px; margin-bottom:20px; }
+  .modal-overlay { align-items:center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN PAGE ===================== -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="material-icons-round">directions_walk</span>
+    </div>
+    <div class="login-title">Movement Tracker</div>
+    <div class="login-sub">Sign in to track your attendance</div>
+
+    <div class="field">
+      <label>Select Your Name</label>
+      <select id="login-username">
+        <option value="">Loading employees…</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <div class="field-icon">
+        <input type="password" id="login-password" placeholder="Enter your password" />
+        <button class="toggle-pw" type="button" onclick="togglePw()">
+          <span class="material-icons-round" id="pw-eye">visibility_off</span>
+        </button>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">
+      Sign In
+    </button>
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--text3)">
+      Forgot password? Contact your manager.
+    </p>
+  </div>
+</div>
+
+<!-- ===================== MAIN APP ===================== -->
+<div id="app" style="display:none">
+
+  <!-- CAMERA PAGE -->
+  <div class="page active" id="page-camera">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Scan QR</div>
+        <div class="topbar-sub" id="cam-greeting">Good morning</div>
+      </div>
+      <div class="topbar-avatar" id="top-avatar">?</div>
+    </div>
+    <div class="camera-wrap">
+      <div class="qr-hint">
+        <h3>Scan the Office QR Code</h3>
+        <p>Point your camera at the QR code posted at the entrance to check in or out.</p>
+      </div>
+      <div id="next-action-badge"></div>
+      <div id="qr-reader"></div>
+      <button class="scan-btn" id="start-scan-btn" onclick="startScanner()">
+        <span class="material-icons-round">qr_code_scanner</span>
+        Start Scanning
+      </button>
+      <button class="scan-btn" id="stop-scan-btn" onclick="stopScanner()" style="display:none;background:var(--surface2);border:1px solid var(--border);color:var(--text);box-shadow:none;">
+        <span class="material-icons-round">stop</span>
+        Stop Camera
+      </button>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-history">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">My History</div>
+        <div class="topbar-sub">Movement log</div>
+      </div>
+      <div class="topbar-avatar" id="hist-avatar">?</div>
+    </div>
+    <div class="content">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="date-badge">
+          <span class="material-icons-round">calendar_today</span>
+          <span id="today-date-lbl">Today</span>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="stat-val" id="hist-in-count">–</div>
+          <div class="stat-lbl">Check-ins</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-val" id="hist-out-count">–</div>
+          <div class="stat-lbl">Check-outs</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-val" id="hist-outside-dur">–</div>
+          <div class="stat-lbl">Outside</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:16px;">
+        <div class="refresh-row">
+          <div class="section-title" style="margin-bottom:0">Today's Log</div>
+          <button class="btn-refresh" onclick="loadHistory()">
+            <span class="material-icons-round">refresh</span> Refresh
+          </button>
+        </div>
+        <div id="history-list">
+          <div class="skel-item skeleton"></div>
+          <div class="skel-item skeleton"></div>
+          <div class="skel-item skeleton"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUTSIDE PAGE -->
+  <div class="page" id="page-outside">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Outside Now</div>
+        <div class="topbar-sub">Live status</div>
+      </div>
+      <div class="topbar-avatar" id="out-avatar">?</div>
+    </div>
+    <div class="content">
+      <div class="refresh-row">
+        <div class="date-badge">
+          <span class="material-icons-round">groups</span>
+          <span id="outside-count-lbl">Loading…</span>
+        </div>
+        <button class="btn-refresh" onclick="loadOutside()">
+          <span class="material-icons-round">refresh</span> Refresh
+        </button>
+      </div>
+      <div id="outside-list">
+        <div class="skel-item skeleton"></div>
+        <div class="skel-item skeleton"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div class="page" id="page-profile">
+    <div class="topbar">
+      <div class="topbar-title">Profile</div>
+    </div>
+    <div class="profile-header">
+      <div class="profile-avatar" id="prof-avatar">?</div>
+      <div class="profile-name" id="prof-name">–</div>
+      <div class="profile-desig" id="prof-desig">–</div>
+    </div>
+    <div class="content" style="padding-top:0">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="profile-rows">
+          <div class="profile-row">
+            <span class="material-icons-round">badge</span>
+            <div class="profile-row-text">
+              <div class="pr-label">Employee ID</div>
+              <div class="pr-val" id="prof-empid">–</div>
+            </div>
+          </div>
+          <div class="profile-row">
+            <span class="material-icons-round">apartment</span>
+            <div class="profile-row-text">
+              <div class="pr-label">Department</div>
+              <div class="pr-val" id="prof-dept">–</div>
+            </div>
+          </div>
+          <div class="profile-row">
+            <span class="material-icons-round">phone</span>
+            <div class="profile-row-text">
+              <div class="pr-label">Phone</div>
+              <div class="pr-val" id="prof-phone">–</div>
+            </div>
+          </div>
+          <div class="profile-row">
+            <span class="material-icons-round">exit_to_app</span>
+            <div class="profile-row-text">
+              <div class="pr-label">Today's Exits</div>
+              <div class="pr-val" id="prof-exits">–</div>
+            </div>
+          </div>
+          <div class="profile-row">
+            <span class="material-icons-round">block</span>
+            <div class="profile-row-text">
+              <div class="pr-label">Today's Exit Limit</div>
+              <div class="pr-val" id="prof-exit-limit">–</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">
+        <span class="material-icons-round">logout</span>
+        Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="showPage('camera')" id="nav-camera">
+      <span class="material-icons-round">qr_code_scanner</span>
+      <span class="nav-label">Scan</span>
+    </div>
+    <div class="nav-item" onclick="showPage('history')" id="nav-history">
+      <span class="material-icons-round">history</span>
+      <span class="nav-label">History</span>
+    </div>
+    <div class="nav-item" onclick="showPage('outside')" id="nav-outside">
+      <span class="material-icons-round">groups</span>
+      <span class="nav-label">Outside</span>
+    </div>
+    <div class="nav-item" onclick="showPage('profile')" id="nav-profile">
+      <span class="material-icons-round">person</span>
+      <span class="nav-label">Profile</span>
+    </div>
+  </nav>
+</div>
+
+<!-- REASON MODAL -->
+<div class="modal-overlay" id="reason-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Why are you leaving?</div>
+    <div class="modal-sub">Select a reason to check out</div>
+    <div class="reason-grid">
+      <button class="reason-btn" onclick="selectReason('Meeting')" data-reason="Meeting">
+        <span class="material-icons-round">groups</span>Meeting
+      </button>
+      <button class="reason-btn" onclick="selectReason('Bank')" data-reason="Bank">
+        <span class="material-icons-round">account_balance</span>Bank
+      </button>
+      <button class="reason-btn" onclick="selectReason('Lunch')" data-reason="Lunch">
+        <span class="material-icons-round">restaurant</span>Lunch
+      </button>
+      <button class="reason-btn" onclick="selectReason('Client Visit')" data-reason="Client Visit">
+        <span class="material-icons-round">handshake</span>Client Visit
+      </button>
+      <button class="reason-btn" onclick="selectReason('Office Work')" data-reason="Office Work">
+        <span class="material-icons-round">work</span>Office Work
+      </button>
+      <button class="reason-btn" onclick="selectReason('Personal')" data-reason="Personal">
+        <span class="material-icons-round">person</span>Personal
+      </button>
+      <button class="reason-btn" onclick="selectReason('Other')" data-reason="Other" style="grid-column:span 2">
+        <span class="material-icons-round">more_horiz</span>Other
+      </button>
+    </div>
+    <textarea class="other-input" id="other-reason-input" rows="2" placeholder="Describe your reason…" style="display:none"></textarea>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeReasonModal()">Cancel</button>
+      <button class="btn-confirm" id="btn-confirm-checkout" onclick="confirmCheckout()" disabled>Check Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="success-overlay">
+  <div class="success-circle" id="success-circle">
+    <span class="material-icons-round" id="success-icon">check</span>
+  </div>
+  <div class="success-txt" id="success-txt">Checked In</div>
+  <div class="success-sub" id="success-sub">Successfully recorded</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ==================== CONFIG ==================== */
+const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9ojU5ehOL52_PT0EBfPWyw_zPkj2Ywj";
+
+/* ==================== SUPABASE CLIENT ==================== */
+const sb = {
+  headers: {
+    'apikey': SUPABASE_PUBLISHABLE_KEY,
+    'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  },
+  async from(table) {
+    const base = `${SUPABASE_URL}/rest/v1/${table}`;
+    return {
+      _url: base, _filters:[], _select:'*', _order:null, _limit:null, _single:false,
+      select(cols='*'){ this._select=cols; return this; },
+      eq(col,val){ this._filters.push(`${col}=eq.${encodeURIComponent(val)}`); return this; },
+      neq(col,val){ this._filters.push(`${col}=neq.${encodeURIComponent(val)}`); return this; },
+      gte(col,val){ this._filters.push(`${col}=gte.${encodeURIComponent(val)}`); return this; },
+      lte(col,val){ this._filters.push(`${col}=lte.${encodeURIComponent(val)}`); return this; },
+      order(col,{ascending=true}={}){ this._order=`${col}=${ascending?'asc':'desc'}`; return this; },
+      limit(n){ this._limit=n; return this; },
+      single(){ this._single=true; return this; },
+      async get(){
+        let url=`${this._url}?select=${this._select}`;
+        if(this._filters.length) url+='&'+this._filters.join('&');
+        if(this._order) url+=`&order=${this._order}`;
+        if(this._limit) url+=`&limit=${this._limit}`;
+        const r=await fetch(url,{headers:sb.headers});
+        const d=await r.json();
+        if(!r.ok) throw d;
+        return {data:this._single?(Array.isArray(d)?d[0]:d):d,error:null};
+      },
+      async insert(body){
+        const r=await fetch(this._url,{method:'POST',headers:sb.headers,body:JSON.stringify(body)});
+        const d=await r.json();
+        if(!r.ok) throw d;
+        return {data:Array.isArray(d)?d[0]:d,error:null};
+      },
+      async update(body){
+        let url=`${this._url}?`;
+        if(this._filters.length) url+=this._filters.join('&');
+        const r=await fetch(url,{method:'PATCH',headers:sb.headers,body:JSON.stringify(body)});
+        const d=await r.json();
+        if(!r.ok) throw d;
+        return {data:d,error:null};
+      },
+      async rpc(fn,params){
+        const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:sb.headers,body:JSON.stringify(params)});
+        const d=await r.json();
+        if(!r.ok) throw d;
+        return {data:d,error:null};
+      }
+    };
+  },
+  async rpc(fn,params={}){
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:sb.headers,body:JSON.stringify(params)});
+    const d=await r.json();
+    if(!r.ok) throw d;
+    return {data:d,error:null};
+  }
+};
+
+/* ==================== STATE ==================== */
+let currentUser = null;
+let selectedReason = '';
+let scannerInstance = null;
+let scannerRunning = false;
+let refreshTimer = null;
+
+/* ==================== SESSION ==================== */
+function saveSession(user){ localStorage.setItem('mv_user', JSON.stringify(user)); }
+function loadSession(){ try{ return JSON.parse(localStorage.getItem('mv_user')); }catch(e){ return null; } }
+function clearSession(){ localStorage.removeItem('mv_user'); }
+
+/* ==================== INIT ==================== */
+window.addEventListener('DOMContentLoaded', async () => {
+  currentUser = loadSession();
+  if(currentUser){
+    showApp();
+    loadUserData();
+  } else {
+    loadEmployeeDropdown();
+  }
+  setDateLabel();
+});
+
+function setDateLabel(){
+  const now = new Date();
+  const opts = {weekday:'long',year:'numeric',month:'long',day:'numeric'};
+  const label = now.toLocaleDateString('en-US', opts);
+  const el = document.getElementById('today-date-lbl');
+  if(el) el.textContent = label;
+}
+
+/* ==================== LOGIN ==================== */
+async function loadEmployeeDropdown(){
+  try {
+    const q = await (await sb.from('move_users')).select('id,full_name,username').eq('status','active').order('full_name',{ascending:true}).get();
+    const sel = document.getElementById('login-username');
+    sel.innerHTML = '<option value="">— Select your name —</option>';
+    (q.data || []).forEach(u => {
+      sel.innerHTML += `<option value="${u.id}" data-uname="${u.username}">${u.full_name}</option>`;
+    });
+  } catch(e){
+    showToast('Failed to load employees','error');
+  }
+}
+
+async function doLogin(){
+  const sel = document.getElementById('login-username');
+  const userId = sel.value;
+  const pw = document.getElementById('login-password').value;
+  if(!userId){ showToast('Please select your name','error'); return; }
+  if(!pw){ showToast('Please enter your password','error'); return; }
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const opt = sel.options[sel.selectedIndex];
+    const username = opt.getAttribute('data-uname');
+    // Verify password via RPC
+    const r = await sb.rpc('verify_move_user_password', { p_username: username, p_password: pw });
+    if(!r.data){ showToast('Invalid password','error'); btn.disabled=false; btn.textContent='Sign In'; return; }
+    // Load full user
+    const ur = await (await sb.from('move_users')).select('*').eq('id',userId).single().get();
+    currentUser = ur.data;
+    saveSession(currentUser);
+    showApp();
+    loadUserData();
+  } catch(e){
+    showToast('Login failed. Try again.','error');
+    btn.disabled=false; btn.textContent='Sign In';
+  }
+}
+
+function doLogout(){
+  if(scannerRunning) stopScanner();
+  clearInterval(refreshTimer);
+  clearSession();
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+  loadEmployeeDropdown();
+}
+
+function togglePw(){
+  const inp = document.getElementById('login-password');
+  const eye = document.getElementById('pw-eye');
+  if(inp.type==='password'){ inp.type='text'; eye.textContent='visibility'; }
+  else { inp.type='password'; eye.textContent='visibility_off'; }
+}
+
+/* ==================== APP ==================== */
+function showApp(){
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  showPage('camera');
+}
+
+function loadUserData(){
+  if(!currentUser) return;
+  const initials = (currentUser.full_name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  // Avatars
+  ['top-avatar','hist-avatar','out-avatar'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=initials;
+  });
+  document.getElementById('prof-avatar').textContent = initials;
+  document.getElementById('prof-name').textContent = currentUser.full_name || '–';
+  document.getElementById('prof-desig').textContent = currentUser.designation || '–';
+  document.getElementById('prof-dept').textContent = currentUser.department || '–';
+  document.getElementById('prof-phone').textContent = currentUser.phone || '–';
+  document.getElementById('prof-empid').textContent = currentUser.employee_id || '–';
+  // Greeting
+  const h = new Date().getHours();
+  const g = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  const greet = document.getElementById('cam-greeting');
+  if(greet) greet.textContent = `${g}, ${(currentUser.full_name||'').split(' ')[0]}`;
+  updateNextActionBadge();
+  loadProfile();
+  // Auto-refresh outside every 30s
+  refreshTimer = setInterval(()=>{
+    if(document.getElementById('page-outside').classList.contains('active')) loadOutside();
+  }, 30000);
+}
+
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.getElementById(`nav-${page}`).classList.add('active');
+  if(page==='history') loadHistory();
+  if(page==='outside') loadOutside();
+  if(page==='profile') loadProfile();
+  if(page!=='camera' && scannerRunning) stopScanner();
+}
+
+/* ==================== SCANNER ==================== */
+async function startScanner(){
+  document.getElementById('start-scan-btn').style.display='none';
+  document.getElementById('stop-scan-btn').style.display='flex';
+  scannerRunning = true;
+  scannerInstance = new Html5Qrcode("qr-reader");
+  try {
+    await scannerInstance.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      onQrSuccess,
+      () => {}
+    );
+  } catch(e){
+    showToast('Camera permission denied','error');
+    stopScanner();
+  }
+}
+
+async function stopScanner(){
+  if(scannerInstance && scannerRunning){
+    try { await scannerInstance.stop(); } catch(e){}
+    try { scannerInstance.clear(); } catch(e){}
+  }
+  scannerRunning = false;
+  document.getElementById('start-scan-btn').style.display='flex';
+  document.getElementById('stop-scan-btn').style.display='none';
+}
+
+async function onQrSuccess(decodedText){
+  if(!scannerRunning) return;
+  await stopScanner();
+
+  // Validate QR against move_qr_codes table
+  try {
+    const qr = await (await sb.from('move_qr_codes')).select('id,code,is_active').eq('code', decodedText).eq('is_active', true).single().get();
+    if(!qr.data){ showToast('Invalid or expired QR code','error'); return; }
+  } catch(e){
+    showToast('Invalid QR code','error'); return;
+  }
+
+  // Determine next action
+  const action = await getNextAction();
+  if(action === 'OUT'){
+    openReasonModal();
+  } else {
+    await doCheckIn();
+  }
+}
+
+async function getNextAction(){
+  try {
+    const today = todayStr();
+    const r = await (await sb.from('movement_logs'))
+      .select('id,action')
+      .eq('user_id', currentUser.id)
+      .gte('created_at', today+'T00:00:00')
+      .lte('created_at', today+'T23:59:59')
+      .order('created_at',{ascending:false})
+      .limit(1)
+      .get();
+    if(!r.data || r.data.length===0) return 'IN';
+    return r.data[0].action === 'IN' ? 'OUT' : 'IN';
+  } catch(e){ return 'IN'; }
+}
+
+async function updateNextActionBadge(){
+  const action = await getNextAction();
+  const badge = document.getElementById('next-action-badge');
+  if(badge){
+    badge.innerHTML = action==='IN'
+      ? `<div class="scan-status in"><span class="material-icons-round">arrow_downward</span>Next scan: <strong>CHECK IN</strong></div>`
+      : `<div class="scan-status out"><span class="material-icons-round">arrow_upward</span>Next scan: <strong>CHECK OUT</strong></div>`;
+  }
+}
+
+async function doCheckIn(){
+  try {
+    await (await sb.from('movement_logs')).insert({
+      user_id: currentUser.id,
+      action: 'IN',
+      reason: null
+    });
+    showSuccess('IN');
+    updateNextActionBadge();
+    loadProfile();
+  } catch(e){
+    showToast('Failed to record check-in','error');
+  }
+}
+
+/* ==================== REASON MODAL ==================== */
+function openReasonModal(){
+  selectedReason = '';
+  document.getElementById('other-reason-input').style.display='none';
+  document.getElementById('other-reason-input').value='';
+  document.querySelectorAll('.reason-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('btn-confirm-checkout').disabled = true;
+  document.getElementById('reason-modal').classList.add('show');
+}
+
+function closeReasonModal(){ document.getElementById('reason-modal').classList.remove('show'); }
+
+function selectReason(reason){
+  selectedReason = reason;
+  document.querySelectorAll('.reason-btn').forEach(b=>{
+    b.classList.toggle('selected', b.dataset.reason === reason);
+  });
+  const oi = document.getElementById('other-reason-input');
+  oi.style.display = reason==='Other' ? 'block' : 'none';
+  if(reason !== 'Other') document.getElementById('btn-confirm-checkout').disabled = false;
+  else document.getElementById('btn-confirm-checkout').disabled = !oi.value.trim();
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const oi = document.getElementById('other-reason-input');
+  if(oi) oi.addEventListener('input', ()=>{
+    document.getElementById('btn-confirm-checkout').disabled = !oi.value.trim();
+  });
+});
+
+async function confirmCheckout(){
+  const finalReason = selectedReason==='Other'
+    ? document.getElementById('other-reason-input').value.trim()
+    : selectedReason;
+  if(!finalReason){ showToast('Please select a reason','error'); return; }
+
+  // Check exit limit
+  try {
+    const today = todayStr();
+    const limit = currentUser.exit_limit || 3;
+    const r = await (await sb.from('movement_logs'))
+      .select('id')
+      .eq('user_id', currentUser.id)
+      .eq('action','OUT')
+      .gte('created_at', today+'T00:00:00')
+      .lte('created_at', today+'T23:59:59')
+      .get();
+    const exitCount = (r.data||[]).length;
+    if(exitCount >= limit){
+      closeReasonModal();
+      showExitLimitAlert();
+      return;
+    }
+
+    await (await sb.from('movement_logs')).insert({
+      user_id: currentUser.id,
+      action: 'OUT',
+      reason: finalReason
+    });
+    closeReasonModal();
+    showSuccess('OUT');
+    updateNextActionBadge();
+    loadProfile();
+  } catch(e){
+    showToast('Failed to record check-out','error');
+  }
+}
+
+function showExitLimitAlert(){
+  showToast('Exit limit reached – contact your manager','error');
+  // Show detailed modal re-use
+  const overlay = document.createElement('div');
+  overlay.className='modal-overlay show';
+  overlay.innerHTML=`<div class="modal">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding:8px 0 20px">
+      <span class="material-icons-round" style="font-size:48px;color:var(--red)">block</span>
+    </div>
+    <div class="alert-box danger">
+      <span class="material-icons-round">warning</span>
+      <div>
+        <strong>Exit Limit Reached</strong><br/>
+        Your today's exit limit has been reached.<br/><br/>
+        Please contact your manager.<br/><br/>
+        If you leave without permission, a fine of <strong>BDT 100</strong> will be applied.
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <button class="btn-primary" onclick="this.closest('.modal-overlay').remove()">Understood</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+/* ==================== HISTORY ==================== */
+async function loadHistory(){
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<div class="skel-item skeleton"></div><div class="skel-item skeleton"></div><div class="skel-item skeleton"></div>';
+  try {
+    const today = todayStr();
+    const r = await (await sb.from('movement_logs'))
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .gte('created_at', today+'T00:00:00')
+      .lte('created_at', today+'T23:59:59')
+      .order('created_at',{ascending:false})
+      .get();
+    const logs = r.data || [];
+    // Stats
+    const inC = logs.filter(l=>l.action==='IN').length;
+    const outC = logs.filter(l=>l.action==='OUT').length;
+    document.getElementById('hist-in-count').textContent = inC;
+    document.getElementById('hist-out-count').textContent = outC;
+    // Outside duration
+    const totalMs = calcTotalOutside(logs);
+    document.getElementById('hist-outside-dur').textContent = msToHMM(totalMs);
+    // List
+    if(!logs.length){ list.innerHTML=`<div class="empty"><span class="material-icons-round">history</span><h4>No records today</h4><p>Scan the QR code to get started</p></div>`; return; }
+    list.innerHTML='';
+    logs.forEach((log,i)=>{
+      const isIN = log.action==='IN';
+      const dur = calcDuration(log, logs.slice(i));
+      list.innerHTML+=`<div class="movement-item">
+        <div class="mv-icon ${isIN?'in':'out'}">
+          <span class="material-icons-round">${isIN?'arrow_downward':'arrow_upward'}</span>
+        </div>
+        <div class="mv-info">
+          <div class="mv-status" style="color:${isIN?'var(--green)':'var(--red)'}">${isIN?'Checked In':'Checked Out'}</div>
+          <div class="mv-time">${formatTime(log.created_at)}</div>
+          ${log.reason?`<div class="mv-reason">${log.reason}</div>`:''}
+        </div>
+        <div class="mv-dur">${dur||''}</div>
+      </div>`;
+    });
+  } catch(e){
+    list.innerHTML='<div class="empty"><span class="material-icons-round">error</span><h4>Failed to load</h4><p>Check your connection</p></div>';
+  }
+}
+
+function calcTotalOutside(logs){
+  let total = 0;
+  const sorted = [...logs].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  for(let i=0;i<sorted.length;i++){
+    if(sorted[i].action==='OUT'){
+      const outT = new Date(sorted[i].created_at);
+      const inNext = sorted.find((l,j)=>j>i&&l.action==='IN');
+      const inT = inNext ? new Date(inNext.created_at) : new Date();
+      total += inT - outT;
+    }
+  }
+  return total;
+}
+
+function calcDuration(log, subsequentLogs){
+  if(log.action!=='OUT') return '';
+  const outT = new Date(log.created_at);
+  const sorted=[...subsequentLogs].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  const inNext = sorted.find(l=>l.action==='IN'&&new Date(l.created_at)>outT);
+  const inT = inNext ? new Date(inNext.created_at) : new Date();
+  return msToHMM(inT - outT);
+}
+
+function msToHMM(ms){
+  if(ms<=0) return '00:00';
+  const m=Math.floor(ms/60000);
+  const h=Math.floor(m/60);
+  return h>0?`${h}h ${m%60}m`:`${m}m`;
+}
+
+/* ==================== OUTSIDE ==================== */
+async function loadOutside(){
+  const list = document.getElementById('outside-list');
+  list.innerHTML='<div class="skel-item skeleton"></div><div class="skel-item skeleton"></div>';
+  try {
+    const today = todayStr();
+    // Get all today's logs
+    const r = await (await sb.from('movement_logs'))
+      .select('user_id,action,created_at,reason')
+      .gte('created_at', today+'T00:00:00')
+      .lte('created_at', today+'T23:59:59')
+      .order('created_at',{ascending:true})
+      .get();
+    const logs = r.data || [];
+    // Find who is currently OUT
+    const userLastAction = {};
+    logs.forEach(l => { userLastAction[l.user_id] = l; });
+    const outsideIds = Object.entries(userLastAction).filter(([uid,l])=>l.action==='OUT').map(([uid,l])=>({uid,log:l}));
+
+    document.getElementById('outside-count-lbl').textContent = `${outsideIds.length} Outside Now`;
+
+    if(!outsideIds.length){
+      list.innerHTML=`<div class="empty"><span class="material-icons-round">group</span><h4>Everyone is inside</h4><p>No employees are currently outside</p></div>`;
+      return;
+    }
+    // Load user details
+    const userIds = outsideIds.map(o=>o.uid);
+    const ur = await (await sb.from('move_users')).select('id,full_name,department').get();
+    const users = {};
+    (ur.data||[]).forEach(u=>users[u.id]=u);
+
+    list.innerHTML='';
+    outsideIds.forEach(({uid,log})=>{
+      const u = users[uid] || {full_name:'Unknown',department:''};
+      const initials = u.full_name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const exitT = new Date(log.created_at);
+      const dur = msToHMM(new Date()-exitT);
+      list.innerHTML+=`<div class="outside-item">
+        <div class="outside-avatar">${initials}</div>
+        <div class="outside-info">
+          <div class="outside-name">${u.full_name}</div>
+          <div class="outside-dept">${u.department||'–'}</div>
+          <div class="badge-out">Outside</div>
+        </div>
+        <div class="outside-time">
+          <div class="exit-t">Since ${formatTime(log.created_at)}</div>
+          <div class="dur">${dur}</div>
+          ${log.reason?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${log.reason}</div>`:''}
+        </div>
+      </div>`;
+    });
+  } catch(e){
+    list.innerHTML='<div class="empty"><span class="material-icons-round">error</span><h4>Failed to load</h4><p>Check connection</p></div>';
+  }
+}
+
+/* ==================== PROFILE ==================== */
+async function loadProfile(){
+  try {
+    const today = todayStr();
+    const r = await (await sb.from('movement_logs'))
+      .select('id,action')
+      .eq('user_id',currentUser.id)
+      .eq('action','OUT')
+      .gte('created_at',today+'T00:00:00')
+      .lte('created_at',today+'T23:59:59')
+      .get();
+    const exits = (r.data||[]).length;
+    const limit = currentUser.exit_limit || 3;
+    document.getElementById('prof-exits').textContent = `${exits} / ${limit}`;
+    document.getElementById('prof-exit-limit').textContent = `${limit} exits per day`;
+  } catch(e){}
+}
+
+/* ==================== HELPERS ==================== */
+function todayStr(){ return new Date().toISOString().split('T')[0]; }
+function formatTime(iso){
+  if(!iso) return '–';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+}
+function showSuccess(type){
+  const overlay = document.getElementById('success-overlay');
+  const circle = document.getElementById('success-circle');
+  const icon = document.getElementById('success-icon');
+  const txt = document.getElementById('success-txt');
+  const sub = document.getElementById('success-sub');
+  const time = formatTime(new Date().toISOString());
+  if(type==='IN'){
+    circle.className='success-circle in-c';
+    icon.textContent='arrow_downward';
+    txt.textContent='Successfully Checked In';
+  } else {
+    circle.className='success-circle out-c';
+    icon.textContent='arrow_upward';
+    txt.textContent='Successfully Checked Out';
+  }
+  sub.textContent=`Recorded at ${time}`;
+  overlay.classList.add('show');
+  setTimeout(()=>overlay.classList.remove('show'),2200);
+}
+
+function showToast(msg,type='info'){
+  const icons={success:'check_circle',error:'error',info:'info'};
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span class="material-icons-round">${icons[type]||'info'}</span>${msg}`;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(()=>t.style.opacity='0',2800);
+  setTimeout(()=>t.remove(),3100);
+}
+</script>
+</body>
+</html>
