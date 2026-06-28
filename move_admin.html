@@ -826,7 +826,7 @@ async function loadDashboard(){
     const r=await db.select('movement_logs',{
       select:'id,action,created_at,reason,move_users(full_name,department)',
       filters:[`created_at=gte.${today}T00:00:00`,`created_at=lte.${today}T23:59:59`],
-      order:'created_at=desc'
+      order:'created_at.desc'
     });
     const logs=r.data||[];
     const inC=logs.filter(l=>l.action==='IN').length;
@@ -874,7 +874,7 @@ async function loadLive(){
     const r=await db.select('movement_logs',{
       select:'user_id,action,created_at,reason,move_users(full_name,department)',
       filters:[`created_at=gte.${today}T00:00:00`,`created_at=lte.${today}T23:59:59`],
-      order:'created_at=asc'
+      order:'created_at.asc'
     });
     const logs=r.data||[];
     const userLast={};
@@ -904,7 +904,7 @@ async function loadUsers(){
   const tbody=document.getElementById('users-table');
   tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">Loading…</td></tr>`;
   try{
-    const r=await db.select('move_users',{select:'*',order:'full_name=asc'});
+    const r=await db.select('move_users',{select:'*',order:'full_name.asc'});
     usersCache=r.data||[];
     if(!usersCache.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><span class="material-icons-round">group_off</span><h4>No employees yet</h4><p>Add your first employee</p></div></td></tr>`;return;}
     tbody.innerHTML=usersCache.map(u=>`<tr>
@@ -1016,7 +1016,7 @@ async function confirmDelete(){
 /* ==================== LOGS ==================== */
 async function loadUserFilter(){
   try{
-    const r=await db.select('move_users',{select:'id,full_name',order:'full_name=asc'});
+    const r=await db.select('move_users',{select:'id,full_name',order:'full_name.asc'});
     const sel=document.getElementById('log-user');
     sel.innerHTML='<option value="">All Employees</option>';
     (r.data||[]).forEach(u=>sel.innerHTML+=`<option value="${u.id}">${u.full_name}</option>`);
@@ -1061,7 +1061,7 @@ async function loadLogs(){
     if(action) filters.push(`action=eq.${action}`);
     const {data}=await db.select('movement_logs',{
       select:'*,move_users(full_name,department)',
-      filters,order:'created_at=desc'
+      filters,order:'created_at.desc'
     });
     let rows=data||[];
     if(dept) rows=rows.filter(l=>l.move_users?.department===dept);
@@ -1127,7 +1127,7 @@ async function loadQR(){
   const display=document.getElementById('qr-display');
   display.innerHTML='<p style="color:var(--text2);font-size:13px">Loading QR…</p>';
   try{
-    const r=await db.select('move_qr_codes',{filters:['is_active=eq.true'],order:'created_at=desc',limit:1});
+    const r=await db.select('move_qr_codes',{filters:['is_active=eq.true'],order:'created_at.desc',limit:1});
     let qr=r.data?.[0];
     if(!qr){
       qr=await generateNewQR();
