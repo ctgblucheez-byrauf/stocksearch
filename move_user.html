@@ -780,55 +780,90 @@ const sb = {
     'Content-Type': 'application/json',
     'Prefer': 'return=representation'
   },
-  async from(table) {
+  from(table) {
     const base = `${SUPABASE_URL}/rest/v1/${table}`;
-    return {
-      _url: base, _filters:[], _select:'*', _order:null, _limit:null, _single:false,
-      select(cols='*'){ this._select=cols; return this; },
-      eq(col,val){ this._filters.push(`${col}=eq.${encodeURIComponent(val)}`); return this; },
-      neq(col,val){ this._filters.push(`${col}=neq.${encodeURIComponent(val)}`); return this; },
-      gte(col,val){ this._filters.push(`${col}=gte.${encodeURIComponent(val)}`); return this; },
-      lte(col,val){ this._filters.push(`${col}=lte.${encodeURIComponent(val)}`); return this; },
-      order(col,{ascending=true}={}){ this._order=`${col}=${ascending?'asc':'desc'}`; return this; },
-      limit(n){ this._limit=n; return this; },
-      single(){ this._single=true; return this; },
-      async get(){
-        let url=`${this._url}?select=${this._select}`;
-        if(this._filters.length) url+='&'+this._filters.join('&');
-        if(this._order) url+=`&order=${this._order}`;
-        if(this._limit) url+=`&limit=${this._limit}`;
-        const r=await fetch(url,{headers:sb.headers});
-        const d=await r.json();
-        if(!r.ok) throw d;
-        return {data:this._single?(Array.isArray(d)?d[0]:d):d,error:null};
+    const q = {
+      _url: base,
+      _params: new URLSearchParams(),
+      _single: false,
+
+      select(cols = '*') {
+        this._params.set('select', cols);
+        return this;
       },
-      async insert(body){
-        const r=await fetch(this._url,{method:'POST',headers:sb.headers,body:JSON.stringify(body)});
-        const d=await r.json();
-        if(!r.ok) throw d;
-        return {data:Array.isArray(d)?d[0]:d,error:null};
+      eq(col, val) {
+        this._params.append(col, `eq.${val}`);
+        return this;
       },
-      async update(body){
-        let url=`${this._url}?`;
-        if(this._filters.length) url+=this._filters.join('&');
-        const r=await fetch(url,{method:'PATCH',headers:sb.headers,body:JSON.stringify(body)});
-        const d=await r.json();
-        if(!r.ok) throw d;
-        return {data:d,error:null};
+      neq(col, val) {
+        this._params.append(col, `neq.${val}`);
+        return this;
       },
-      async rpc(fn,params){
-        const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:sb.headers,body:JSON.stringify(params)});
-        const d=await r.json();
-        if(!r.ok) throw d;
-        return {data:d,error:null};
+      gte(col, val) {
+        this._params.append(col, `gte.${val}`);
+        return this;
+      },
+      lte(col, val) {
+        this._params.append(col, `lte.${val}`);
+        return this;
+      },
+      order(col, { ascending = true } = {}) {
+        this._params.append('order', `${col}.${ascending ? 'asc' : 'desc'}`);
+        return this;
+      },
+      limit(n) {
+        this._params.set('limit', n);
+        return this;
+      },
+      single() {
+        this._single = true;
+        return this;
+      },
+      async get() {
+        if (!this._params.has('select')) this._params.set('select', '*');
+        const url = `${this._url}?${this._params.toString()}`;
+        const headers = { ...sb.headers };
+        if (this._single) headers['Accept'] = 'application/vnd.pgrst.object+json';
+        const r = await fetch(url, { headers });
+        const d = await r.json();
+        if (!r.ok) throw d;
+        return { data: d, error: null };
+      },
+      async insert(body) {
+        const r = await fetch(this._url, {
+          method: 'POST',
+          headers: sb.headers,
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (!r.ok) throw d;
+        return { data: Array.isArray(d) ? d[0] : d, error: null };
+      },
+      async update(body) {
+        const url = `${this._url}?${this._params.toString()}`;
+        const r = await fetch(url, {
+          method: 'PATCH',
+          headers: sb.headers,
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (!r.ok) throw d;
+        return { data: d, error: null };
       }
     };
+    // default select
+    q._params.set('select', '*');
+    return q;
   },
-  async rpc(fn,params={}){
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:sb.headers,body:JSON.stringify(params)});
-    const d=await r.json();
-    if(!r.ok) throw d;
-    return {data:d,error:null};
+  async rpc(fn, params = {}) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+      method: 'POST',
+      headers: sb.headers,
+      body: JSON.stringify(params)
+    });
+    const d = await r.json();
+    if (!r.ok) throw d;
+    return { data: d, error: null };
   }
 };
 
@@ -840,14 +875,14 @@ let scannerRunning = false;
 let refreshTimer = null;
 
 /* ==================== SESSION ==================== */
-function saveSession(user){ localStorage.setItem('mv_user', JSON.stringify(user)); }
-function loadSession(){ try{ return JSON.parse(localStorage.getItem('mv_user')); }catch(e){ return null; } }
-function clearSession(){ localStorage.removeItem('mv_user'); }
+function saveSession(user) { localStorage.setItem('mv_user', JSON.stringify(user)); }
+function loadSession() { try { return JSON.parse(localStorage.getItem('mv_user')); } catch (e) { return null; } }
+function clearSession() { localStorage.removeItem('mv_user'); }
 
 /* ==================== INIT ==================== */
 window.addEventListener('DOMContentLoaded', async () => {
   currentUser = loadSession();
-  if(currentUser){
+  if (currentUser) {
     showApp();
     loadUserData();
   } else {
@@ -856,56 +891,60 @@ window.addEventListener('DOMContentLoaded', async () => {
   setDateLabel();
 });
 
-function setDateLabel(){
+function setDateLabel() {
   const now = new Date();
-  const opts = {weekday:'long',year:'numeric',month:'long',day:'numeric'};
+  const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   const label = now.toLocaleDateString('en-US', opts);
   const el = document.getElementById('today-date-lbl');
-  if(el) el.textContent = label;
+  if (el) el.textContent = label;
 }
 
 /* ==================== LOGIN ==================== */
-async function loadEmployeeDropdown(){
+async function loadEmployeeDropdown() {
   try {
-    const q = await (await sb.from('move_users')).select('id,full_name,username').eq('status','active').order('full_name',{ascending:true}).get();
+    const q = sb.from('move_users')
+      .select('id,full_name,username')
+      .eq('status', 'active')
+      .order('full_name', { ascending: true });
+    const result = await q.get();
     const sel = document.getElementById('login-username');
     sel.innerHTML = '<option value="">— Select your name —</option>';
-    (q.data || []).forEach(u => {
+    (result.data || []).forEach(u => {
       sel.innerHTML += `<option value="${u.id}" data-uname="${u.username}">${u.full_name}</option>`;
     });
-  } catch(e){
-    showToast('Failed to load employees','error');
+  } catch (e) {
+    console.error('Dropdown error:', e);
+    showToast('Failed to load employees', 'error');
   }
 }
 
-async function doLogin(){
+async function doLogin() {
   const sel = document.getElementById('login-username');
   const userId = sel.value;
   const pw = document.getElementById('login-password').value;
-  if(!userId){ showToast('Please select your name','error'); return; }
-  if(!pw){ showToast('Please enter your password','error'); return; }
+  if (!userId) { showToast('Please select your name', 'error'); return; }
+  if (!pw) { showToast('Please enter your password', 'error'); return; }
   const btn = document.getElementById('btn-login');
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
     const opt = sel.options[sel.selectedIndex];
     const username = opt.getAttribute('data-uname');
-    // Verify password via RPC
     const r = await sb.rpc('verify_move_user_password', { p_username: username, p_password: pw });
-    if(!r.data){ showToast('Invalid password','error'); btn.disabled=false; btn.textContent='Sign In'; return; }
-    // Load full user
-    const ur = await (await sb.from('move_users')).select('*').eq('id',userId).single().get();
+    if (!r.data) { showToast('Invalid password', 'error'); btn.disabled = false; btn.textContent = 'Sign In'; return; }
+    const ur = await sb.from('move_users').select('*').eq('id', userId).single().get();
     currentUser = ur.data;
     saveSession(currentUser);
     showApp();
     loadUserData();
-  } catch(e){
-    showToast('Login failed. Try again.','error');
-    btn.disabled=false; btn.textContent='Sign In';
+  } catch (e) {
+    console.error('Login error:', e);
+    showToast('Login failed. Try again.', 'error');
+    btn.disabled = false; btn.textContent = 'Sign In';
   }
 }
 
-function doLogout(){
-  if(scannerRunning) stopScanner();
+function doLogout() {
+  if (scannerRunning) stopScanner();
   clearInterval(refreshTimer);
   clearSession();
   currentUser = null;
@@ -914,27 +953,26 @@ function doLogout(){
   loadEmployeeDropdown();
 }
 
-function togglePw(){
+function togglePw() {
   const inp = document.getElementById('login-password');
   const eye = document.getElementById('pw-eye');
-  if(inp.type==='password'){ inp.type='text'; eye.textContent='visibility'; }
-  else { inp.type='password'; eye.textContent='visibility_off'; }
+  if (inp.type === 'password') { inp.type = 'text'; eye.textContent = 'visibility'; }
+  else { inp.type = 'password'; eye.textContent = 'visibility_off'; }
 }
 
 /* ==================== APP ==================== */
-function showApp(){
+function showApp() {
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   showPage('camera');
 }
 
-function loadUserData(){
-  if(!currentUser) return;
-  const initials = (currentUser.full_name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  // Avatars
-  ['top-avatar','hist-avatar','out-avatar'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.textContent=initials;
+function loadUserData() {
+  if (!currentUser) return;
+  const initials = (currentUser.full_name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  ['top-avatar', 'hist-avatar', 'out-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = initials;
   });
   document.getElementById('prof-avatar').textContent = initials;
   document.getElementById('prof-name').textContent = currentUser.full_name || '–';
@@ -942,34 +980,32 @@ function loadUserData(){
   document.getElementById('prof-dept').textContent = currentUser.department || '–';
   document.getElementById('prof-phone').textContent = currentUser.phone || '–';
   document.getElementById('prof-empid').textContent = currentUser.employee_id || '–';
-  // Greeting
   const h = new Date().getHours();
-  const g = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
   const greet = document.getElementById('cam-greeting');
-  if(greet) greet.textContent = `${g}, ${(currentUser.full_name||'').split(' ')[0]}`;
+  if (greet) greet.textContent = `${g}, ${(currentUser.full_name || '').split(' ')[0]}`;
   updateNextActionBadge();
   loadProfile();
-  // Auto-refresh outside every 30s
-  refreshTimer = setInterval(()=>{
-    if(document.getElementById('page-outside').classList.contains('active')) loadOutside();
+  refreshTimer = setInterval(() => {
+    if (document.getElementById('page-outside').classList.contains('active')) loadOutside();
   }, 30000);
 }
 
-function showPage(page){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`page-${page}`).classList.add('active');
   document.getElementById(`nav-${page}`).classList.add('active');
-  if(page==='history') loadHistory();
-  if(page==='outside') loadOutside();
-  if(page==='profile') loadProfile();
-  if(page!=='camera' && scannerRunning) stopScanner();
+  if (page === 'history') loadHistory();
+  if (page === 'outside') loadOutside();
+  if (page === 'profile') loadProfile();
+  if (page !== 'camera' && scannerRunning) stopScanner();
 }
 
 /* ==================== SCANNER ==================== */
-async function startScanner(){
-  document.getElementById('start-scan-btn').style.display='none';
-  document.getElementById('stop-scan-btn').style.display='flex';
+async function startScanner() {
+  document.getElementById('start-scan-btn').style.display = 'none';
+  document.getElementById('stop-scan-btn').style.display = 'flex';
   scannerRunning = true;
   scannerInstance = new Html5Qrcode("qr-reader");
   try {
@@ -979,72 +1015,74 @@ async function startScanner(){
       onQrSuccess,
       () => {}
     );
-  } catch(e){
-    showToast('Camera permission denied','error');
+  } catch (e) {
+    showToast('Camera permission denied', 'error');
     stopScanner();
   }
 }
 
-async function stopScanner(){
-  if(scannerInstance && scannerRunning){
-    try { await scannerInstance.stop(); } catch(e){}
-    try { scannerInstance.clear(); } catch(e){}
+async function stopScanner() {
+  if (scannerInstance && scannerRunning) {
+    try { await scannerInstance.stop(); } catch (e) {}
+    try { scannerInstance.clear(); } catch (e) {}
   }
   scannerRunning = false;
-  document.getElementById('start-scan-btn').style.display='flex';
-  document.getElementById('stop-scan-btn').style.display='none';
+  document.getElementById('start-scan-btn').style.display = 'flex';
+  document.getElementById('stop-scan-btn').style.display = 'none';
 }
 
-async function onQrSuccess(decodedText){
-  if(!scannerRunning) return;
+async function onQrSuccess(decodedText) {
+  if (!scannerRunning) return;
   await stopScanner();
-
-  // Validate QR against move_qr_codes table
   try {
-    const qr = await (await sb.from('move_qr_codes')).select('id,code,is_active').eq('code', decodedText).eq('is_active', true).single().get();
-    if(!qr.data){ showToast('Invalid or expired QR code','error'); return; }
-  } catch(e){
-    showToast('Invalid QR code','error'); return;
+    const qr = await sb.from('move_qr_codes')
+      .select('id,code,is_active')
+      .eq('code', decodedText)
+      .eq('is_active', true)
+      .single()
+      .get();
+    if (!qr.data) { showToast('Invalid or expired QR code', 'error'); return; }
+  } catch (e) {
+    showToast('Invalid QR code', 'error'); return;
   }
-
-  // Determine next action
   const action = await getNextAction();
-  if(action === 'OUT'){
+  if (action === 'OUT') {
     openReasonModal();
   } else {
     await doCheckIn();
   }
 }
 
-async function getNextAction(){
+async function getNextAction() {
   try {
     const today = todayStr();
-    const r = await (await sb.from('movement_logs'))
+    const r = await sb.from('movement_logs')
       .select('id,action')
       .eq('user_id', currentUser.id)
-      .gte('created_at', today+'T00:00:00')
-      .lte('created_at', today+'T23:59:59')
-      .order('created_at',{ascending:false})
+      .gte('created_at', today + 'T00:00:00')
+      .lte('created_at', today + 'T23:59:59')
+      .order('created_at', { ascending: false })
       .limit(1)
       .get();
-    if(!r.data || r.data.length===0) return 'IN';
-    return r.data[0].action === 'IN' ? 'OUT' : 'IN';
-  } catch(e){ return 'IN'; }
+    const data = Array.isArray(r.data) ? r.data : (r.data ? [r.data] : []);
+    if (!data.length) return 'IN';
+    return data[0].action === 'IN' ? 'OUT' : 'IN';
+  } catch (e) { return 'IN'; }
 }
 
-async function updateNextActionBadge(){
+async function updateNextActionBadge() {
   const action = await getNextAction();
   const badge = document.getElementById('next-action-badge');
-  if(badge){
-    badge.innerHTML = action==='IN'
+  if (badge) {
+    badge.innerHTML = action === 'IN'
       ? `<div class="scan-status in"><span class="material-icons-round">arrow_downward</span>Next scan: <strong>CHECK IN</strong></div>`
       : `<div class="scan-status out"><span class="material-icons-round">arrow_upward</span>Next scan: <strong>CHECK OUT</strong></div>`;
   }
 }
 
-async function doCheckIn(){
+async function doCheckIn() {
   try {
-    await (await sb.from('movement_logs')).insert({
+    await sb.from('movement_logs').insert({
       user_id: currentUser.id,
       action: 'IN',
       reason: null
@@ -1052,66 +1090,65 @@ async function doCheckIn(){
     showSuccess('IN');
     updateNextActionBadge();
     loadProfile();
-  } catch(e){
-    showToast('Failed to record check-in','error');
+  } catch (e) {
+    showToast('Failed to record check-in', 'error');
   }
 }
 
 /* ==================== REASON MODAL ==================== */
-function openReasonModal(){
+function openReasonModal() {
   selectedReason = '';
-  document.getElementById('other-reason-input').style.display='none';
-  document.getElementById('other-reason-input').value='';
-  document.querySelectorAll('.reason-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('other-reason-input').style.display = 'none';
+  document.getElementById('other-reason-input').value = '';
+  document.querySelectorAll('.reason-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('btn-confirm-checkout').disabled = true;
   document.getElementById('reason-modal').classList.add('show');
 }
 
-function closeReasonModal(){ document.getElementById('reason-modal').classList.remove('show'); }
+function closeReasonModal() { document.getElementById('reason-modal').classList.remove('show'); }
 
-function selectReason(reason){
+function selectReason(reason) {
   selectedReason = reason;
-  document.querySelectorAll('.reason-btn').forEach(b=>{
+  document.querySelectorAll('.reason-btn').forEach(b => {
     b.classList.toggle('selected', b.dataset.reason === reason);
   });
   const oi = document.getElementById('other-reason-input');
-  oi.style.display = reason==='Other' ? 'block' : 'none';
-  if(reason !== 'Other') document.getElementById('btn-confirm-checkout').disabled = false;
+  oi.style.display = reason === 'Other' ? 'block' : 'none';
+  if (reason !== 'Other') document.getElementById('btn-confirm-checkout').disabled = false;
   else document.getElementById('btn-confirm-checkout').disabled = !oi.value.trim();
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{
+document.addEventListener('DOMContentLoaded', () => {
   const oi = document.getElementById('other-reason-input');
-  if(oi) oi.addEventListener('input', ()=>{
+  if (oi) oi.addEventListener('input', () => {
     document.getElementById('btn-confirm-checkout').disabled = !oi.value.trim();
   });
 });
 
-async function confirmCheckout(){
-  const finalReason = selectedReason==='Other'
+async function confirmCheckout() {
+  const finalReason = selectedReason === 'Other'
     ? document.getElementById('other-reason-input').value.trim()
     : selectedReason;
-  if(!finalReason){ showToast('Please select a reason','error'); return; }
+  if (!finalReason) { showToast('Please select a reason', 'error'); return; }
 
-  // Check exit limit
   try {
     const today = todayStr();
     const limit = currentUser.exit_limit || 3;
-    const r = await (await sb.from('movement_logs'))
+    const r = await sb.from('movement_logs')
       .select('id')
       .eq('user_id', currentUser.id)
-      .eq('action','OUT')
-      .gte('created_at', today+'T00:00:00')
-      .lte('created_at', today+'T23:59:59')
+      .eq('action', 'OUT')
+      .gte('created_at', today + 'T00:00:00')
+      .lte('created_at', today + 'T23:59:59')
       .get();
-    const exitCount = (r.data||[]).length;
-    if(exitCount >= limit){
+    const data = Array.isArray(r.data) ? r.data : (r.data ? [r.data] : []);
+    const exitCount = data.length;
+    if (exitCount >= limit) {
       closeReasonModal();
       showExitLimitAlert();
       return;
     }
-
-    await (await sb.from('movement_logs')).insert({
+    await sb.from('movement_logs').insert({
       user_id: currentUser.id,
       action: 'OUT',
       reason: finalReason
@@ -1120,17 +1157,16 @@ async function confirmCheckout(){
     showSuccess('OUT');
     updateNextActionBadge();
     loadProfile();
-  } catch(e){
-    showToast('Failed to record check-out','error');
+  } catch (e) {
+    showToast('Failed to record check-out', 'error');
   }
 }
 
-function showExitLimitAlert(){
-  showToast('Exit limit reached – contact your manager','error');
-  // Show detailed modal re-use
+function showExitLimitAlert() {
+  showToast('Exit limit reached – contact your manager', 'error');
   const overlay = document.createElement('div');
-  overlay.className='modal-overlay show';
-  overlay.innerHTML=`<div class="modal">
+  overlay.className = 'modal-overlay show';
+  overlay.innerHTML = `<div class="modal">
     <div class="modal-handle"></div>
     <div style="text-align:center;padding:8px 0 20px">
       <span class="material-icons-round" style="font-size:48px;color:var(--red)">block</span>
@@ -1152,57 +1188,57 @@ function showExitLimitAlert(){
 }
 
 /* ==================== HISTORY ==================== */
-async function loadHistory(){
+async function loadHistory() {
   const list = document.getElementById('history-list');
   list.innerHTML = '<div class="skel-item skeleton"></div><div class="skel-item skeleton"></div><div class="skel-item skeleton"></div>';
   try {
     const today = todayStr();
-    const r = await (await sb.from('movement_logs'))
+    const r = await sb.from('movement_logs')
       .select('*')
       .eq('user_id', currentUser.id)
-      .gte('created_at', today+'T00:00:00')
-      .lte('created_at', today+'T23:59:59')
-      .order('created_at',{ascending:false})
+      .gte('created_at', today + 'T00:00:00')
+      .lte('created_at', today + 'T23:59:59')
+      .order('created_at', { ascending: false })
       .get();
-    const logs = r.data || [];
-    // Stats
-    const inC = logs.filter(l=>l.action==='IN').length;
-    const outC = logs.filter(l=>l.action==='OUT').length;
+    const logs = Array.isArray(r.data) ? r.data : (r.data ? [r.data] : []);
+    const inC = logs.filter(l => l.action === 'IN').length;
+    const outC = logs.filter(l => l.action === 'OUT').length;
     document.getElementById('hist-in-count').textContent = inC;
     document.getElementById('hist-out-count').textContent = outC;
-    // Outside duration
     const totalMs = calcTotalOutside(logs);
     document.getElementById('hist-outside-dur').textContent = msToHMM(totalMs);
-    // List
-    if(!logs.length){ list.innerHTML=`<div class="empty"><span class="material-icons-round">history</span><h4>No records today</h4><p>Scan the QR code to get started</p></div>`; return; }
-    list.innerHTML='';
-    logs.forEach((log,i)=>{
-      const isIN = log.action==='IN';
+    if (!logs.length) {
+      list.innerHTML = `<div class="empty"><span class="material-icons-round">history</span><h4>No records today</h4><p>Scan the QR code to get started</p></div>`;
+      return;
+    }
+    list.innerHTML = '';
+    logs.forEach((log, i) => {
+      const isIN = log.action === 'IN';
       const dur = calcDuration(log, logs.slice(i));
-      list.innerHTML+=`<div class="movement-item">
-        <div class="mv-icon ${isIN?'in':'out'}">
-          <span class="material-icons-round">${isIN?'arrow_downward':'arrow_upward'}</span>
+      list.innerHTML += `<div class="movement-item">
+        <div class="mv-icon ${isIN ? 'in' : 'out'}">
+          <span class="material-icons-round">${isIN ? 'arrow_downward' : 'arrow_upward'}</span>
         </div>
         <div class="mv-info">
-          <div class="mv-status" style="color:${isIN?'var(--green)':'var(--red)'}">${isIN?'Checked In':'Checked Out'}</div>
+          <div class="mv-status" style="color:${isIN ? 'var(--green)' : 'var(--red)'}">${isIN ? 'Checked In' : 'Checked Out'}</div>
           <div class="mv-time">${formatTime(log.created_at)}</div>
-          ${log.reason?`<div class="mv-reason">${log.reason}</div>`:''}
+          ${log.reason ? `<div class="mv-reason">${log.reason}</div>` : ''}
         </div>
-        <div class="mv-dur">${dur||''}</div>
+        <div class="mv-dur">${dur || ''}</div>
       </div>`;
     });
-  } catch(e){
-    list.innerHTML='<div class="empty"><span class="material-icons-round">error</span><h4>Failed to load</h4><p>Check your connection</p></div>';
+  } catch (e) {
+    list.innerHTML = '<div class="empty"><span class="material-icons-round">error</span><h4>Failed to load</h4><p>Check your connection</p></div>';
   }
 }
 
-function calcTotalOutside(logs){
+function calcTotalOutside(logs) {
   let total = 0;
-  const sorted = [...logs].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-  for(let i=0;i<sorted.length;i++){
-    if(sorted[i].action==='OUT'){
+  const sorted = [...logs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  for (let i = 0; i < sorted.length; i++) {
+    if (sorted[i].action === 'OUT') {
       const outT = new Date(sorted[i].created_at);
-      const inNext = sorted.find((l,j)=>j>i&&l.action==='IN');
+      const inNext = sorted.find((l, j) => j > i && l.action === 'IN');
       const inT = inNext ? new Date(inNext.created_at) : new Date();
       total += inT - outT;
     }
@@ -1210,132 +1246,131 @@ function calcTotalOutside(logs){
   return total;
 }
 
-function calcDuration(log, subsequentLogs){
-  if(log.action!=='OUT') return '';
+function calcDuration(log, subsequentLogs) {
+  if (log.action !== 'OUT') return '';
   const outT = new Date(log.created_at);
-  const sorted=[...subsequentLogs].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-  const inNext = sorted.find(l=>l.action==='IN'&&new Date(l.created_at)>outT);
+  const sorted = [...subsequentLogs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const inNext = sorted.find(l => l.action === 'IN' && new Date(l.created_at) > outT);
   const inT = inNext ? new Date(inNext.created_at) : new Date();
   return msToHMM(inT - outT);
 }
 
-function msToHMM(ms){
-  if(ms<=0) return '00:00';
-  const m=Math.floor(ms/60000);
-  const h=Math.floor(m/60);
-  return h>0?`${h}h ${m%60}m`:`${m}m`;
+function msToHMM(ms) {
+  if (ms <= 0) return '00:00';
+  const m = Math.floor(ms / 60000);
+  const h = Math.floor(m / 60);
+  return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
 }
 
 /* ==================== OUTSIDE ==================== */
-async function loadOutside(){
+async function loadOutside() {
   const list = document.getElementById('outside-list');
-  list.innerHTML='<div class="skel-item skeleton"></div><div class="skel-item skeleton"></div>';
+  list.innerHTML = '<div class="skel-item skeleton"></div><div class="skel-item skeleton"></div>';
   try {
     const today = todayStr();
-    // Get all today's logs
-    const r = await (await sb.from('movement_logs'))
+    const r = await sb.from('movement_logs')
       .select('user_id,action,created_at,reason')
-      .gte('created_at', today+'T00:00:00')
-      .lte('created_at', today+'T23:59:59')
-      .order('created_at',{ascending:true})
+      .gte('created_at', today + 'T00:00:00')
+      .lte('created_at', today + 'T23:59:59')
+      .order('created_at', { ascending: true })
       .get();
-    const logs = r.data || [];
-    // Find who is currently OUT
+    const logs = Array.isArray(r.data) ? r.data : (r.data ? [r.data] : []);
     const userLastAction = {};
     logs.forEach(l => { userLastAction[l.user_id] = l; });
-    const outsideIds = Object.entries(userLastAction).filter(([uid,l])=>l.action==='OUT').map(([uid,l])=>({uid,log:l}));
+    const outsideIds = Object.entries(userLastAction)
+      .filter(([uid, l]) => l.action === 'OUT')
+      .map(([uid, l]) => ({ uid, log: l }));
 
     document.getElementById('outside-count-lbl').textContent = `${outsideIds.length} Outside Now`;
 
-    if(!outsideIds.length){
-      list.innerHTML=`<div class="empty"><span class="material-icons-round">group</span><h4>Everyone is inside</h4><p>No employees are currently outside</p></div>`;
+    if (!outsideIds.length) {
+      list.innerHTML = `<div class="empty"><span class="material-icons-round">group</span><h4>Everyone is inside</h4><p>No employees are currently outside</p></div>`;
       return;
     }
-    // Load user details
-    const userIds = outsideIds.map(o=>o.uid);
-    const ur = await (await sb.from('move_users')).select('id,full_name,department').get();
+    const ur = await sb.from('move_users').select('id,full_name,department').get();
     const users = {};
-    (ur.data||[]).forEach(u=>users[u.id]=u);
+    (Array.isArray(ur.data) ? ur.data : []).forEach(u => users[u.id] = u);
 
-    list.innerHTML='';
-    outsideIds.forEach(({uid,log})=>{
-      const u = users[uid] || {full_name:'Unknown',department:''};
-      const initials = u.full_name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    list.innerHTML = '';
+    outsideIds.forEach(({ uid, log }) => {
+      const u = users[uid] || { full_name: 'Unknown', department: '' };
+      const initials = u.full_name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
       const exitT = new Date(log.created_at);
-      const dur = msToHMM(new Date()-exitT);
-      list.innerHTML+=`<div class="outside-item">
+      const dur = msToHMM(new Date() - exitT);
+      list.innerHTML += `<div class="outside-item">
         <div class="outside-avatar">${initials}</div>
         <div class="outside-info">
           <div class="outside-name">${u.full_name}</div>
-          <div class="outside-dept">${u.department||'–'}</div>
+          <div class="outside-dept">${u.department || '–'}</div>
           <div class="badge-out">Outside</div>
         </div>
         <div class="outside-time">
           <div class="exit-t">Since ${formatTime(log.created_at)}</div>
           <div class="dur">${dur}</div>
-          ${log.reason?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${log.reason}</div>`:''}
+          ${log.reason ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">${log.reason}</div>` : ''}
         </div>
       </div>`;
     });
-  } catch(e){
-    list.innerHTML='<div class="empty"><span class="material-icons-round">error</span><h4>Failed to load</h4><p>Check connection</p></div>';
+  } catch (e) {
+    list.innerHTML = '<div class="empty"><span class="material-icons-round">error</span><h4>Failed to load</h4><p>Check connection</p></div>';
   }
 }
 
 /* ==================== PROFILE ==================== */
-async function loadProfile(){
+async function loadProfile() {
   try {
     const today = todayStr();
-    const r = await (await sb.from('movement_logs'))
+    const r = await sb.from('movement_logs')
       .select('id,action')
-      .eq('user_id',currentUser.id)
-      .eq('action','OUT')
-      .gte('created_at',today+'T00:00:00')
-      .lte('created_at',today+'T23:59:59')
+      .eq('user_id', currentUser.id)
+      .eq('action', 'OUT')
+      .gte('created_at', today + 'T00:00:00')
+      .lte('created_at', today + 'T23:59:59')
       .get();
-    const exits = (r.data||[]).length;
+    const data = Array.isArray(r.data) ? r.data : (r.data ? [r.data] : []);
+    const exits = data.length;
     const limit = currentUser.exit_limit || 3;
     document.getElementById('prof-exits').textContent = `${exits} / ${limit}`;
     document.getElementById('prof-exit-limit').textContent = `${limit} exits per day`;
-  } catch(e){}
+  } catch (e) {}
 }
 
 /* ==================== HELPERS ==================== */
-function todayStr(){ return new Date().toISOString().split('T')[0]; }
-function formatTime(iso){
-  if(!iso) return '–';
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function formatTime(iso) {
+  if (!iso) return '–';
   const d = new Date(iso);
-  return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
-function showSuccess(type){
+function showSuccess(type) {
   const overlay = document.getElementById('success-overlay');
   const circle = document.getElementById('success-circle');
   const icon = document.getElementById('success-icon');
   const txt = document.getElementById('success-txt');
   const sub = document.getElementById('success-sub');
   const time = formatTime(new Date().toISOString());
-  if(type==='IN'){
-    circle.className='success-circle in-c';
-    icon.textContent='arrow_downward';
-    txt.textContent='Successfully Checked In';
+  if (type === 'IN') {
+    circle.className = 'success-circle in-c';
+    icon.textContent = 'arrow_downward';
+    txt.textContent = 'Successfully Checked In';
   } else {
-    circle.className='success-circle out-c';
-    icon.textContent='arrow_upward';
-    txt.textContent='Successfully Checked Out';
+    circle.className = 'success-circle out-c';
+    icon.textContent = 'arrow_upward';
+    txt.textContent = 'Successfully Checked Out';
   }
-  sub.textContent=`Recorded at ${time}`;
+  sub.textContent = `Recorded at ${time}`;
   overlay.classList.add('show');
-  setTimeout(()=>overlay.classList.remove('show'),2200);
+  setTimeout(() => overlay.classList.remove('show'), 2200);
 }
 
-function showToast(msg,type='info'){
-  const icons={success:'check_circle',error:'error',info:'info'};
-  const t=document.createElement('div');
-  t.className=`toast ${type}`;
-  t.innerHTML=`<span class="material-icons-round">${icons[type]||'info'}</span>${msg}`;
+function showToast(msg, type = 'info') {
+  const icons = { success: 'check_circle', error: 'error', info: 'info' };
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="material-icons-round">${icons[type] || 'info'}</span>${msg}`;
   document.getElementById('toast-container').appendChild(t);
-  setTimeout(()=>t.style.opacity='0',2800);
-  setTimeout(()=>t.remove(),3100);
+  setTimeout(() => t.style.opacity = '0', 2800);
+  setTimeout(() => t.remove(), 3100);
 }
 </script>
 </body>
