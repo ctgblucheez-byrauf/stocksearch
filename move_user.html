@@ -1027,9 +1027,9 @@ async function getNextAction(){
       .order('created_at',{ascending:false})
       .limit(1)
       .get();
-    if(!r.data || r.data.length===0) return 'IN';
+    if(!r.data || r.data.length===0) return 'OUT';
     return r.data[0].action === 'IN' ? 'OUT' : 'IN';
-  } catch(e){ return 'IN'; }
+  } catch(e){ return 'OUT'; }
 }
 
 async function updateNextActionBadge(){
