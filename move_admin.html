@@ -577,8 +577,8 @@ tbody td:first-child{font-weight:500;}
         <input type="password" id="uf-password" placeholder="Min 6 chars" />
       </div>
       <div class="form-group">
-        <label>Employee ID</label>
-        <input type="text" id="uf-empid" placeholder="EMP-001" />
+        <label>Employee ID <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(auto-generated)</span></label>
+        <input type="text" id="uf-empid" placeholder="EMP-001" readonly style="opacity:0.7;cursor:not-allowed;" />
       </div>
       <div class="form-group">
         <label>Department</label>
@@ -747,6 +747,19 @@ class SB {
     if(offset!==null) url+=`&offset=${offset}`;
     return url;
   }
+  // Safely parses a fetch Response body as JSON.
+  // Handles empty bodies (204 No Content, or a PATCH/POST that matched
+  // zero rows under RLS) and non-JSON bodies without throwing.
+  async _safeJson(r){
+    const text = await r.text();
+    if(!text || !text.trim()) return null;
+    try { return JSON.parse(text); }
+    catch(e){ return { message: text }; }
+  }
+  _errMsg(d, fallback){
+    if(!d) return fallback;
+    return d.message || d.msg || d.error_description || d.hint || d.details || fallback;
+  }
   async select(table,{select='*',filters=[],order=null,limit=null,offset=null,count=false}={}){
     const url=this._buildUrl(table,filters,select,order,limit,offset);
     const r = await this._request(async (headers)=>{
@@ -754,19 +767,22 @@ class SB {
       if(count) heads['Prefer']='count=exact';
       return fetch(url,{headers:heads});
     });
-    const d=await r.json();
-    if(!r.ok) throw d;
+    const d = await this._safeJson(r);
+    if(!r.ok) throw new Error(this._errMsg(d, `Request failed (${r.status})`));
     const total=count?parseInt(r.headers.get('content-range')?.split('/')[1]||0):null;
-    return {data:d,count:total};
+    return {data:d||[],count:total};
   }
   async insert(table,body){
     const r = await this._request((headers)=>
       fetch(`${this.url}/rest/v1/${table}`,{method:'POST',headers,body:JSON.stringify(body)})
     );
-    const d=await r.json();
+    const d = await this._safeJson(r);
     if(!r.ok){
-      const msg = d.message || d.msg || d.error_description || d.hint || d.details || JSON.stringify(d);
-      throw new Error(msg);
+      throw new Error(this._errMsg(d, `Insert failed (${r.status})`));
+    }
+    if(!d){
+      // POST succeeded (2xx) but returned no body — treat as success with no representation.
+      return {data:null};
     }
     return {data:Array.isArray(d)?d[0]:d};
   }
@@ -776,10 +792,16 @@ class SB {
     const r = await this._request((headers)=>
       fetch(url,{method:'PATCH',headers,body:JSON.stringify(body)})
     );
-    const d=await r.json();
+    const d = await this._safeJson(r);
     if(!r.ok){
-      const msg = d.message || d.msg || d.error_description || d.hint || d.details || JSON.stringify(d);
-      throw new Error(msg);
+      throw new Error(this._errMsg(d, `Update failed (${r.status})`));
+    }
+    // A successful PATCH (2xx) with an empty array/body usually means
+    // the filter matched zero rows (e.g. RLS denied access to this row,
+    // or the id no longer exists) rather than a genuine error — surface
+    // that clearly instead of silently appearing to succeed.
+    if(Array.isArray(d) && d.length===0){
+      throw new Error('No matching record was updated. The employee may have been deleted, or you may not have permission to edit it.');
     }
     return {data:d};
   }
@@ -790,10 +812,8 @@ class SB {
       fetch(url,{method:'DELETE',headers})
     );
     if(!r.ok){
-      let d={};
-      try{ d=await r.json(); }catch(e){}
-      const msg = d.message || d.msg || d.error_description || d.hint || d.details || `Delete failed (${r.status})`;
-      throw new Error(msg);
+      const d = await this._safeJson(r);
+      throw new Error(this._errMsg(d, `Delete failed (${r.status})`));
     }
     return {data:null};
   }
@@ -801,10 +821,9 @@ class SB {
     const r = await this._request((headers)=>
       fetch(`${this.url}/rest/v1/rpc/${fn}`,{method:'POST',headers,body:JSON.stringify(params)})
     );
-    const d=await r.json();
+    const d = await this._safeJson(r);
     if(!r.ok){
-      const msg = d.message || d.msg || d.error_description || d.hint || d.details || JSON.stringify(d);
-      throw new Error(msg);
+      throw new Error(this._errMsg(d, `Request failed (${r.status})`));
     }
     return {data:d};
   }
@@ -1053,7 +1072,32 @@ async function loadUsers(){
   }catch(e){showToast('Failed to load users','error');}
 }
 
-function openUserModal(userId=null){
+// Computes the next sequential Employee ID (EMP-001, EMP-002, ...) based
+// on the highest existing numeric suffix currently in the database.
+// Always re-fetches fresh data so it stays correct even after deletions
+// (e.g. if EMP-003 is deleted, the next new user still becomes EMP-004,
+// not a re-used EMP-003 — we never just count existing rows).
+async function generateNextEmployeeId(){
+  try{
+    const r = await db.select('move_users',{select:'employee_id'});
+    let maxNum = 0;
+    (r.data||[]).forEach(u=>{
+      const m = (u.employee_id||'').match(/^EMP-(\d+)$/i);
+      if(m){
+        const n = parseInt(m[1],10);
+        if(n > maxNum) maxNum = n;
+      }
+    });
+    const next = maxNum + 1;
+    return `EMP-${String(next).padStart(3,'0')}`;
+  }catch(e){
+    // Fall back to a timestamp-based id if the lookup fails, so user
+    // creation is never blocked — still unique, just not sequential.
+    return `EMP-${Date.now().toString().slice(-6)}`;
+  }
+}
+
+async function openUserModal(userId=null){
   editingUserId=userId;
   document.getElementById('user-modal-title').textContent=userId?'Edit Employee':'Add Employee';
   document.getElementById('user-save-lbl').textContent=userId?'Save Changes':'Add Employee';
@@ -1063,6 +1107,7 @@ function openUserModal(userId=null){
   });
   document.getElementById('uf-exit-limit').value='3';
   document.getElementById('uf-status').value='active';
+  document.getElementById('user-modal').classList.add('show');
   if(userId){
     const u=usersCache.find(x=>x.id===userId);
     if(u){
@@ -1075,8 +1120,13 @@ function openUserModal(userId=null){
       document.getElementById('uf-exit-limit').value=u.exit_limit||3;
       document.getElementById('uf-status').value=u.status||'active';
     }
+  } else {
+    // New employee: auto-generate the next sequential ID.
+    const empidField = document.getElementById('uf-empid');
+    empidField.value='Generating…';
+    const nextId = await generateNextEmployeeId();
+    empidField.value = nextId;
   }
-  document.getElementById('user-modal').classList.add('show');
 }
 function closeUserModal(){ document.getElementById('user-modal').classList.remove('show'); }
 
