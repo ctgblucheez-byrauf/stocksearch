@@ -789,7 +789,7 @@ const sb = {
       neq(col,val){ this._filters.push(`${col}=neq.${encodeURIComponent(val)}`); return this; },
       gte(col,val){ this._filters.push(`${col}=gte.${encodeURIComponent(val)}`); return this; },
       lte(col,val){ this._filters.push(`${col}=lte.${encodeURIComponent(val)}`); return this; },
-      order(col,{ascending=true}={}){ this._order=`${col}=${ascending?'asc':'desc'}`; return this; },
+      order(col,{ascending=true}={}){ this._order=`${col}.${ascending?'asc':'desc'}`; return this; },
       limit(n){ this._limit=n; return this; },
       single(){ this._single=true; return this; },
       async get(){
