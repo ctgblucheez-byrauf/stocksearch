@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outlet Manifest — Address Label Management</title>
+
+<!-- Fonts: Plus Jakarta Sans (display/UI), Inter (body), JetBrains Mono (data/codes) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Supabase JS CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<style>
+/* ============================================================
+   1. DESIGN TOKENS
+   ============================================================ */
+:root{
+  --ink:#1C2541;
+  --ink-soft:#3C4358;
+  --slate:#6B7280;
+  --paper:#F7F4EF;
+  --paper-raised:#FFFFFF;
+  --paper-sunken:#EFEAE1;
+  --line:#E3DED4;
+  --accent:#C9763D;
+  --accent-dark:#A85F2D;
+  --accent-soft:#F3E2D2;
+  --success:#2F7A4D;
+  --success-soft:#E2F0E7;
+  --danger:#B3463A;
+  --danger-soft:#F7E5E2;
+  --warn-soft:#FBEFDD;
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:16px;
+  --shadow-sm:0 1px 2px rgba(28,37,65,0.06);
+  --shadow-md:0 6px 20px rgba(28,37,65,0.08);
+  --shadow-lg:0 16px 40px rgba(28,37,65,0.14);
+  --font-display:'Plus Jakarta Sans', sans-serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'JetBrains Mono', monospace;
+  --sidebar-w:240px;
+  --transition: 160ms cubic-bezier(.4,0,.2,1);
+}
+
+html[data-theme="dark"]{
+  --ink:#ECE8DE;
+  --ink-soft:#C7C2B6;
+  --slate:#9A9486;
+  --paper:#12131A;
+  --paper-raised:#1B1D26;
+  --paper-sunken:#22242E;
+  --line:#2C2E3A;
+  --accent:#E08F52;
+  --accent-dark:#C9763D;
+  --accent-soft:#3A2C20;
+  --success:#4FAE76;
+  --success-soft:#1D3026;
+  --danger:#E07567;
+  --danger-soft:#3A2421;
+  --warn-soft:#3A301F;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:0 6px 20px rgba(0,0,0,0.35);
+  --shadow-lg:0 16px 40px rgba(0,0,0,0.5);
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:var(--font-body);
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  transition:background var(--transition), color var(--transition);
+}
+h1,h2,h3,.font-display{font-family:var(--font-display);}
+button{font-family:inherit;}
+.mono{font-family:var(--font-mono);}
+::selection{background:var(--accent-soft);}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+a{color:inherit;}
+input,select,textarea{font-family:inherit;}
+
+/* ============================================================
+   2. APP SHELL / LAYOUT
+   ============================================================ */
+.app-shell{
+  display:flex;
+  min-height:100vh;
+}
+
+.sidebar{
+  width:var(--sidebar-w);
+  flex-shrink:0;
+  background:var(--paper-raised);
+  border-right:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  top:0; left:0; bottom:0;
+  z-index:100;
+  transition:transform var(--transition), background var(--transition), border-color var(--transition);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:22px 20px;
+  border-bottom:1px solid var(--line);
+}
+.brand-mark{
+  width:34px; height:34px;
+  border-radius:9px;
+  background:linear-gradient(135deg, var(--accent), var(--accent-dark));
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; flex-shrink:0;
+}
+.brand-mark svg{width:18px;height:18px;}
+.brand-text{display:flex; flex-direction:column; line-height:1.15;}
+.brand-text strong{font-family:var(--font-display); font-size:15.5px; font-weight:700; letter-spacing:-0.01em;}
+.brand-text span{font-size:11px; color:var(--slate); letter-spacing:.04em; text-transform:uppercase;}
+
+.nav{
+  flex:1;
+  padding:16px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  border:none;
+  background:transparent;
+  color:var(--ink-soft);
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+  text-align:left;
+  width:100%;
+  position:relative;
+  transition:background var(--transition), color var(--transition);
+}
+.nav-item svg{width:18px;height:18px; flex-shrink:0;}
+.nav-item:hover{background:var(--paper-sunken); color:var(--ink);}
+.nav-item.active{background:var(--accent-soft); color:var(--accent-dark); font-weight:600;}
+.nav-item.active::before{
+  content:"";
+  position:absolute; left:-12px; top:8px; bottom:8px; width:3px;
+  background:var(--accent); border-radius:0 3px 3px 0;
+}
+
+.sidebar-foot{
+  padding:14px 12px 18px;
+  border-top:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.theme-toggle{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 12px;
+  border-radius:var(--radius-sm);
+  background:var(--paper-sunken);
+  border:1px solid var(--line);
+  cursor:pointer;
+  font-size:13px;
+  color:var(--ink-soft);
+}
+.theme-toggle svg{width:15px;height:15px;}
+.config-pill{
+  font-size:11px;
+  color:var(--slate);
+  text-align:center;
+  padding-top:2px;
+}
+
+.main{
+  margin-left:var(--sidebar-w);
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+
+.topbar{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 18px;
+  background:var(--paper-raised);
+  border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:90;
+}
+.hamburger{
+  background:none; border:1px solid var(--line); border-radius:var(--radius-sm);
+  width:38px;height:38px; display:flex;align-items:center;justify-content:center;
+  cursor:pointer; color:var(--ink);
+}
+.hamburger svg{width:18px;height:18px;}
+
+.page{
+  padding:32px 36px 60px;
+  max-width:1180px;
+  width:100%;
+}
+.page-head{margin-bottom:24px;}
+.page-head h1{font-size:23px; font-weight:700; margin:0 0 4px; letter-spacing:-0.01em;}
+.page-head p{margin:0; color:var(--slate); font-size:13.5px;}
+
+.banner{
+  display:flex; gap:10px; align-items:flex-start;
+  padding:12px 14px;
+  border-radius:var(--radius-md);
+  background:var(--warn-soft);
+  border:1px solid var(--accent-soft);
+  font-size:13px;
+  color:var(--ink-soft);
+  margin-bottom:22px;
+}
+.banner svg{width:16px;height:16px; flex-shrink:0; margin-top:1px; color:var(--accent-dark);}
+.banner code{background:rgba(0,0,0,0.06); padding:1px 5px; border-radius:4px; font-family:var(--font-mono); font-size:11.5px;}
+
+/* ============================================================
+   3. CARD / PANEL
+   ============================================================ */
+.panel{
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-sm);
+  transition:background var(--transition), border-color var(--transition);
+}
+.panel-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 22px;
+  border-bottom:1px solid var(--line);
+  gap:12px; flex-wrap:wrap;
+}
+.panel-head h2{font-size:15.5px; font-weight:700; margin:0; letter-spacing:-0.005em;}
+.panel-head .sub{font-size:12px; color:var(--slate); margin-top:2px;}
+.panel-body{padding:22px;}
+
+/* ============================================================
+   4. FORM ELEMENTS
+   ============================================================ */
+.field-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.field{display:flex; flex-direction:column; gap:6px;}
+.field.full{grid-column:1 / -1;}
+.field label{font-size:12.5px; font-weight:600; color:var(--ink-soft);}
+.field label .req{color:var(--danger); margin-left:2px;}
+.field input, .field select, .field textarea{
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  background:var(--paper);
+  color:var(--ink);
+  font-size:13.5px;
+  transition:border-color var(--transition), box-shadow var(--transition);
+}
+.field textarea{resize:vertical; min-height:78px; font-family:inherit;}
+.field input:focus, .field select:focus, .field textarea:focus{
+  border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); outline:none;
+}
+.field input.invalid, .field textarea.invalid{border-color:var(--danger); box-shadow:0 0 0 3px var(--danger-soft);}
+.field-error{font-size:11.5px; color:var(--danger); min-height:14px;}
+.field-hint{font-size:11.5px; color:var(--slate);}
+
+.btn-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;}
+.btn{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:10px 16px;
+  border-radius:var(--radius-sm);
+  border:1px solid transparent;
+  font-size:13px; font-weight:600;
+  cursor:pointer;
+  transition:transform var(--transition), background var(--transition), border-color var(--transition), opacity var(--transition);
+}
+.btn svg{width:14px;height:14px;}
+.btn:active{transform:translateY(1px);}
+.btn:disabled{opacity:.5; cursor:not-allowed;}
+.btn-primary{background:var(--accent); color:#fff;}
+.btn-primary:hover:not(:disabled){background:var(--accent-dark);}
+.btn-secondary{background:var(--paper-sunken); color:var(--ink); border-color:var(--line);}
+.btn-secondary:hover:not(:disabled){background:var(--line);}
+.btn-ghost{background:transparent; color:var(--ink-soft); border-color:var(--line);}
+.btn-ghost:hover:not(:disabled){background:var(--paper-sunken);}
+.btn-danger{background:var(--danger-soft); color:var(--danger); border-color:transparent;}
+.btn-danger:hover:not(:disabled){background:var(--danger); color:#fff;}
+.btn-sm{padding:6px 11px; font-size:12px;}
+.btn-icon{padding:7px; width:32px; height:32px; justify-content:center;}
+
+/* ============================================================
+   5. TABLE
+   ============================================================ */
+.table-toolbar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:14px; flex-wrap:wrap;
+  padding:16px 22px;
+  border-bottom:1px solid var(--line);
+}
+.search-box{
+  position:relative; flex:1; min-width:200px; max-width:340px;
+}
+.search-box svg{
+  position:absolute; left:11px; top:50%; transform:translateY(-50%);
+  width:15px; height:15px; color:var(--slate);
+}
+.search-box input{
+  width:100%; padding:9px 12px 9px 34px;
+  border:1px solid var(--line); border-radius:var(--radius-sm);
+  background:var(--paper); color:var(--ink); font-size:13px;
+}
+.search-box input:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); outline:none;}
+.result-count{font-size:12px; color:var(--slate); white-space:nowrap;}
+
+.table-wrap{overflow-x:auto;}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+thead th{
+  text-align:left; padding:11px 22px;
+  font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--slate); font-weight:600;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap; cursor:pointer; user-select:none;
+}
+thead th .th-inner{display:inline-flex; align-items:center; gap:5px;}
+thead th svg{width:11px;height:11px; opacity:.45;}
+thead th.sorted{color:var(--accent-dark);}
+thead th.sorted svg{opacity:1;}
+tbody td{padding:13px 22px; border-bottom:1px solid var(--line); color:var(--ink-soft); vertical-align:top;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr{transition:background var(--transition);}
+tbody tr:hover{background:var(--paper-sunken);}
+.cell-strong{color:var(--ink); font-weight:600;}
+.cell-addr{max-width:260px; white-space:pre-wrap; line-height:1.4;}
+.cell-phone{font-family:var(--font-mono); font-size:12.5px;}
+.cell-actions{display:flex; gap:6px;}
+.empty-row td{text-align:center; padding:48px 20px; color:var(--slate);}
+.empty-state{display:flex; flex-direction:column; align-items:center; gap:8px;}
+.empty-state svg{width:34px;height:34px; opacity:.35;}
+
+.pagination{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 22px; border-top:1px solid var(--line); flex-wrap:wrap; gap:10px;
+}
+.pagination .info{font-size:12px; color:var(--slate);}
+.page-controls{display:flex; align-items:center; gap:6px;}
+.page-controls button{
+  width:30px; height:30px; border-radius:var(--radius-sm);
+  border:1px solid var(--line); background:var(--paper-raised); color:var(--ink-soft);
+  cursor:pointer; font-size:12.5px; display:flex; align-items:center; justify-content:center;
+}
+.page-controls button:hover:not(:disabled){background:var(--paper-sunken);}
+.page-controls button.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+.page-controls button:disabled{opacity:.4; cursor:not-allowed;}
+
+/* ============================================================
+   6. BADGES / TOASTS / SPINNER / MODAL
+   ============================================================ */
+.badge{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:99px; font-size:11px; font-weight:600;}
+.badge-warn{background:var(--warn-soft); color:var(--accent-dark);}
+
+.toast-stack{
+  position:fixed; bottom:20px; right:20px; z-index:1000;
+  display:flex; flex-direction:column; gap:10px; max-width:340px;
+}
+.toast{
+  display:flex; align-items:flex-start; gap:10px;
+  padding:13px 14px; border-radius:var(--radius-md);
+  background:var(--paper-raised); border:1px solid var(--line);
+  box-shadow:var(--shadow-lg); font-size:13px; color:var(--ink);
+  animation:toast-in 220ms ease;
+}
+@keyframes toast-in{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+.toast svg{width:17px;height:17px; flex-shrink:0; margin-top:1px;}
+.toast.success svg{color:var(--success);}
+.toast.error svg{color:var(--danger);}
+.toast.info svg{color:var(--accent-dark);}
+.toast-close{margin-left:auto; background:none; border:none; cursor:pointer; color:var(--slate); padding:0;}
+
+.spinner-overlay{
+  position:fixed; inset:0; background:rgba(18,19,26,0.18); backdrop-filter:blur(1px);
+  display:flex; align-items:center; justify-content:center; z-index:900;
+}
+.spinner{width:34px; height:34px; border-radius:50%; border:3px solid var(--accent-soft); border-top-color:var(--accent); animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(18,19,26,0.45);
+  display:flex; align-items:center; justify-content:center; z-index:950; padding:16px;
+  animation:fade-in 150ms ease;
+}
+@keyframes fade-in{from{opacity:0;} to{opacity:1;}}
+.modal{
+  background:var(--paper-raised); border-radius:var(--radius-lg); border:1px solid var(--line);
+  width:100%; max-width:380px; box-shadow:var(--shadow-lg); padding:22px;
+  animation:modal-in 180ms cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modal-in{from{opacity:0; transform:scale(.96) translateY(6px);} to{opacity:1; transform:scale(1) translateY(0);}}
+.modal h3{margin:0 0 8px; font-size:16px;}
+.modal p{margin:0 0 18px; font-size:13.5px; color:var(--slate); line-height:1.5;}
+.modal-icon{
+  width:42px;height:42px; border-radius:50%; background:var(--danger-soft); color:var(--danger);
+  display:flex; align-items:center; justify-content:center; margin-bottom:14px;
+}
+.modal-icon svg{width:21px;height:21px;}
+.modal-actions{display:flex; gap:10px; justify-content:flex-end;}
+
+/* ============================================================
+   7. PRINT PAGE LAYOUT
+   ============================================================ */
+.print-grid{display:grid; grid-template-columns:1.1fr 1fr; gap:22px; align-items:start;}
+.stack{display:flex; flex-direction:column; gap:22px;}
+
+.settings-grid{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-bottom:22px;}
+
+.style-preview-frame{
+  background:var(--paper-sunken);
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+  padding:18px;
+  display:flex;
+  justify-content:center;
+}
+.style-preview-frame .label-card{width:100%; max-width:320px;}
+.preview-frame-empty{color:var(--slate); font-size:12.5px; font-style:italic; padding:20px 0; text-align:center;}
+
+.outlet-picker{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;}
+.outlet-picker .field{flex:1; min-width:200px;}
+
+.preview-card{
+  background:var(--paper-sunken); border:1px dashed var(--line); border-radius:var(--radius-md);
+  padding:16px; font-size:13px; color:var(--ink-soft); margin-top:14px; line-height:1.6;
+}
+.preview-card .pc-label{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--slate); margin-bottom:6px;}
+.preview-card strong{color:var(--ink); display:block;}
+.preview-empty{color:var(--slate); font-style:italic;}
+
+.logo-row{display:flex; align-items:center; gap:14px;}
+.logo-box{
+  width:104px; height:104px; border-radius:var(--radius-sm); border:1px dashed var(--line);
+  display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; background:var(--paper);
+}
+.logo-box img{width:100%; height:100%; object-fit:contain;}
+.logo-box svg{width:30px;height:30px; color:var(--slate);}
+.logo-actions{display:flex; gap:8px; flex-wrap:wrap;}
+
+.style-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:6px;}
+.style-option{
+  border:1.5px solid var(--line); border-radius:var(--radius-md); padding:11px;
+  cursor:pointer; text-align:left; background:var(--paper); transition:border-color var(--transition), background var(--transition);
+}
+.style-option strong{display:block; font-size:12.5px; margin-bottom:3px;}
+.style-option span{font-size:10.5px; color:var(--slate);}
+.style-option.active{border-color:var(--accent); background:var(--accent-soft);}
+
+.queue-toolbar{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+.queue-list{display:flex; flex-direction:column; gap:10px; margin-top:14px;}
+.queue-item{
+  display:flex; align-items:flex-start; gap:12px;
+  padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--paper);
+}
+.queue-item input[type="checkbox"]{margin-top:3px; accent-color:var(--accent); width:15px;height:15px; cursor:pointer;}
+.queue-item-body{flex:1; font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+.queue-item-body strong{color:var(--ink); font-size:13.5px; display:block;}
+.queue-item-actions{display:flex; gap:6px; flex-shrink:0;}
+.queue-empty{padding:28px 14px; text-align:center; color:var(--slate); font-size:13px;}
+
+/* ============================================================
+   8. PRINTABLE LABELS (screen preview of print styling)
+   ============================================================ */
+#printArea{display:none;}
+
+.label-card{
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+  padding:20px 22px;
+  background:#fff;
+  color:#1C2541;
+  break-inside:avoid;
+  page-break-inside:avoid;
+  position:relative;
+}
+.label-head{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+.label-head img{width:60px; height:60px; object-fit:contain; border-radius:8px; flex-shrink:0;}
+.label-head .lh-name{font-family:var(--font-display); font-weight:700; font-size:16px;}
+.label-block{margin-bottom:12px;}
+.label-eyebrow{font-family:var(--font-mono); font-size:11px; letter-spacing:.12em; color:#A8A296; margin-bottom:5px;}
+.label-block .lname{font-weight:700; font-size:16.5px; margin-bottom:3px; line-height:1.3;}
+.label-block .lsub{font-size:13.5px; color:#5C6470; margin-bottom:3px; line-height:1.45; word-wrap:break-word; overflow-wrap:break-word;}
+.label-divider{border:none; border-top:1px dashed #D8D2C5; margin:14px 0;}
+
+/* Corporate Modern */
+.style-corporate .label-card{border-radius:14px; border:1px solid #E3DED4; box-shadow:0 1px 0 #E3DED4;}
+.style-corporate .label-head{padding-bottom:10px; border-bottom:2px solid #C9763D;}
+.style-corporate .label-eyebrow{color:#C9763D; font-weight:600;}
+
+/* Courier Label */
+.style-courier .label-card{border:2px solid #1C2541; border-radius:4px;}
+.style-courier .label-head{border-bottom:1px dashed #1C2541; padding-bottom:8px;}
+.style-courier .label-eyebrow{font-weight:700; color:#1C2541;}
+.style-courier .label-card::before{
+  content:"";
+  position:absolute; left:0; top:14px; bottom:14px; width:3px;
+  background:repeating-linear-gradient(180deg,#1C2541 0 6px, transparent 6px 12px);
+}
+.style-courier .label-card{padding-left:26px;}
+
+/* Minimal Premium */
+.style-minimal .label-card{border:none; border-bottom:1px solid #E3DED4; border-radius:0; padding:22px 4px;}
+.style-minimal .label-head{border:none; margin-bottom:16px;}
+.style-minimal .label-eyebrow{letter-spacing:.18em; color:#A8A296;}
+.style-minimal .lname{font-weight:600;}
+
+/* ============================================================
+   9. RESPONSIVE
+   ============================================================ */
+@media (max-width: 980px){
+  .field-grid{grid-template-columns:1fr;}
+  .print-grid{grid-template-columns:1fr;}
+  .settings-grid{grid-template-columns:1fr;}
+  .style-grid{grid-template-columns:1fr 1fr;}
+}
+@media (max-width: 860px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0); box-shadow:var(--shadow-lg);}
+  .main{margin-left:0;}
+  .topbar{display:flex;}
+  .page{padding:22px 18px 50px;}
+}
+@media (max-width: 520px){
+  .table-toolbar{flex-direction:column; align-items:stretch;}
+  .search-box{max-width:none;}
+  .cell-addr{max-width:160px;}
+  .style-grid{grid-template-columns:1fr;}
+}
+
+/* ============================================================
+   10. PRINT MEDIA
+   ============================================================ */
+@media print{
+  body *{visibility:hidden;}
+  #printArea, #printArea *{visibility:visible;}
+  html, body{margin:0; padding:0; width:auto; display:block;}
+  #printArea{
+    display:block !important;
+    position:absolute;
+    top:0; left:0;
+    width:100%;
+    margin:0;
+    margin-left:0;
+    margin-right:0;
+    padding:0;
+    text-align:left;
+  }
+  .print-labels-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    justify-content:start;
+    justify-items:stretch;
+    align-items:start;
+    align-content:start;
+    gap:6mm;
+    width:100%;
+    margin:0;
+    padding:0;
+  }
+  .label-card{box-shadow:none !important; margin:0;}
+  @page{ size:A4; margin:10mm; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div class="app-shell">
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
+      </div>
+      <div class="brand-text">
+        <strong>Outlet Manifest</strong>
+        <span>Label System</span>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-page="outlets" id="navOutlets">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Outlet Management
+      </button>
+      <button class="nav-item" data-page="print" id="navPrint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"/><rect x="6" y="13" width="12" height="8"/><path d="M6 13H3a1 1 0 01-1-1V9a1 1 0 011-1h18a1 1 0 011 1v3a1 1 0 01-1 1h-3"/></svg>
+        Print Address
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <button class="theme-toggle" id="themeToggle">
+        <span id="themeLabel">Light mode</span>
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <div class="config-pill" id="configPill"></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div class="brand-text">
+        <strong id="topbarTitle" style="font-size:14px;">Outlet Management</strong>
+      </div>
+      <div style="width:38px;"></div>
+    </div>
+
+    <!-- ========================== PAGE 1 : OUTLET MANAGEMENT ========================== -->
+    <section class="page" id="pageOutlets">
+      <div class="page-head">
+        <h1>Outlet Management</h1>
+        <p>Add, edit and organize outlets used to generate shipping &amp; address labels.</p>
+      </div>
+
+      <div id="configBanner"></div>
+
+      <!-- GLOBAL SETTINGS: FROM ADDRESS + COMPANY LOGO -->
+      <div class="page-head" style="margin-bottom:14px;">
+        <h2 style="font-size:15.5px; margin:0 0 3px;">Global Print Settings</h2>
+        <p style="font-size:12.5px;">These apply to every printed label, regardless of outlet.</p>
+      </div>
+      <div class="settings-grid">
+        <!-- FROM ADDRESS -->
+        <div class="panel">
+          <div class="panel-head"><h2>From Address</h2><div class="sub">Saved locally on this device</div></div>
+          <div class="panel-body">
+            <div class="field-grid">
+              <div class="field">
+                <label for="fa_sender">Sender Name</label>
+                <input id="fa_sender" type="text" placeholder="Dispatch Officer">
+              </div>
+              <div class="field">
+                <label for="fa_branch">Branch</label>
+                <input id="fa_branch" type="text" placeholder="Head Office">
+              </div>
+              <div class="field">
+                <label for="fa_phone">Phone</label>
+                <input id="fa_phone" type="text" placeholder="+880 1XXX-XXXXXX">
+              </div>
+              <div class="field full">
+                <label for="fa_address">Address</label>
+                <textarea id="fa_address" placeholder="Sender's full address"></textarea>
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary btn-sm" id="btnSaveFrom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+                Save
+              </button>
+              <button class="btn btn-ghost btn-sm" id="btnResetFrom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOGO -->
+        <div class="panel">
+          <div class="panel-head"><h2>Company Logo</h2></div>
+          <div class="panel-body">
+            <div class="logo-row">
+              <div class="logo-box" id="logoBox">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              </div>
+              <div class="logo-actions">
+                <input type="file" id="logoInput" accept="image/*" style="display:none;">
+                <button class="btn btn-secondary btn-sm" id="btnUploadLogo">Upload Logo</button>
+                <button class="btn btn-ghost btn-sm" id="btnReplaceLogo" style="display:none;">Replace</button>
+                <button class="btn btn-danger btn-sm" id="btnRemoveLogo" style="display:none;">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORM PANEL -->
+      <div class="panel" style="margin-bottom:22px;">
+        <div class="panel-head">
+          <div>
+            <h2 id="formTitle">Add New Outlet</h2>
+            <div class="sub">Fields marked with <span style="color:var(--danger);">*</span> are required.</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <form id="outletForm" novalidate>
+            <div class="field-grid">
+              <div class="field">
+                <label for="f_to_name">To Name <span class="req">*</span></label>
+                <input id="f_to_name" name="to_name" type="text" placeholder="e.g. Mahbub Rahman" autocomplete="off">
+                <div class="field-error" id="err_to_name"></div>
+              </div>
+              <div class="field">
+                <label for="f_branch_name">Branch Name <span class="req">*</span></label>
+                <input id="f_branch_name" name="branch_name" type="text" placeholder="e.g. Agrabad Branch" autocomplete="off">
+                <div class="field-error" id="err_branch_name"></div>
+              </div>
+              <div class="field">
+                <label for="f_phone">Phone Number <span class="req">*</span></label>
+                <input id="f_phone" name="phone" type="text" placeholder="e.g. +880 1XXX-XXXXXX" autocomplete="off">
+                <div class="field-error" id="err_phone"></div>
+              </div>
+              <div class="field">
+                <label for="f_address">&nbsp;</label>
+                <div class="field-hint" id="duplicateHint"></div>
+              </div>
+              <div class="field full">
+                <label for="f_address">Full Address <span class="req">*</span></label>
+                <textarea id="f_address" name="address" placeholder="House, Road, Area, City, Postal Code"></textarea>
+                <div class="field-error" id="err_address"></div>
+              </div>
+            </div>
+
+            <div class="btn-row">
+              <button type="submit" class="btn btn-primary" id="btnSave">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+                Save Outlet
+              </button>
+              <button type="button" class="btn btn-secondary" id="btnCancelEdit" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                Cancel
+              </button>
+              <button type="button" class="btn btn-ghost" id="btnReset">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Reset
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- TABLE PANEL -->
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>All Outlets</h2>
+            <div class="sub" id="totalOutletsSub">0 outlets on file</div>
+          </div>
+        </div>
+        <div class="table-toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="searchInput" placeholder="Search by name, branch, phone or address">
+          </div>
+          <div class="result-count" id="resultCount"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="to_name"><span class="th-inner">To <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 10l5 5 5-5"/></svg></span></th>
+                <th data-sort="branch_name"><span class="th-inner">Branch <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 10l5 5 5-5"/></svg></span></th>
+                <th data-sort="phone"><span class="th-inner">Phone <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 10l5 5 5-5"/></svg></span></th>
+                <th>Address</th>
+                <th data-sort="created_at"><span class="th-inner">Created <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 10l5 5 5-5"/></svg></span></th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="outletsTbody">
+              <tr class="empty-row"><td colspan="6">
+                <div class="empty-state">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                  Loading outlets…
+                </div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="pageInfo"></div>
+          <div class="page-controls" id="pageControls"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== PAGE 2 : PRINT ADDRESS ========================== -->
+    <section class="page" id="pagePrint" style="display:none;">
+      <div class="page-head">
+        <h1>Print Address</h1>
+        <p>Build a print queue of address labels and send them to your printer.</p>
+      </div>
+
+      <div class="print-grid">
+        <!-- LEFT COLUMN -->
+        <div class="stack">
+
+          <!-- OUTLET SELECT -->
+          <div class="panel">
+            <div class="panel-head"><h2>Select Outlet</h2></div>
+            <div class="panel-body">
+              <div class="outlet-picker">
+                <div class="field">
+                  <label for="printOutletSelect">Outlet</label>
+                  <select id="printOutletSelect">
+                    <option value="">— Choose an outlet —</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary" id="btnAddToQueue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                  Add to Print List
+                </button>
+                <button class="btn btn-ghost" id="btnResetPicker">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  Reset
+                </button>
+              </div>
+              <div class="preview-card" id="outletPreview">
+                <div class="preview-empty">Select an outlet to preview its address.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PRINT STYLE -->
+          <div class="panel">
+            <div class="panel-head"><h2>Print Style</h2></div>
+            <div class="panel-body">
+              <div class="style-grid" id="styleGrid">
+                <button class="style-option active" data-style="corporate"><strong>Corporate Modern</strong><span>Bold rule, clean blocks</span></button>
+                <button class="style-option" data-style="courier"><strong>Courier Label</strong><span>Boxed, dashed spine</span></button>
+                <button class="style-option" data-style="minimal"><strong>Minimal Premium</strong><span>Quiet, no border</span></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PRINT PREVIEW -->
+          <div class="panel">
+            <div class="panel-head"><h2>Print Preview</h2><div class="sub">Updates instantly as you change style, logo, from address, outlet or print list</div></div>
+            <div class="panel-body">
+              <div class="style-preview-frame" id="stylePreviewFrame">
+                <div class="preview-frame-empty">Select an outlet or add a label to the queue to preview it here.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN : QUEUE -->
+        <div class="panel" style="position:sticky; top:18px;">
+          <div class="panel-head">
+            <div>
+              <h2>Print Queue</h2>
+              <div class="sub" id="queueCountSub">0 labels queued</div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="queue-toolbar">
+              <label style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-soft);">
+                <input type="checkbox" id="selectAllQueue" style="accent-color:var(--accent); width:15px;height:15px;">
+                Select all
+              </label>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary btn-sm" id="btnClearQueue">Clear</button>
+              </div>
+            </div>
+            <div class="queue-list" id="queueList">
+              <div class="queue-empty">No labels in the queue yet. Select an outlet and click “Add to Print List”.</div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="btnPrintAll">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"/><rect x="6" y="13" width="12" height="8"/><path d="M6 13H3a1 1 0 01-1-1V9a1 1 0 011-1h18a1 1 0 011 1v3a1 1 0 01-1 1h-3"/></svg>
+                Print All
+              </button>
+              <button class="btn btn-secondary" id="btnPrintSelected">Print Selected</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- LOADING OVERLAY -->
+<div class="spinner-overlay" id="spinnerOverlay" style="display:none;"><div class="spinner"></div></div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteModalOverlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
+    </div>
+    <h3>Delete this outlet?</h3>
+    <p id="deleteModalText">This action cannot be undone. The outlet will be permanently removed from your records.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btnCancelDelete">Cancel</button>
+      <button class="btn btn-danger" id="btnConfirmDelete">Delete Outlet</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT AREA (populated dynamically, only visible during print) -->
+<div id="printArea"></div>
+
+<script>
+/* ================================================================
+   1. CONFIGURATION
+   ================================================================ */
+const SUPABASE_URL = "https://vrsdpyodfejjuihutgag.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9ojU5ehOL52_PT0EBfPWyw_zPkj2Ywj";
+
+const CONFIG_READY = SUPABASE_URL !== "YOUR_PROJECT_URL" && SUPABASE_PUBLISHABLE_KEY !== "YOUR_PUBLISHABLE_KEY";
+
+let supabaseClient = null;
+if (CONFIG_READY) {
+  try {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  } catch (e) {
+    console.error("Failed to initialize Supabase client:", e);
+  }
+}
+
+const TABLE_NAME = "outlets";
+const PAGE_SIZE = 8;
+
+/* ================================================================
+   2. APPLICATION STATE
+   ================================================================ */
+const state = {
+  outlets: [],            // full list fetched from Supabase
+  filtered: [],            // after search applied
+  search: "",
+  sortKey: "created_at",
+  sortDir: "desc",          // 'asc' | 'desc'
+  currentPage: 1,
+  editingId: null,          // id of outlet currently being edited
+  pendingDeleteId: null,
+  printQueue: [],           // [{ queueId, to_name, branch_name, phone, address }]
+  selectedPrintStyle: "corporate",
+  selectedOutletId: ""
+};
+
+/* ================================================================
+   3. UTILITIES
+   ================================================================ */
+function $(sel, ctx) { return (ctx || document).querySelector(sel); }
+function $all(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function formatDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+function normalizePhoneDigits(phone) { return (phone || "").replace(/\D/g, ""); }
+function isValidPhone(phone) {
+  const digits = normalizePhoneDigits(phone);
+  return digits.length >= 7 && digits.length <= 15;
+}
+
+/* ================================================================
+   4. TOAST NOTIFICATIONS
+   ================================================================ */
+const ICONS = {
+  success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>',
+  error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'
+};
+function showToast(message, type = "info", duration = 4200) {
+  const stack = $("#toastStack");
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `${ICONS[type] || ICONS.info}<span>${escapeHtml(message)}</span><button class="toast-close" aria-label="Dismiss">✕</button>`;
+  stack.appendChild(toast);
+  const remove = () => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 180); };
+  toast.querySelector(".toast-close").addEventListener("click", remove);
+  setTimeout(remove, duration);
+}
+
+/* ================================================================
+   5. LOADING SPINNER
+   ================================================================ */
+let spinnerCount = 0;
+function showSpinner() { spinnerCount++; $("#spinnerOverlay").style.display = "flex"; }
+function hideSpinner() { spinnerCount = Math.max(0, spinnerCount - 1); if (spinnerCount === 0) $("#spinnerOverlay").style.display = "none"; }
+
+/* ================================================================
+   6. SUPABASE CRUD LAYER
+   ================================================================ */
+async function fetchAllOutlets() {
+  if (!CONFIG_READY) { state.outlets = []; applyFilterAndSort(); return; }
+  showSpinner();
+  try {
+    const { data, error } = await supabaseClient
+      .from(TABLE_NAME)
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    state.outlets = data || [];
+    applyFilterAndSort();
+  } catch (err) {
+    console.error(err);
+    showToast("Could not load outlets: " + (err.message || "unknown error"), "error");
+  } finally {
+    hideSpinner();
+  }
+}
+
+async function createOutletRecord(payload) {
+  showSpinner();
+  try {
+    const { data, error } = await supabaseClient.from(TABLE_NAME).insert([payload]).select();
+    if (error) throw error;
+    return data && data[0];
+  } finally {
+    hideSpinner();
+  }
+}
+
+async function updateOutletRecord(id, payload) {
+  showSpinner();
+  try {
+    const { data, error } = await supabaseClient.from(TABLE_NAME).update(payload).eq("id", id).select();
+    if (error) throw error;
+    return data && data[0];
+  } finally {
+    hideSpinner();
+  }
+}
+
+async function deleteOutletRecord(id) {
+  showSpinner();
+  try {
+    const { error } = await supabaseClient.from(TABLE_NAME).delete().eq("id", id);
+    if (error) throw error;
+  } finally {
+    hideSpinner();
+  }
+}
+
+/* ================================================================
+   7. CONFIG BANNER (shown when Supabase credentials are placeholders)
+   ================================================================ */
+function renderConfigBanner() {
+  const banner = $("#configBanner");
+  const pill = $("#configPill");
+  if (!CONFIG_READY) {
+    banner.innerHTML = `
+      <div class="banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.18 14A2 2 0 004 21h16a2 2 0 001.89-3.14l-8.18-14a2 2 0 00-3.42 0z"/></svg>
+        <div>Supabase is not configured yet. Replace <code>YOUR_PROJECT_URL</code> and <code>YOUR_PUBLISHABLE_KEY</code> at the top of the script with your project credentials to enable saving, editing and deleting outlets.</div>
+      </div>`;
+    pill.textContent = "Not connected";
+  } else {
+    banner.innerHTML = "";
+    pill.textContent = "Connected";
+  }
+}
+
+/* ================================================================
+   8. NAVIGATION
+   ================================================================ */
+function setActivePage(page) {
+  $("#pageOutlets").style.display = page === "outlets" ? "block" : "none";
+  $("#pagePrint").style.display = page === "print" ? "block" : "none";
+  $("#navOutlets").classList.toggle("active", page === "outlets");
+  $("#navPrint").classList.toggle("active", page === "print");
+  $("#topbarTitle").textContent = page === "outlets" ? "Outlet Management" : "Print Address";
+  $("#sidebar").classList.remove("open");
+  if (page === "print") populateOutletDropdown();
+}
+$("#navOutlets").addEventListener("click", () => setActivePage("outlets"));
+$("#navPrint").addEventListener("click", () => setActivePage("print"));
+$("#hamburgerBtn").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
+
+/* ================================================================
+   9. THEME (Dark / Light) — persisted in LocalStorage
+   ================================================================ */
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  $("#themeLabel").textContent = theme === "dark" ? "Dark mode" : "Light mode";
+  localStorage.setItem("theme", theme);
+}
+function initTheme() {
+  const saved = localStorage.getItem("theme");
+  const preferred = saved || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  applyTheme(preferred);
+}
+$("#themeToggle").addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme");
+  applyTheme(current === "dark" ? "light" : "dark");
+});
+
+/* ================================================================
+   10. OUTLET FORM — VALIDATION
+   ================================================================ */
+const formEls = {
+  to_name: $("#f_to_name"),
+  branch_name: $("#f_branch_name"),
+  phone: $("#f_phone"),
+  address: $("#f_address")
+};
+
+function clearFieldErrors() {
+  ["to_name", "branch_name", "phone", "address"].forEach(k => {
+    formEls[k].classList.remove("invalid");
+    $("#err_" + k).textContent = "";
+  });
+  $("#duplicateHint").textContent = "";
+}
+
+function validateForm() {
+  clearFieldErrors();
+  let valid = true;
+  const values = {
+    to_name: formEls.to_name.value.trim(),
+    branch_name: formEls.branch_name.value.trim(),
+    phone: formEls.phone.value.trim(),
+    address: formEls.address.value.trim()
+  };
+
+  if (!values.to_name) { setFieldError("to_name", "To Name is required."); valid = false; }
+  if (!values.branch_name) { setFieldError("branch_name", "Branch Name is required."); valid = false; }
+  if (!values.phone) { setFieldError("phone", "Phone number is required."); valid = false; }
+  else if (!isValidPhone(values.phone)) { setFieldError("phone", "Enter a valid phone number (7–15 digits)."); valid = false; }
+  if (!values.address) { setFieldError("address", "Full address is required."); valid = false; }
+
+  return { valid, values };
+}
+function setFieldError(key, msg) {
+  formEls[key].classList.add("invalid");
+  $("#err_" + key).textContent = msg;
+}
+
+function findDuplicate(values, excludeId) {
+  return state.outlets.find(o =>
+    o.id !== excludeId &&
+    (o.to_name || "").trim().toLowerCase() === values.to_name.toLowerCase() &&
+    (o.branch_name || "").trim().toLowerCase() === values.branch_name.toLowerCase() &&
+    normalizePhoneDigits(o.phone) === normalizePhoneDigits(values.phone)
+  );
+}
+
+/* ================================================================
+   11. OUTLET FORM — SUBMIT / EDIT / CANCEL / RESET
+   ================================================================ */
+function resetForm() {
+  $("#outletForm").reset();
+  clearFieldErrors();
+  state.editingId = null;
+  $("#formTitle").textContent = "Add New Outlet";
+  $("#btnSave").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg> Save Outlet`;
+  $("#btnCancelEdit").style.display = "none";
+}
+
+$("#btnReset").addEventListener("click", resetForm);
+$("#btnCancelEdit").addEventListener("click", resetForm);
+
+$("#outletForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!CONFIG_READY) { showToast("Connect Supabase before saving outlets.", "error"); return; }
+
+  const { valid, values } = validateForm();
+  if (!valid) return;
+
+  const duplicate = findDuplicate(values, state.editingId);
+  if (duplicate) {
+    $("#duplicateHint").innerHTML = `<span class="badge badge-warn">Possible duplicate of an existing outlet</span>`;
+    showToast("An outlet with the same name, branch and phone already exists.", "error");
+    return;
+  }
+
+  try {
+    if (state.editingId) {
+      const updated = await updateOutletRecord(state.editingId, values);
+      showToast("Outlet updated successfully.", "success");
+    } else {
+      const created = await createOutletRecord(values);
+      showToast("Outlet saved successfully.", "success");
+    }
+    resetForm();
+    await fetchAllOutlets();
+  } catch (err) {
+    console.error(err);
+    showToast("Could not save outlet: " + (err.message || "unknown error"), "error");
+  }
+});
+
+function startEdit(id) {
+  const outlet = state.outlets.find(o => o.id === id);
+  if (!outlet) return;
+  state.editingId = id;
+  formEls.to_name.value = outlet.to_name || "";
+  formEls.branch_name.value = outlet.branch_name || "";
+  formEls.phone.value = outlet.phone || "";
+  formEls.address.value = outlet.address || "";
+  clearFieldErrors();
+  $("#formTitle").textContent = "Update Outlet";
+  $("#btnSave").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg> Update Outlet`;
+  $("#btnCancelEdit").style.display = "inline-flex";
+  $("#outletForm").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ================================================================
+   12. DELETE CONFIRMATION
+   ================================================================ */
+function openDeleteModal(id) {
+  const outlet = state.outlets.find(o => o.id === id);
+  state.pendingDeleteId = id;
+  $("#deleteModalText").textContent = outlet
+    ? `“${outlet.to_name} — ${outlet.branch_name}” will be permanently removed from your records.`
+    : "This action cannot be undone.";
+  $("#deleteModalOverlay").style.display = "flex";
+}
+function closeDeleteModal() {
+  state.pendingDeleteId = null;
+  $("#deleteModalOverlay").style.display = "none";
+}
+$("#btnCancelDelete").addEventListener("click", closeDeleteModal);
+$("#deleteModalOverlay").addEventListener("click", (e) => { if (e.target.id === "deleteModalOverlay") closeDeleteModal(); });
+$("#btnConfirmDelete").addEventListener("click", async () => {
+  if (!state.pendingDeleteId) return;
+  const id = state.pendingDeleteId;
+  closeDeleteModal();
+  try {
+    await deleteOutletRecord(id);
+    showToast("Outlet deleted.", "success");
+    if (state.editingId === id) resetForm();
+    await fetchAllOutlets();
+  } catch (err) {
+    console.error(err);
+    showToast("Could not delete outlet: " + (err.message || "unknown error"), "error");
+  }
+});
+
+/* ================================================================
+   13. SEARCH / SORT / PAGINATION / TABLE RENDER
+   ================================================================ */
+function applyFilterAndSort() {
+  const q = state.search.trim().toLowerCase();
+  let list = state.outlets.slice();
+
+  if (q) {
+    list = list.filter(o =>
+      (o.to_name || "").toLowerCase().includes(q) ||
+      (o.branch_name || "").toLowerCase().includes(q) ||
+      (o.phone || "").toLowerCase().includes(q) ||
+      (o.address || "").toLowerCase().includes(q)
+    );
+  }
+
+  const key = state.sortKey;
+  const dir = state.sortDir === "asc" ? 1 : -1;
+  list.sort((a, b) => {
+    let av = a[key], bv = b[key];
+    if (key === "created_at") { av = new Date(av || 0).getTime(); bv = new Date(bv || 0).getTime(); }
+    else { av = (av || "").toString().toLowerCase(); bv = (bv || "").toString().toLowerCase(); }
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return 0;
+  });
+
+  state.filtered = list;
+  const maxPage = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  if (state.currentPage > maxPage) state.currentPage = maxPage;
+  renderTable();
+  renderTableMeta();
+  populateOutletDropdown();
+}
+
+function renderTableMeta() {
+  $("#totalOutletsSub").textContent = `${state.outlets.length} outlet${state.outlets.length === 1 ? "" : "s"} on file`;
+  $("#resultCount").textContent = state.search ? `${state.filtered.length} match${state.filtered.length === 1 ? "" : "es"}` : "";
+  $all("thead th[data-sort]").forEach(th => {
+    th.classList.toggle("sorted", th.dataset.sort === state.sortKey);
+    const arrow = th.querySelector("svg");
+    if (th.dataset.sort === state.sortKey) {
+      arrow.style.transform = state.sortDir === "asc" ? "rotate(180deg)" : "rotate(0deg)";
+    }
+  });
+}
+
+function renderTable() {
+  const tbody = $("#outletsTbody");
+  const start = (state.currentPage - 1) * PAGE_SIZE;
+  const pageItems = state.filtered.slice(start, start + PAGE_SIZE);
+
+  if (!CONFIG_READY) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6"><div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.18 14A2 2 0 004 21h16a2 2 0 001.89-3.14l-8.18-14a2 2 0 00-3.42 0z"/></svg>
+      Connect Supabase to load outlets.</div></td></tr>`;
+    renderPagination();
+    return;
+  }
+
+  if (pageItems.length === 0) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6"><div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      ${state.search ? "No outlets match your search." : "No outlets yet. Add your first outlet above."}</div></td></tr>`;
+    renderPagination();
+    return;
+  }
+
+  tbody.innerHTML = pageItems.map(o => `
+    <tr>
+      <td class="cell-strong">${escapeHtml(o.to_name)}</td>
+      <td>${escapeHtml(o.branch_name)}</td>
+      <td class="cell-phone">${escapeHtml(o.phone)}</td>
+      <td class="cell-addr">${escapeHtml(o.address)}</td>
+      <td class="cell-phone">${formatDate(o.created_at)}</td>
+      <td>
+        <div class="cell-actions">
+          <button class="btn btn-ghost btn-icon" title="Edit" data-action="edit" data-id="${o.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+          </button>
+          <button class="btn btn-danger btn-icon" title="Delete" data-action="delete" data-id="${o.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = state.filtered.length;
+  const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const start = total === 0 ? 0 : (state.currentPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(total, state.currentPage * PAGE_SIZE);
+  $("#pageInfo").textContent = total === 0 ? "No results" : `Showing ${start}–${end} of ${total}`;
+
+  const controls = $("#pageControls");
+  let html = `<button id="pgPrev" ${state.currentPage <= 1 ? "disabled" : ""} aria-label="Previous page">‹</button>`;
+  for (let p = 1; p <= maxPage; p++) {
+    if (maxPage > 7 && p !== 1 && p !== maxPage && Math.abs(p - state.currentPage) > 1) {
+      if (p === 2 || p === maxPage - 1) html += `<span style="padding:0 4px; color:var(--slate);">…</span>`;
+      continue;
+    }
+    html += `<button data-page="${p}" class="${p === state.currentPage ? "active" : ""}">${p}</button>`;
+  }
+  html += `<button id="pgNext" ${state.currentPage >= maxPage ? "disabled" : ""} aria-label="Next page">›</button>`;
+  controls.innerHTML = html;
+
+  const prev = $("#pgPrev"), next = $("#pgNext");
+  if (prev) prev.addEventListener("click", () => { state.currentPage--; renderTable(); });
+  if (next) next.addEventListener("click", () => { state.currentPage++; renderTable(); });
+  $all("button[data-page]", controls).forEach(btn => {
+    btn.addEventListener("click", () => { state.currentPage = parseInt(btn.dataset.page, 10); renderTable(); });
+  });
+}
+
+$("#searchInput").addEventListener("input", (e) => {
+  state.search = e.target.value;
+  state.currentPage = 1;
+  applyFilterAndSort();
+});
+
+$all("thead th[data-sort]").forEach(th => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.sort;
+    if (state.sortKey === key) state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+    else { state.sortKey = key; state.sortDir = "asc"; }
+    applyFilterAndSort();
+  });
+});
+
+$("#outletsTbody").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (btn.dataset.action === "edit") startEdit(id);
+  if (btn.dataset.action === "delete") openDeleteModal(id);
+});
+
+/* ================================================================
+   14. PRINT PAGE — OUTLET DROPDOWN + PREVIEW
+   ================================================================ */
+function populateOutletDropdown() {
+  const select = $("#printOutletSelect");
+  const current = select.value;
+  const options = ['<option value="">— Choose an outlet —</option>']
+    .concat(state.outlets.map(o => `<option value="${o.id}">${escapeHtml(o.to_name)} — ${escapeHtml(o.branch_name)}</option>`));
+  select.innerHTML = options.join("");
+  if (state.outlets.some(o => o.id === current)) select.value = current;
+  else if (state.outlets.some(o => o.id === state.selectedOutletId)) select.value = state.selectedOutletId;
+}
+
+function renderOutletPreview() {
+  const outlet = state.outlets.find(o => o.id === state.selectedOutletId);
+  const box = $("#outletPreview");
+  if (!outlet) {
+    box.innerHTML = `<div class="preview-empty">Select an outlet to preview its address.</div>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="pc-label">Selected Outlet</div>
+    <strong>${escapeHtml(outlet.to_name)}</strong>
+    ${escapeHtml(outlet.branch_name)}<br>
+    <span class="mono">${escapeHtml(outlet.phone)}</span><br>
+    ${escapeHtml(outlet.address)}
+  `;
+}
+
+$("#printOutletSelect").addEventListener("change", (e) => {
+  state.selectedOutletId = e.target.value;
+  localStorage.setItem("lastSelectedOutlet", state.selectedOutletId);
+  renderOutletPreview();
+  renderStylePreview();
+});
+
+$("#btnResetPicker").addEventListener("click", () => {
+  state.selectedOutletId = "";
+  $("#printOutletSelect").value = "";
+  localStorage.removeItem("lastSelectedOutlet");
+  renderOutletPreview();
+  renderStylePreview();
+});
+
+/* ================================================================
+   15. PRINT QUEUE
+   ================================================================ */
+$("#btnAddToQueue").addEventListener("click", () => {
+  const outlet = state.outlets.find(o => o.id === state.selectedOutletId);
+  if (!outlet) { showToast("Choose an outlet first.", "error"); return; }
+  state.printQueue.push({
+    queueId: uid(),
+    to_name: outlet.to_name,
+    branch_name: outlet.branch_name,
+    phone: outlet.phone,
+    address: outlet.address,
+    selected: true
+  });
+  renderQueue();
+  showToast(`${outlet.to_name} added to print queue.`, "success");
+});
+
+$("#btnClearQueue").addEventListener("click", () => {
+  state.printQueue = [];
+  renderQueue();
+});
+
+function renderQueue() {
+  const list = $("#queueList");
+  $("#queueCountSub").textContent = `${state.printQueue.length} label${state.printQueue.length === 1 ? "" : "s"} queued`;
+
+  if (state.printQueue.length === 0) {
+    list.innerHTML = `<div class="queue-empty">No labels in the queue yet. Select an outlet and click “Add to Print List”.</div>`;
+    renderStylePreview();
+    return;
+  }
+
+  list.innerHTML = state.printQueue.map(item => `
+    <div class="queue-item">
+      <input type="checkbox" data-qid="${item.queueId}" class="queue-check" ${item.selected ? "checked" : ""}>
+      <div class="queue-item-body">
+        <strong>${escapeHtml(item.to_name)}</strong>
+        ${escapeHtml(item.branch_name)} · <span class="mono">${escapeHtml(item.phone)}</span><br>
+        ${escapeHtml(item.address)}
+      </div>
+      <div class="queue-item-actions">
+        <button class="btn btn-ghost btn-icon" title="Print this label" data-print-one="${item.queueId}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6"/><rect x="6" y="13" width="12" height="8"/><path d="M6 13H3a1 1 0 01-1-1V9a1 1 0 011-1h18a1 1 0 011 1v3a1 1 0 01-1 1h-3"/></svg>
+        </button>
+        <button class="btn btn-danger btn-icon" title="Remove" data-remove="${item.queueId}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join("");
+  renderStylePreview();
+}
+
+$("#queueList").addEventListener("click", (e) => {
+  const removeBtn = e.target.closest("[data-remove]");
+  if (removeBtn) {
+    state.printQueue = state.printQueue.filter(i => i.queueId !== removeBtn.dataset.remove);
+    renderQueue();
+    return;
+  }
+  const printOneBtn = e.target.closest("[data-print-one]");
+  if (printOneBtn) {
+    const item = state.printQueue.find(i => i.queueId === printOneBtn.dataset.printOne);
+    if (item) printLabels([item]);
+  }
+});
+
+$("#queueList").addEventListener("change", (e) => {
+  const check = e.target.closest(".queue-check");
+  if (!check) return;
+  const item = state.printQueue.find(i => i.queueId === check.dataset.qid);
+  if (item) item.selected = check.checked;
+  renderStylePreview();
+});
+
+$("#selectAllQueue").addEventListener("change", (e) => {
+  state.printQueue.forEach(i => i.selected = e.target.checked);
+  renderQueue();
+});
+
+/* ================================================================
+   16. FROM ADDRESS — LocalStorage persistence
+   ================================================================ */
+const fromFields = {
+  sender: $("#fa_sender"), branch: $("#fa_branch"),
+  phone: $("#fa_phone"), address: $("#fa_address")
+};
+
+function loadFromAddress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("fromAddress") || "{}");
+    fromFields.sender.value = saved.sender || "";
+    fromFields.branch.value = saved.branch || "";
+    fromFields.phone.value = saved.phone || "";
+    fromFields.address.value = saved.address || "";
+  } catch (e) { /* ignore corrupt storage */ }
+}
+function getFromAddress() {
+  return {
+    sender: fromFields.sender.value.trim(),
+    branch: fromFields.branch.value.trim(),
+    phone: fromFields.phone.value.trim(),
+    address: fromFields.address.value.trim()
+  };
+}
+$("#btnSaveFrom").addEventListener("click", () => {
+  localStorage.setItem("fromAddress", JSON.stringify(getFromAddress()));
+  showToast("From Address saved.", "success");
+});
+$("#btnResetFrom").addEventListener("click", () => {
+  Object.values(fromFields).forEach(el => el.value = "");
+  localStorage.removeItem("fromAddress");
+  showToast("From Address cleared.", "info");
+  renderStylePreview();
+});
+Object.values(fromFields).forEach(el => el.addEventListener("input", renderStylePreview));
+
+/* ================================================================
+   17. COMPANY LOGO — LocalStorage persistence
+   ================================================================ */
+function renderLogo() {
+  const logo = localStorage.getItem("companyLogo");
+  const box = $("#logoBox");
+  if (logo) {
+    box.innerHTML = `<img src="${logo}" alt="Company logo">`;
+    $("#btnUploadLogo").style.display = "none";
+    $("#btnReplaceLogo").style.display = "inline-flex";
+    $("#btnRemoveLogo").style.display = "inline-flex";
+  } else {
+    box.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`;
+    $("#btnUploadLogo").style.display = "inline-flex";
+    $("#btnReplaceLogo").style.display = "none";
+    $("#btnRemoveLogo").style.display = "none";
+  }
+}
+$("#btnUploadLogo").addEventListener("click", () => $("#logoInput").click());
+$("#btnReplaceLogo").addEventListener("click", () => $("#logoInput").click());
+$("#btnRemoveLogo").addEventListener("click", () => {
+  localStorage.removeItem("companyLogo");
+  renderLogo();
+  showToast("Logo removed.", "info");
+  renderStylePreview();
+});
+$("#logoInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { showToast("Please choose an image file.", "error"); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    localStorage.setItem("companyLogo", reader.result);
+    renderLogo();
+    showToast("Logo uploaded.", "success");
+    renderStylePreview();
+  };
+  reader.onerror = () => showToast("Could not read the selected file.", "error");
+  reader.readAsDataURL(file);
+  e.target.value = "";
+});
+
+/* ================================================================
+   18. PRINT STYLE SELECTION
+   ================================================================ */
+function applyPrintStyleUI() {
+  $all(".style-option").forEach(btn => btn.classList.toggle("active", btn.dataset.style === state.selectedPrintStyle));
+}
+$("#styleGrid").addEventListener("click", (e) => {
+  const btn = e.target.closest(".style-option");
+  if (!btn) return;
+  state.selectedPrintStyle = btn.dataset.style;
+  localStorage.setItem("selectedPrintStyle", state.selectedPrintStyle);
+  applyPrintStyleUI();
+  renderStylePreview();
+});
+
+/* ================================================================
+   19. PRINT RENDERING & BROWSER PRINT
+   ================================================================ */
+function styleClassFor(style) {
+  return style === "courier" ? "style-courier" : style === "minimal" ? "style-minimal" : "style-corporate";
+}
+
+function buildLabelCardHtml(item) {
+  const from = getFromAddress();
+  const logo = localStorage.getItem("companyLogo");
+  return `
+    <div class="label-card">
+      ${logo ? `<div class="label-head"><img src="${logo}" alt="logo"></div>` : ""}
+      <div class="label-block">
+        <div class="label-eyebrow">From</div>
+        <div class="lname">${escapeHtml(from.sender || "—")}</div>
+        <div class="lsub">${escapeHtml(from.branch || "")}</div>
+        <div class="lsub mono">${escapeHtml(from.phone || "")}</div>
+        <div class="lsub">${escapeHtml(from.address || "")}</div>
+      </div>
+      <hr class="label-divider">
+      <div class="label-block" style="margin-bottom:0;">
+        <div class="label-eyebrow">To</div>
+        <div class="lname">${escapeHtml(item.to_name)}</div>
+        <div class="lsub">${escapeHtml(item.branch_name)}</div>
+        <div class="lsub mono">${escapeHtml(item.phone)}</div>
+        <div class="lsub">${escapeHtml(item.address)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function printLabels(items) {
+  if (!items || items.length === 0) { showToast("Nothing selected to print.", "error"); return; }
+  const styleClass = styleClassFor(state.selectedPrintStyle);
+  const area = $("#printArea");
+  area.className = styleClass;
+  area.innerHTML = `<div class="print-labels-grid">${items.map(buildLabelCardHtml).join("")}</div>`;
+  window.print();
+}
+
+/* ----------------------------------------------------------------
+   Live Print Style Preview — updates instantly without reprinting
+   ---------------------------------------------------------------- */
+function getPreviewItem() {
+  if (state.printQueue.length > 0) {
+    const selected = state.printQueue.find(i => i.selected) || state.printQueue[0];
+    return selected;
+  }
+  const outlet = state.outlets.find(o => o.id === state.selectedOutletId);
+  if (outlet) return outlet;
+  return null;
+}
+
+function renderStylePreview() {
+  const frame = $("#stylePreviewFrame");
+  if (!frame) return;
+  const item = getPreviewItem();
+  if (!item) {
+    frame.className = "style-preview-frame";
+    frame.innerHTML = `<div class="preview-frame-empty">Select an outlet or add a label to the queue to preview it here.</div>`;
+    return;
+  }
+  frame.className = "style-preview-frame " + styleClassFor(state.selectedPrintStyle);
+  frame.innerHTML = buildLabelCardHtml(item);
+}
+
+$("#btnPrintAll").addEventListener("click", () => printLabels(state.printQueue));
+$("#btnPrintSelected").addEventListener("click", () => printLabels(state.printQueue.filter(i => i.selected)));
+
+/* ================================================================
+   20. INITIALIZATION
+   ================================================================ */
+function init() {
+  initTheme();
+  renderConfigBanner();
+
+  // restore from address & logo & style
+  loadFromAddress();
+  renderLogo();
+  state.selectedPrintStyle = localStorage.getItem("selectedPrintStyle") || "corporate";
+  applyPrintStyleUI();
+  state.selectedOutletId = localStorage.getItem("lastSelectedOutlet") || "";
+
+  renderQueue();
+  renderOutletPreview();
+  renderStylePreview();
+
+  fetchAllOutlets().then(() => {
+    if (state.selectedOutletId) {
+      $("#printOutletSelect").value = state.selectedOutletId;
+      renderOutletPreview();
+    }
+    renderStylePreview();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
