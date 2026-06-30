@@ -737,7 +737,12 @@ class SB {
   _buildUrl(table,filters=[],select='*',order=null,limit=null,offset=null){
     let url=`${this.url}/rest/v1/${table}?select=${encodeURIComponent(select)}`;
     filters.forEach(f=>url+=`&${f}`);
-    if(order) url+=`&order=${order}`;
+    if(order){
+      // PostgREST expects "column.asc" / "column.desc" (dot, not equals).
+      // Normalize in case a caller passes "column=asc" by mistake.
+      const normalized = order.includes('.') ? order : order.replace('=','.');
+      url+=`&order=${normalized}`;
+    }
     if(limit!==null) url+=`&limit=${limit}`;
     if(offset!==null) url+=`&offset=${offset}`;
     return url;
@@ -913,26 +918,41 @@ function showPanel(name){
   if(name==='settings') loadSettings();
 }
 
+/* ==================== SHARED USER LOOKUP ==================== */
+// Fetches all users once and returns a map keyed by id.
+// Avoids relying on PostgREST embedded-resource joins (move_users(...))
+// which fail if the FK relationship isn't in the schema cache.
+let _usersMapCache = null;
+let _usersMapCacheTime = 0;
+async function getUsersMap(force=false){
+  const now=Date.now();
+  if(!force && _usersMapCache && (now-_usersMapCacheTime)<30000) return _usersMapCache;
+  const r=await db.select('move_users',{select:'id,full_name,department,username,employee_id,designation,phone,exit_limit,status'});
+  const map={};
+  (r.data||[]).forEach(u=>map[u.id]=u);
+  _usersMapCache=map;
+  _usersMapCacheTime=now;
+  return map;
+}
+
 /* ==================== DASHBOARD ==================== */
 async function loadDashboard(){
   try{
     const today=todayStr();
-    const r=await db.select('movement_logs',{
-      select:'id,action,created_at,reason,move_users(full_name,department)',
-      filters:[`created_at=gte.${today}T00:00:00`,`created_at=lte.${today}T23:59:59`],
-      order:'created_at=desc'
-    });
-    const logs=r.data||[];
+    const [logsRes, usersMap] = await Promise.all([
+      db.select('movement_logs',{
+        select:'id,user_id,action,created_at,reason',
+        filters:[`created_at=gte.${today}T00:00:00`,`created_at=lte.${today}T23:59:59`],
+        order:'created_at.desc'
+      }),
+      getUsersMap()
+    ]);
+    const logs=logsRes.data||[];
     const inC=logs.filter(l=>l.action==='IN').length;
     const outC=logs.filter(l=>l.action==='OUT').length;
     document.getElementById('dash-in').textContent=inC;
     document.getElementById('dash-out').textContent=outC;
-    // Currently outside: last action per user
-    const userLast={};
-    [...logs].reverse().forEach(l=>{
-      if(l.move_users) userLast[JSON.stringify(l.move_users)]=l.action;
-    });
-    // Better approach: group by user
+    // Currently outside: most recent log per user
     const userLastAction2={};
     logs.forEach(l=>{
       if(!userLastAction2[l.user_id]||new Date(l.created_at)>new Date(userLastAction2[l.user_id].created_at))
@@ -941,22 +961,24 @@ async function loadDashboard(){
     const outsideCount=Object.values(userLastAction2).filter(l=>l.action==='OUT').length;
     document.getElementById('dash-outside').textContent=outsideCount;
     // Total employees
-    const ur=await db.select('move_users',{filters:['status=eq.active'],select:'id'});
-    document.getElementById('dash-total').textContent=(ur.data||[]).length;
+    document.getElementById('dash-total').textContent=Object.values(usersMap).filter(u=>u.status==='active').length;
     // Recent
     const tbody=document.getElementById('dash-recent');
     if(!logs.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text3)">No activity today</td></tr>`;return;}
     tbody.innerHTML=logs.slice(0,20).map(l=>{
-      const u=l.move_users||{};
+      const u=usersMap[l.user_id]||{};
       return `<tr>
-        <td>${u.full_name||'–'}</td>
+        <td>${u.full_name||'Unknown'}</td>
         <td><span style="color:var(--text2)">${u.department||'–'}</span></td>
         <td><span class="badge ${l.action==='IN'?'in':'out'}"><span class="dot"></span>${l.action==='IN'?'Check In':'Check Out'}</span></td>
         <td>${formatTime(l.created_at)}</td>
         <td style="color:var(--text2)">${l.reason||'–'}</td>
       </tr>`;
     }).join('');
-  }catch(e){showToast('Failed to load dashboard','error');}
+  }catch(e){
+    const msg = e.message || e.error_description || e.msg || 'Failed to load dashboard';
+    showToast(msg,'error');
+  }
 }
 
 /* ==================== LIVE OUTSIDE ==================== */
@@ -965,12 +987,15 @@ async function loadLive(){
   tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text3)">Loading…</td></tr>`;
   try{
     const today=todayStr();
-    const r=await db.select('movement_logs',{
-      select:'user_id,action,created_at,reason,move_users(full_name,department)',
-      filters:[`created_at=gte.${today}T00:00:00`,`created_at=lte.${today}T23:59:59`],
-      order:'created_at=asc'
-    });
-    const logs=r.data||[];
+    const [logsRes, usersMap] = await Promise.all([
+      db.select('movement_logs',{
+        select:'user_id,action,created_at,reason',
+        filters:[`created_at=gte.${today}T00:00:00`,`created_at=lte.${today}T23:59:59`],
+        order:'created_at.asc'
+      }),
+      getUsersMap()
+    ]);
+    const logs=logsRes.data||[];
     const userLast={};
     logs.forEach(l=>{userLast[l.user_id]={...l};});
     const outside=Object.values(userLast).filter(l=>l.action==='OUT');
@@ -980,17 +1005,20 @@ async function loadLive(){
       return;
     }
     tbody.innerHTML=outside.map(l=>{
-      const u=l.move_users||{};
+      const u=usersMap[l.user_id]||{};
       const dur=msToHMM(new Date()-new Date(l.created_at));
       return `<tr>
-        <td>${u.full_name||'–'}</td>
+        <td>${u.full_name||'Unknown'}</td>
         <td>${u.department||'–'}</td>
         <td>${formatTime(l.created_at)}</td>
         <td><span style="color:var(--amber);font-weight:600">${dur}</span></td>
         <td style="color:var(--text2)">${l.reason||'–'}</td>
       </tr>`;
     }).join('');
-  }catch(e){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--red)">Failed to load</td></tr>`;}
+  }catch(e){
+    const msg = e.message || e.error_description || e.msg || 'Failed to load';
+    tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--red)">${msg}</td></tr>`;
+  }
 }
 
 /* ==================== USERS ==================== */
@@ -998,8 +1026,9 @@ async function loadUsers(){
   const tbody=document.getElementById('users-table');
   tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">Loading…</td></tr>`;
   try{
-    const r=await db.select('move_users',{select:'*',order:'full_name=asc'});
+    const r=await db.select('move_users',{select:'*',order:'full_name.asc'});
     usersCache=r.data||[];
+    await getUsersMap(true); // refresh shared cache too
     if(!usersCache.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><span class="material-icons-round">group_off</span><h4>No employees yet</h4><p>Add your first employee</p></div></td></tr>`;return;}
     tbody.innerHTML=usersCache.map(u=>`<tr>
       <td>
@@ -1063,17 +1092,21 @@ async function saveUser(){
   const status=document.getElementById('uf-status').value;
   if(!name||!username){ showToast('Name and username are required','error'); return; }
   if(!editingUserId&&!pw){ showToast('Password is required for new employee','error'); return; }
+  if(!editingUserId&&pw.length<6){ showToast('Password must be at least 6 characters','error'); return; }
+
+  const saveLbl=document.getElementById('user-save-lbl');
+  const originalLbl=saveLbl.textContent;
+  saveLbl.textContent='Saving…';
+
   try{
     if(editingUserId){
       const body={full_name:name,username,employee_id:empid,department:dept,designation:desig,phone,exit_limit:limit,status};
       if(pw) {
-        // Hash via RPC
         await db.rpc('update_move_user_password',{p_user_id:editingUserId,p_password:pw});
       }
       await db.update('move_users',body,[`id=eq.${editingUserId}`]);
       showToast('Employee updated','success');
     } else {
-      // Hash password via RPC (insert with hashed pw)
       await db.rpc('create_move_user',{
         p_full_name:name,p_username:username,p_password:pw,
         p_employee_id:empid,p_department:dept,p_designation:desig,
@@ -1083,7 +1116,15 @@ async function saveUser(){
     }
     closeUserModal();
     loadUsers();
-  }catch(e){ showToast(e.message||'Failed to save employee','error'); }
+  }catch(e){
+    // Surface the exact Postgres/Supabase error (e.g. duplicate username,
+    // missing function, RLS denial, or expired session) instead of a
+    // generic failure message.
+    const msg = e.message || e.error_description || e.msg || 'Failed to save employee';
+    showToast(msg, 'error');
+  }finally{
+    saveLbl.textContent=originalLbl;
+  }
 }
 
 async function toggleUserStatus(userId,currentStatus){
@@ -1110,7 +1151,7 @@ async function confirmDelete(){
 /* ==================== LOGS ==================== */
 async function loadUserFilter(){
   try{
-    const r=await db.select('move_users',{select:'id,full_name',order:'full_name=asc'});
+    const r=await db.select('move_users',{select:'id,full_name,department',order:'full_name.asc'});
     const sel=document.getElementById('log-user');
     sel.innerHTML='<option value="">All Employees</option>';
     (r.data||[]).forEach(u=>sel.innerHTML+=`<option value="${u.id}">${u.full_name}</option>`);
@@ -1119,7 +1160,10 @@ async function loadUserFilter(){
     const ds=document.getElementById('log-dept');
     ds.innerHTML='<option value="">All Departments</option>';
     deps.forEach(d=>ds.innerHTML+=`<option value="${d}">${d}</option>`);
-  }catch(e){}
+  }catch(e){
+    const msg = e.message || e.error_description || e.msg || 'Failed to load filters';
+    showToast(msg,'error');
+  }
 }
 
 function applyPreset(){
@@ -1153,15 +1197,21 @@ async function loadLogs(){
     ];
     if(uid) filters.push(`user_id=eq.${uid}`);
     if(action) filters.push(`action=eq.${action}`);
-    const {data}=await db.select('movement_logs',{
-      select:'*,move_users(full_name,department)',
-      filters,order:'created_at=desc'
-    });
-    let rows=data||[];
-    if(dept) rows=rows.filter(l=>l.move_users?.department===dept);
+    const [logsRes, usersMap] = await Promise.all([
+      db.select('movement_logs',{
+        select:'*',
+        filters,order:'created_at.desc'
+      }),
+      getUsersMap()
+    ]);
+    let rows=(logsRes.data||[]).map(l=>({...l, _user: usersMap[l.user_id]||null}));
+    if(dept) rows=rows.filter(l=>l._user?.department===dept);
     logsData=rows;
     renderLogs();
-  }catch(e){ tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--red)">Failed to load</td></tr>`; }
+  }catch(e){
+    const msg = e.message || e.error_description || e.msg || 'Failed to load';
+    tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--red)">${msg}</td></tr>`;
+  }
 }
 
 function renderLogs(){
@@ -1173,10 +1223,10 @@ function renderLogs(){
     tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><span class="material-icons-round">search_off</span><h4>No records found</h4><p>Try adjusting your filters</p></div></td></tr>`;
   } else {
     tbody.innerHTML=page.map(l=>{
-      const u=l.move_users||{};
+      const u=l._user||{};
       const dur=l.duration_minutes?msToHMM(l.duration_minutes*60000):'–';
       return `<tr>
-        <td>${u.full_name||'–'}</td>
+        <td>${u.full_name||'Unknown'}</td>
         <td>${u.department||'–'}</td>
         <td><span class="badge ${l.action==='IN'?'in':'out'}"><span class="dot"></span>${l.action==='IN'?'Check In':'Check Out'}</span></td>
         <td>${formatDate(l.created_at)}</td>
@@ -1200,7 +1250,7 @@ function changePage(dir){ logsPage=Math.max(0,logsPage+dir); renderLogs(); }
 function exportLogs(){
   if(!logsData.length){ showToast('No data to export','error'); return; }
   const rows=logsData.map(l=>{
-    const u=l.move_users||{};
+    const u=l._user||{};
     return {
       'Employee':u.full_name||'–','Department':u.department||'–',
       'Action':l.action==='IN'?'Check In':'Check Out',
@@ -1221,7 +1271,7 @@ async function loadQR(){
   const display=document.getElementById('qr-display');
   display.innerHTML='<p style="color:var(--text2);font-size:13px">Loading QR…</p>';
   try{
-    const r=await db.select('move_qr_codes',{filters:['is_active=eq.true'],order:'created_at=desc',limit:1});
+    const r=await db.select('move_qr_codes',{filters:['is_active=eq.true'],order:'created_at.desc',limit:1});
     let qr=r.data?.[0];
     if(!qr){
       qr=await generateNewQR();
