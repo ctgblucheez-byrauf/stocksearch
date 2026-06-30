@@ -966,11 +966,84 @@ function showPage(page){
   if(page!=='camera' && scannerRunning) stopScanner();
 }
 
+/* ==================== SCAN FEEDBACK (audio + haptics) ==================== */
+// Lightweight WebAudio-based beeps so no external sound files are needed.
+// Success = a short, bright, single high tone.
+// Error = a lower, two-pulse buzzy tone — clearly distinguishable.
+let _audioCtx = null;
+function _getAudioCtx(){
+  if(!_audioCtx){
+    try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ _audioCtx = null; }
+  }
+  // iOS/Safari suspends contexts until a user gesture; resume defensively.
+  if(_audioCtx && _audioCtx.state === 'suspended'){
+    _audioCtx.resume().catch(()=>{});
+  }
+  return _audioCtx;
+}
+
+function _playTone(freq, startTime, duration, ctx, gainPeak=0.35){
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, startTime);
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(gainPeak, startTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.02);
+}
+
+function playSuccessSound(){
+  const ctx = _getAudioCtx();
+  if(!ctx) return;
+  const now = ctx.currentTime;
+  // Single bright, loud, high-pitched beep — fast and unmistakable.
+  _playTone(1568, now, 0.16, ctx, 0.45); // G6, loud
+}
+
+function playErrorSound(){
+  const ctx = _getAudioCtx();
+  if(!ctx) return;
+  const now = ctx.currentTime;
+  // Two short low-pitched buzzy pulses — clearly different from success.
+  _playTone(220, now, 0.14, ctx, 0.4);        // A3
+  _playTone(220, now + 0.2, 0.14, ctx, 0.4);  // A3 again, second pulse
+}
+
+function vibrateSuccess(){
+  if('vibrate' in navigator){
+    try { navigator.vibrate(120); } catch(e){}
+  }
+}
+
+function vibrateError(){
+  if('vibrate' in navigator){
+    try { navigator.vibrate([100, 80, 100, 80, 100]); } catch(e){}
+  }
+}
+
+// Combined helpers — call right at the moment of result for minimal delay.
+function scanFeedbackSuccess(){
+  playSuccessSound();
+  vibrateSuccess();
+}
+function scanFeedbackError(){
+  playErrorSound();
+  vibrateError();
+}
+
 /* ==================== SCANNER ==================== */
 async function startScanner(){
   document.getElementById('start-scan-btn').style.display='none';
   document.getElementById('stop-scan-btn').style.display='flex';
   scannerRunning = true;
+  // Warm up / unlock the audio context on this user gesture so beeps
+  // play immediately on first scan (required by mobile browser autoplay rules).
+  _getAudioCtx();
   scannerInstance = new Html5Qrcode("qr-reader");
   try {
     await scannerInstance.start(
@@ -980,6 +1053,7 @@ async function startScanner(){
       () => {}
     );
   } catch(e){
+    scanFeedbackError();
     showToast('Camera permission denied','error');
     stopScanner();
   }
@@ -1002,9 +1076,15 @@ async function onQrSuccess(decodedText){
   // Validate QR against move_qr_codes table
   try {
     const qr = await (await sb.from('move_qr_codes')).select('id,code,is_active').eq('code', decodedText).eq('is_active', true).single().get();
-    if(!qr.data){ showToast('Invalid or expired QR code','error'); return; }
+    if(!qr.data){
+      scanFeedbackError();
+      showToast('Invalid or expired QR code','error');
+      return;
+    }
   } catch(e){
-    showToast('Invalid QR code','error'); return;
+    scanFeedbackError();
+    showToast('Invalid QR code','error');
+    return;
   }
 
   // Determine next action
@@ -1049,10 +1129,12 @@ async function doCheckIn(){
       action: 'IN',
       reason: null
     });
+    scanFeedbackSuccess();
     showSuccess('IN');
     updateNextActionBadge();
     loadProfile();
   } catch(e){
+    scanFeedbackError();
     showToast('Failed to record check-in','error');
   }
 }
@@ -1107,6 +1189,7 @@ async function confirmCheckout(){
     const exitCount = (r.data||[]).length;
     if(exitCount >= limit){
       closeReasonModal();
+      scanFeedbackError();
       showExitLimitAlert();
       return;
     }
@@ -1117,10 +1200,12 @@ async function confirmCheckout(){
       reason: finalReason
     });
     closeReasonModal();
+    scanFeedbackSuccess();
     showSuccess('OUT');
     updateNextActionBadge();
     loadProfile();
   } catch(e){
+    scanFeedbackError();
     showToast('Failed to record check-out','error');
   }
 }
