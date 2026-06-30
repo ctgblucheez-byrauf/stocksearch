@@ -642,6 +642,7 @@ class SB {
     this.url=url; this.key=key;
     this.h={'apikey':key,'Authorization':`Bearer ${key}`,'Content-Type':'application/json','Prefer':'return=representation'};
     this.authToken=null;
+    this.refreshToken=null;
   }
   get authHeaders(){
     return this.authToken
@@ -660,19 +661,77 @@ class SB {
     });
     const d=await r.json();
     if(!r.ok){
-      // Surface Supabase's real error message instead of a generic 401
       const msg = d.error_description || d.msg || d.error || `Login failed (${r.status})`;
       throw new Error(msg);
     }
     this.authToken=d.access_token;
+    this.refreshToken=d.refresh_token;
     localStorage.setItem('mv_admin_token',d.access_token);
+    localStorage.setItem('mv_admin_refresh',d.refresh_token);
     localStorage.setItem('mv_admin_user',JSON.stringify(d.user));
     return d;
   }
-  async signOut(){
-    await fetch(`${this.url}/auth/v1/logout`,{method:'POST',headers:this.authHeaders});
-    this.authToken=null;
+  // Try to use the stored refresh token to get a new access token.
+  // Returns true on success, false if the refresh token is also dead.
+  async tryRefreshSession(){
+    const rt = this.refreshToken || localStorage.getItem('mv_admin_refresh');
+    if(!rt) return false;
+    try{
+      const r=await fetch(`${this.url}/auth/v1/token?grant_type=refresh_token`,{
+        method:'POST',
+        headers:{'apikey':this.key,'Content-Type':'application/json'},
+        body:JSON.stringify({refresh_token:rt})
+      });
+      const d=await r.json();
+      if(!r.ok) return false;
+      this.authToken=d.access_token;
+      this.refreshToken=d.refresh_token;
+      localStorage.setItem('mv_admin_token',d.access_token);
+      localStorage.setItem('mv_admin_refresh',d.refresh_token);
+      return true;
+    }catch(e){ return false; }
+  }
+  // Detect Supabase's "JWT expired" / invalid token responses
+  _isAuthExpired(status,d){
+    if(status===401) return true;
+    const msg = (d && (d.message||d.msg||d.error||d.error_description||'')).toString().toLowerCase();
+    return msg.includes('jwt expired') || msg.includes('invalid jwt') || msg.includes('jwt is expired') || msg.includes('pgrst301');
+  }
+  // Wraps fetch: on auth-expired response, tries a silent refresh and
+  // retries the request once. If that also fails, forces re-login.
+  async _request(doFetch){
+    let r = await doFetch(this.authHeaders);
+    if(r.status===401){
+      let d={};
+      try{ d=await r.clone().json(); }catch(e){}
+      if(this._isAuthExpired(r.status,d)){
+        const refreshed = await this.tryRefreshSession();
+        if(refreshed){
+          r = await doFetch(this.authHeaders);
+        } else {
+          this._forceReLogin();
+          throw new Error('Your session has expired. Please sign in again.');
+        }
+      }
+    }
+    return r;
+  }
+  _forceReLogin(){
+    this.authToken=null; this.refreshToken=null;
     localStorage.removeItem('mv_admin_token');
+    localStorage.removeItem('mv_admin_refresh');
+    localStorage.removeItem('mv_admin_user');
+    const app=document.getElementById('admin-app');
+    const login=document.getElementById('login-page');
+    if(app) app.style.display='none';
+    if(login) login.style.display='flex';
+    showToast('Session expired — please sign in again','error');
+  }
+  async signOut(){
+    try{ await fetch(`${this.url}/auth/v1/logout`,{method:'POST',headers:this.authHeaders}); }catch(e){}
+    this.authToken=null; this.refreshToken=null;
+    localStorage.removeItem('mv_admin_token');
+    localStorage.removeItem('mv_admin_refresh');
     localStorage.removeItem('mv_admin_user');
   }
   _buildUrl(table,filters=[],select='*',order=null,limit=null,offset=null){
@@ -685,39 +744,63 @@ class SB {
   }
   async select(table,{select='*',filters=[],order=null,limit=null,offset=null,count=false}={}){
     const url=this._buildUrl(table,filters,select,order,limit,offset);
-    const heads={...this.authHeaders};
-    if(count) heads['Prefer']='count=exact';
-    const r=await fetch(url,{headers:heads});
+    const r = await this._request(async (headers)=>{
+      const heads={...headers};
+      if(count) heads['Prefer']='count=exact';
+      return fetch(url,{headers:heads});
+    });
     const d=await r.json();
     if(!r.ok) throw d;
     const total=count?parseInt(r.headers.get('content-range')?.split('/')[1]||0):null;
     return {data:d,count:total};
   }
   async insert(table,body){
-    const r=await fetch(`${this.url}/rest/v1/${table}`,{method:'POST',headers:this.authHeaders,body:JSON.stringify(body)});
+    const r = await this._request((headers)=>
+      fetch(`${this.url}/rest/v1/${table}`,{method:'POST',headers,body:JSON.stringify(body)})
+    );
     const d=await r.json();
-    if(!r.ok) throw d;
+    if(!r.ok){
+      const msg = d.message || d.msg || d.error_description || d.hint || d.details || JSON.stringify(d);
+      throw new Error(msg);
+    }
     return {data:Array.isArray(d)?d[0]:d};
   }
   async update(table,body,filters){
     let url=`${this.url}/rest/v1/${table}?`;
     url+=filters.join('&');
-    const r=await fetch(url,{method:'PATCH',headers:this.authHeaders,body:JSON.stringify(body)});
+    const r = await this._request((headers)=>
+      fetch(url,{method:'PATCH',headers,body:JSON.stringify(body)})
+    );
     const d=await r.json();
-    if(!r.ok) throw d;
+    if(!r.ok){
+      const msg = d.message || d.msg || d.error_description || d.hint || d.details || JSON.stringify(d);
+      throw new Error(msg);
+    }
     return {data:d};
   }
   async delete(table,filters){
     let url=`${this.url}/rest/v1/${table}?`;
     url+=filters.join('&');
-    const r=await fetch(url,{method:'DELETE',headers:this.authHeaders});
-    if(!r.ok){const d=await r.json();throw d;}
+    const r = await this._request((headers)=>
+      fetch(url,{method:'DELETE',headers})
+    );
+    if(!r.ok){
+      let d={};
+      try{ d=await r.json(); }catch(e){}
+      const msg = d.message || d.msg || d.error_description || d.hint || d.details || `Delete failed (${r.status})`;
+      throw new Error(msg);
+    }
     return {data:null};
   }
   async rpc(fn,params={}){
-    const r=await fetch(`${this.url}/rest/v1/rpc/${fn}`,{method:'POST',headers:this.authHeaders,body:JSON.stringify(params)});
+    const r = await this._request((headers)=>
+      fetch(`${this.url}/rest/v1/rpc/${fn}`,{method:'POST',headers,body:JSON.stringify(params)})
+    );
     const d=await r.json();
-    if(!r.ok) throw d;
+    if(!r.ok){
+      const msg = d.message || d.msg || d.error_description || d.hint || d.details || JSON.stringify(d);
+      throw new Error(msg);
+    }
     return {data:d};
   }
 }
@@ -739,8 +822,10 @@ let dashRefreshTimer = null;
 /* ==================== INIT ==================== */
 window.addEventListener('DOMContentLoaded', async ()=>{
   const token = localStorage.getItem('mv_admin_token');
+  const refresh = localStorage.getItem('mv_admin_refresh');
   if(token){
     db.authToken = token;
+    db.refreshToken = refresh;
     showAdminApp();
     loadDashboard();
   }
