@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<!-- Added for the new Bulk Style Code Search export feature only. Does not affect any existing functionality. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
   :root{
     --bg:#F6F5F1;
@@ -80,6 +82,31 @@
   @media (max-width:480px){
     .header-count{ display:none; }
     .page-title{ font-size:1.1rem; }
+  }
+
+  /* ---------- View Tabs (new — switches between Single and Bulk search) ---------- */
+  .view-tabs{
+    max-width:720px; margin:34px auto 0; padding:0 24px;
+    display:flex; gap:8px;
+  }
+  .view-tab{
+    flex:1;
+    padding:11px 16px;
+    border-radius:11px;
+    border:1.5px solid var(--line);
+    background:var(--bg-alt);
+    color:var(--ink-soft);
+    font-weight:700;
+    font-size:.85rem;
+    cursor:pointer;
+    transition:all .18s ease;
+  }
+  .view-tab:hover{ border-color:var(--accent); color:var(--accent-dark); }
+  .view-tab.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+    box-shadow:var(--shadow-1);
   }
 
   /* ---------- Search ---------- */
@@ -296,6 +323,133 @@
     font-size:.76rem; color:var(--ink-soft);
   }
 
+  /* ---------- Bulk Style Code Search (new feature — additive only) ---------- */
+  .bulk-view{ max-width:1180px; margin:34px auto 70px; padding:0 24px; }
+  .bulk-heading{
+    font-family:'Fraunces', serif; font-weight:600; font-size:1.35rem;
+    color:var(--ink); margin:0 0 4px;
+  }
+  .bulk-subtext{ font-size:.86rem; color:var(--ink-soft); margin:0 0 18px; }
+
+  .bulk-textarea{
+    width:100%;
+    min-height:130px;
+    resize:vertical;
+    padding:16px 18px;
+    border-radius:14px;
+    border:1.5px solid var(--line);
+    background:var(--bg-alt);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.88rem;
+    color:var(--ink);
+    box-shadow:var(--shadow-1);
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .bulk-textarea:focus{
+    outline:none; border-color:var(--accent);
+    box-shadow:0 0 0 4px var(--accent-soft);
+  }
+  .bulk-textarea::placeholder{ color:#9CA0AB; }
+
+  .bulk-actions{
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+    margin:14px 0 6px;
+  }
+  .btn-outline{
+    background:var(--bg-alt); color:var(--accent-dark);
+    border:1.5px solid var(--accent); font-weight:700; font-size:.85rem;
+    padding:10px 20px; border-radius:10px; cursor:pointer;
+    transition:background .18s ease, color .18s ease;
+  }
+  .btn-outline:hover{ background:var(--accent-soft); }
+  .btn-ghost{
+    background:transparent; color:var(--ink-soft);
+    border:1.5px solid var(--line); font-weight:700; font-size:.85rem;
+    padding:10px 20px; border-radius:10px; cursor:pointer;
+    transition:background .18s ease;
+  }
+  .btn-ghost:hover{ background:var(--bg); }
+  .btn-primary:disabled, .btn-outline:disabled, .btn-ghost:disabled{
+    opacity:.55; cursor:not-allowed;
+  }
+  .btn-spinner{
+    width:14px; height:14px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.4); border-top-color:#fff;
+    display:inline-block; margin-right:7px; vertical-align:-2px;
+    animation:spin .7s linear infinite;
+  }
+
+  .bulk-status-line{
+    font-family:'IBM Plex Mono', monospace; font-size:.78rem; color:var(--ink-soft);
+    margin:8px 0 4px; min-height:1.2em;
+  }
+  .progress-track{
+    width:100%; height:7px; border-radius:5px;
+    background:var(--line); overflow:hidden; margin-bottom:18px;
+    display:none;
+  }
+  .progress-track.active{ display:block; }
+  .progress-fill{
+    height:100%; width:0%; background:var(--accent);
+    transition:width .18s ease; border-radius:5px;
+  }
+
+  .bulk-table-wrap{
+    width:100%; overflow-x:auto;
+    border:1px solid var(--line); border-radius:14px;
+    background:var(--bg-alt); box-shadow:var(--shadow-1);
+    max-height:640px; overflow-y:auto;
+  }
+  .bulk-table{
+    width:100%; border-collapse:collapse; min-width:640px;
+    font-size:.86rem;
+  }
+  .bulk-table thead th{
+    position:sticky; top:0; z-index:2;
+    background:var(--accent-soft); color:var(--accent-dark);
+    font-weight:700; text-align:left;
+    padding:12px 14px; border-bottom:1.5px solid var(--line);
+    white-space:nowrap;
+  }
+  .bulk-table tbody td{
+    padding:10px 14px; border-bottom:1px solid var(--line);
+    vertical-align:middle; color:var(--ink);
+  }
+  .bulk-table tbody tr:nth-child(even){ background:rgba(28,32,39,.02); }
+  .bulk-table tbody tr:hover{ background:var(--accent-soft); }
+  .bulk-table tbody tr.row-not-found{ background:rgba(180,60,50,.05); }
+  .bulk-table tbody tr.row-not-found:hover{ background:rgba(180,60,50,.09); }
+
+  .cell-input{
+    width:100%; min-width:70px;
+    padding:7px 9px; border-radius:7px;
+    border:1.3px solid var(--line);
+    background:var(--bg-alt); font-family:'Manrope', sans-serif;
+    font-size:.85rem; color:var(--ink);
+  }
+  .cell-input:focus{
+    outline:none; border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft);
+  }
+
+  .thumb-wrap{
+    width:76px; height:76px; border-radius:9px;
+    background:var(--img-bg); overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .thumb-wrap img{ width:100%; height:100%; object-fit:contain; }
+
+  .not-found-tag{
+    display:inline-block; margin-top:4px;
+    font-size:.68rem; font-weight:700; letter-spacing:.03em;
+    color:#A6423A; text-transform:uppercase;
+  }
+
+  .bulk-empty-note{
+    font-size:.85rem; color:var(--ink-soft); padding:26px 4px;
+    text-align:center;
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
   }
@@ -314,54 +468,112 @@
     </div>
   </header>
 
-  <section class="search-section">
-    <div class="search-box">
-      <span class="search-icon" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      </span>
-      <input
-        type="text"
-        id="searchInput"
-        class="search-input"
-        placeholder="Search by SKU — e.g. BMP-457"
-        autocomplete="off"
-        spellcheck="false"
-        aria-label="Search by SKU"
-        disabled
-      >
-      <button class="clear-btn" id="clearBtn" type="button" aria-label="Clear search">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
+  <!-- New: view switcher between the original Single SKU Search and the new Bulk Style Code Search -->
+  <div class="view-tabs" id="viewTabs">
+    <button type="button" class="view-tab active" id="tabSingle">Single SKU Search</button>
+    <button type="button" class="view-tab" id="tabBulk">Bulk Style Code Search</button>
+  </div>
+
+  <!-- ================= SINGLE SKU SEARCH (existing feature — unchanged) ================= -->
+  <div id="singleView">
+
+    <section class="search-section">
+      <div class="search-box">
+        <span class="search-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </span>
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search by SKU — e.g. BMP-457"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Search by SKU"
+          disabled
+        >
+        <button class="clear-btn" id="clearBtn" type="button" aria-label="Clear search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <p class="search-hint">Search matches any part of the SKU, case-insensitive.</p>
+    </section>
+
+    <div class="results-meta" id="resultsMeta"></div>
+
+    <main class="results-section">
+
+      <div class="state-block" id="loadingState">
+        <div class="spinner" role="status" aria-label="Loading products"></div>
+        <h3>Loading products…</h3>
+        <p>Fetching the latest catalog from Blucheez Fashion.</p>
+      </div>
+
+      <div class="state-block hidden" id="errorState">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="13"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <h3>Couldn't load products</h3>
+        <p id="errorMessage">Something went wrong while fetching the catalog.</p>
+        <button class="btn-primary" id="retryBtn" type="button">Try again</button>
+      </div>
+
+      <div class="state-block hidden" id="emptyState">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 23 1 13V3h10l9.59 9.59a2 2 0 0 1 0 2.82Z"></path><circle cx="6.5" cy="7.5" r="1.2"></circle><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+        <h3>No Product Found</h3>
+        <p>Try a different SKU, or just part of one — like "BMP" or "457".</p>
+      </div>
+
+      <div class="grid hidden" id="grid"></div>
+
+    </main>
+
+  </div>
+  <!-- ================= END SINGLE SKU SEARCH ================= -->
+
+
+  <!-- ================= BULK STYLE CODE SEARCH (new feature) ================= -->
+  <section class="bulk-view hidden" id="bulkView">
+    <h2 class="bulk-heading">Bulk Style Code Search</h2>
+    <p class="bulk-subtext">Paste multiple style codes — one per line, or separated by commas or spaces. Duplicates are removed automatically and the original order is kept.</p>
+
+    <textarea
+      id="bulkTextarea"
+      class="bulk-textarea"
+      placeholder="ABC123
+ABC124
+ABC125"
+      spellcheck="false"
+    ></textarea>
+
+    <div class="bulk-actions">
+      <button type="button" class="btn-primary" id="bulkSearchBtn">Search</button>
+      <button type="button" class="btn-ghost" id="bulkClearBtn">Clear</button>
+      <button type="button" class="btn-outline" id="bulkExportBtn" disabled>Export to Excel</button>
     </div>
-    <p class="search-hint">Search matches any part of the SKU, case-insensitive.</p>
+
+    <div class="bulk-status-line" id="bulkStatusLine"></div>
+    <div class="progress-track" id="bulkProgressTrack">
+      <div class="progress-fill" id="bulkProgressFill"></div>
+    </div>
+
+    <div class="bulk-table-wrap" id="bulkTableWrap" style="display:none;">
+      <table class="bulk-table">
+        <thead>
+          <tr>
+            <th>SL No</th>
+            <th>Style Code</th>
+            <th>Colour</th>
+            <th>Size</th>
+            <th>RQ Qty</th>
+            <th>Image</th>
+          </tr>
+        </thead>
+        <tbody id="bulkTableBody"></tbody>
+      </table>
+    </div>
+
+    <p class="bulk-empty-note" id="bulkEmptyNote">Paste one or more style codes above, then click Search.</p>
   </section>
-
-  <div class="results-meta" id="resultsMeta"></div>
-
-  <main class="results-section">
-
-    <div class="state-block" id="loadingState">
-      <div class="spinner" role="status" aria-label="Loading products"></div>
-      <h3>Loading products…</h3>
-      <p>Fetching the latest catalog from Blucheez Fashion.</p>
-    </div>
-
-    <div class="state-block hidden" id="errorState">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="13"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-      <h3>Couldn't load products</h3>
-      <p id="errorMessage">Something went wrong while fetching the catalog.</p>
-      <button class="btn-primary" id="retryBtn" type="button">Try again</button>
-    </div>
-
-    <div class="state-block hidden" id="emptyState">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 23 1 13V3h10l9.59 9.59a2 2 0 0 1 0 2.82Z"></path><circle cx="6.5" cy="7.5" r="1.2"></circle><line x1="2" y1="2" x2="22" y2="22"></line></svg>
-      <h3>No Product Found</h3>
-      <p>Try a different SKU, or just part of one — like "BMP" or "457".</p>
-    </div>
-
-    <div class="grid hidden" id="grid"></div>
-
-  </main>
+  <!-- ================= END BULK STYLE CODE SEARCH ================= -->
 
   <footer class="app-footer">Blucheez Fashion · Internal SKU lookup tool</footer>
 
@@ -643,6 +855,371 @@
 
   // ---------- Init ----------
   loadProducts();
+
+
+  // =========================================================================
+  // BULK STYLE CODE SEARCH — NEW FEATURE (additive only)
+  //
+  // Everything below is new. Nothing above this comment block was changed.
+  // This feature deliberately reuses:
+  //   - allProducts        (the same catalog data loaded by loadProducts())
+  //   - PLACEHOLDER_IMG     (the same not-found placeholder image)
+  //   - escapeHtml          (same HTML-escaping helper)
+  //   - the "search by SKU" matching rule used by searchProducts()
+  // No new image source, no new catalog fetch, no duplicate search logic.
+  // =========================================================================
+
+  var tabSingle = document.getElementById('tabSingle');
+  var tabBulk = document.getElementById('tabBulk');
+  var singleView = document.getElementById('singleView');
+  var bulkView = document.getElementById('bulkView');
+
+  var bulkTextarea = document.getElementById('bulkTextarea');
+  var bulkSearchBtn = document.getElementById('bulkSearchBtn');
+  var bulkClearBtn = document.getElementById('bulkClearBtn');
+  var bulkExportBtn = document.getElementById('bulkExportBtn');
+  var bulkStatusLine = document.getElementById('bulkStatusLine');
+  var bulkProgressTrack = document.getElementById('bulkProgressTrack');
+  var bulkProgressFill = document.getElementById('bulkProgressFill');
+  var bulkTableWrap = document.getElementById('bulkTableWrap');
+  var bulkTableBody = document.getElementById('bulkTableBody');
+  var bulkEmptyNote = document.getElementById('bulkEmptyNote');
+
+  var bulkResults = [];     // current row data (index, code, found, product, colour, size, rqQty)
+  var bulkRunning = false;
+
+  // ---- View switching (purely additive; does not alter single-search DOM/logic) ----
+  function showSingleView(){
+    tabSingle.classList.add('active');
+    tabBulk.classList.remove('active');
+    singleView.classList.remove('hidden');
+    bulkView.classList.add('hidden');
+  }
+  function showBulkView(){
+    tabBulk.classList.add('active');
+    tabSingle.classList.remove('active');
+    bulkView.classList.remove('hidden');
+    singleView.classList.add('hidden');
+  }
+  tabSingle.addEventListener('click', showSingleView);
+  tabBulk.addEventListener('click', showBulkView);
+
+  // ---- Parse pasted style codes: newline / comma / whitespace separated ----
+  // Ignores empty lines, trims whitespace, preserves the original input
+  // order INCLUDING duplicates — every occurrence the user typed becomes
+  // its own row. (Lookup caching, further down, is what keeps repeated
+  // codes fast — not removing them.)
+  function parseStyleCodes(raw){
+    if(!raw) return [];
+    var out = [];
+    raw.split(/[\n\r,]+/).forEach(function(chunk){
+      chunk.split(/\s+/).forEach(function(token){
+        var code = token.trim();
+        if(!code) return;
+        out.push(code);
+      });
+    });
+    return out;
+  }
+
+  // ---- Reuse the existing catalog + matching rule to find a product ----
+  // Exact SKU match first (case-insensitive); falls back to the same
+  // "contains" rule the single search box already uses.
+  function findProductByStyleCode(code){
+    var q = code.toLowerCase();
+    for(var i = 0; i < allProducts.length; i++){
+      if(allProducts[i].sku.toLowerCase() === q) return allProducts[i];
+    }
+    for(var j = 0; j < allProducts.length; j++){
+      if(allProducts[j].sku.toLowerCase().indexOf(q) !== -1) return allProducts[j];
+    }
+    return null;
+  }
+
+  // ---- Lookup cache: search each unique style code only once ----
+  // Duplicate rows in the input reuse the cached result instead of
+  // re-scanning the catalog, so 500 codes with lots of repeats stay fast.
+  function lookupWithCache(code, cache){
+    var key = code.toLowerCase();
+    if(Object.prototype.hasOwnProperty.call(cache, key)) return cache[key];
+    var product = findProductByStyleCode(code);
+    cache[key] = product;
+    return product;
+  }
+
+  function setBulkRunning(isRunning){
+    bulkRunning = isRunning;
+    bulkSearchBtn.disabled = isRunning;
+    bulkClearBtn.disabled = isRunning;
+    bulkSearchBtn.innerHTML = isRunning
+      ? '<span class="btn-spinner"></span>Searching…'
+      : 'Search';
+  }
+
+  function renderBulkRow(row){
+    var tr = document.createElement('tr');
+    tr.dataset.index = row.index;
+    if(!row.found) tr.className = 'row-not-found';
+
+    var imgSrc = row.found ? (row.product.image || PLACEHOLDER_IMG) : PLACEHOLDER_IMG;
+
+    tr.innerHTML =
+      '<td>' + (row.index + 1) + '</td>' +
+      '<td>' + escapeHtml(row.code) +
+        (row.found ? '' : '<br><span class="not-found-tag">Not Found</span>') +
+      '</td>' +
+      '<td><input type="text" class="cell-input" data-field="colour" placeholder="Colour"></td>' +
+      '<td><input type="text" class="cell-input" data-field="size" placeholder="Size"></td>' +
+      '<td><input type="text" class="cell-input" data-field="rqQty" placeholder="Qty"></td>' +
+      '<td><div class="thumb-wrap"><img src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(row.code) + '" loading="lazy"></div></td>';
+
+    // Same defensive fallback pattern used by the existing grid: if the
+    // image fails to load, retry once, then fall back to the placeholder.
+    var imgEl = tr.querySelector('img');
+    var retried = false;
+    imgEl.addEventListener('error', function(){
+      if(!retried && row.found && row.product.image){
+        retried = true;
+        imgEl.src = row.product.image + (row.product.image.indexOf('?') === -1 ? '?retry=1' : '&retry=1');
+      } else {
+        imgEl.src = PLACEHOLDER_IMG;
+      }
+    });
+
+    tr.querySelectorAll('.cell-input').forEach(function(inputEl){
+      inputEl.addEventListener('input', function(){
+        row[inputEl.dataset.field] = inputEl.value;
+      });
+    });
+
+    bulkTableBody.appendChild(tr);
+  }
+
+  async function runBulkSearch(){
+    if(bulkRunning) return;
+
+    var codes = parseStyleCodes(bulkTextarea.value);
+    if(codes.length === 0){
+      bulkStatusLine.textContent = 'Please paste at least one style code.';
+      return;
+    }
+
+    if(allProducts.length === 0){
+      bulkStatusLine.textContent = 'Catalog is not loaded yet — please wait for the main search to finish loading, then try again.';
+      return;
+    }
+
+    setBulkRunning(true);
+    bulkExportBtn.disabled = true;
+    bulkEmptyNote.classList.add('hidden');
+    bulkTableWrap.style.display = 'block';
+    bulkTableBody.innerHTML = '';
+    bulkResults = [];
+    bulkProgressTrack.classList.add('active');
+    bulkProgressFill.style.width = '0%';
+
+    var BATCH_SIZE = 20;
+    var total = codes.length;
+    var lookupCache = {}; // key: lowercase code -> product (or null). Searched once per unique code.
+
+    for(var i = 0; i < total; i++){
+      var code = codes[i];
+      var product = lookupWithCache(code, lookupCache);
+      var row = {
+        index: i,
+        code: code,
+        found: !!product,
+        product: product,
+        colour: '',
+        size: '',
+        rqQty: ''
+      };
+      bulkResults.push(row);
+      renderBulkRow(row);
+
+      bulkStatusLine.textContent = 'Searching ' + (i + 1) + ' of ' + total + '…';
+      bulkProgressFill.style.width = Math.round(((i + 1) / total) * 100) + '%';
+
+      // Yield to the browser periodically so the UI never freezes, even
+      // with several hundred style codes, and the page never reloads.
+      if((i + 1) % BATCH_SIZE === 0){
+        await new Promise(function(resolve){ setTimeout(resolve, 0); });
+      }
+    }
+
+    var foundCount = bulkResults.filter(function(r){ return r.found; }).length;
+    bulkStatusLine.textContent = 'Done — ' + total + ' style code' + (total !== 1 ? 's' : '') +
+      ' searched (' + foundCount + ' found, ' + (total - foundCount) + ' not found).';
+
+    setBulkRunning(false);
+    bulkExportBtn.disabled = false;
+  }
+
+  function clearBulkSearch(){
+    if(bulkRunning) return;
+    bulkTextarea.value = '';
+    bulkResults = [];
+    bulkTableBody.innerHTML = '';
+    bulkTableWrap.style.display = 'none';
+    bulkStatusLine.textContent = '';
+    bulkProgressTrack.classList.remove('active');
+    bulkProgressFill.style.width = '0%';
+    bulkExportBtn.disabled = true;
+    bulkEmptyNote.classList.remove('hidden');
+  }
+
+  bulkSearchBtn.addEventListener('click', runBulkSearch);
+  bulkClearBtn.addEventListener('click', clearBulkSearch);
+
+  // ---- Placeholder PNG for Excel export ----
+  // The on-page placeholder (PLACEHOLDER_IMG) is an SVG data URI, reused
+  // as-is for on-screen display above. ExcelJS needs a raster image, so a
+  // small canvas-rendered PNG version is generated once and cached.
+  var _placeholderPngCache = null;
+  function getPlaceholderPng(){
+    if(_placeholderPngCache) return _placeholderPngCache;
+    var canvas = document.createElement('canvas');
+    canvas.width = 100; canvas.height = 100;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ECEAE3';
+    ctx.fillRect(0, 0, 100, 100);
+    ctx.fillStyle = '#B5B2A6';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No Image', 50, 54);
+    _placeholderPngCache = canvas.toDataURL('image/png').split(',')[1];
+    return _placeholderPngCache;
+  }
+
+  // Fetches a product image and converts it to base64 for embedding.
+  // Retries once on any failure (network error, CORS, 404), then falls
+  // back to the placeholder — the whole export never stops for one image.
+  async function imageToBase64(url){
+    for(var attempt = 0; attempt < 2; attempt++){
+      try{
+        var res = await fetch(url);
+        if(!res.ok) throw new Error('bad status');
+        var blob = await res.blob();
+        var dataUrl = await new Promise(function(resolve, reject){
+          var reader = new FileReader();
+          reader.onload = function(){ resolve(reader.result); };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        return dataUrl.split(',')[1];
+      } catch(e){
+        if(attempt === 1) return getPlaceholderPng();
+      }
+    }
+    return getPlaceholderPng();
+  }
+
+  async function exportBulkToExcel(){
+    if(typeof ExcelJS === 'undefined'){
+      alert('Excel export library failed to load. Please check your connection and try again.');
+      return;
+    }
+    if(bulkResults.length === 0) return;
+
+    var originalLabel = bulkExportBtn.textContent;
+    bulkExportBtn.disabled = true;
+    bulkExportBtn.innerHTML = '<span class="btn-spinner" style="border-top-color:var(--accent-dark); border-color:rgba(31,92,77,.25);"></span>Exporting…';
+
+    try{
+      var workbook = new ExcelJS.Workbook();
+      var sheet = workbook.addWorksheet('Style Codes');
+
+      sheet.columns = [
+        { header: 'SL No', key: 'sl', width: 8 },
+        { header: 'Style Code', key: 'code', width: 22 },
+        { header: 'Colour', key: 'colour', width: 16 },
+        { header: 'Size', key: 'size', width: 12 },
+        { header: 'RQ Qty', key: 'qty', width: 12 },
+        { header: 'Image', key: 'image', width: 16 }
+      ];
+
+      var headerRow = sheet.getRow(1);
+      headerRow.eachCell(function(cell){
+        cell.font = { bold: true };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE4EFE9' } };
+        cell.border = {
+          top: { style: 'thin' }, left: { style: 'thin' },
+          bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+      });
+
+      // Image conversion cache, keyed by image URL: duplicate style codes
+      // (or different codes that happen to share the same product image)
+      // are fetched/converted to base64 only once and reused for every row.
+      var imageBase64Cache = {};
+      async function getBase64ForRow(row){
+        if(!(row.found && row.product.image)) return getPlaceholderPng();
+        var url = row.product.image;
+        if(Object.prototype.hasOwnProperty.call(imageBase64Cache, url)){
+          return imageBase64Cache[url];
+        }
+        var b64 = await imageToBase64(url);
+        imageBase64Cache[url] = b64;
+        return b64;
+      }
+
+      for(var i = 0; i < bulkResults.length; i++){
+        var row = bulkResults[i];
+        var rowIndex = i + 2;
+
+        sheet.addRow({
+          sl: row.index + 1,
+          code: row.code,
+          colour: row.colour || '',
+          size: row.size || '',
+          qty: row.rqQty || '',
+          image: ''
+        });
+
+        var dataRow = sheet.getRow(rowIndex);
+        dataRow.height = 78;
+        dataRow.eachCell(function(cell){
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.border = {
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
+          };
+        });
+
+        var base64Img = await getBase64ForRow(row);
+
+        var imageId = workbook.addImage({ base64: base64Img, extension: 'png' });
+        sheet.addImage(imageId, {
+          tl: { col: 5, row: rowIndex - 1 },
+          ext: { width: 100, height: 100 },
+          editAs: 'oneCell'
+        });
+
+        bulkStatusLine.textContent = 'Preparing Excel file — image ' + (i + 1) + ' of ' + bulkResults.length + '…';
+      }
+
+      var buffer = await workbook.xlsx.writeBuffer();
+      var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'bulk-style-code-search.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      bulkStatusLine.textContent = 'Excel file exported — ' + bulkResults.length + ' rows.';
+    } catch(err){
+      bulkStatusLine.textContent = 'Export failed: ' + (err && err.message ? err.message : 'unknown error');
+    } finally {
+      bulkExportBtn.disabled = false;
+      bulkExportBtn.textContent = originalLabel;
+    }
+  }
+
+  bulkExportBtn.addEventListener('click', exportBulkToExcel);
 
 })();
 </script>
