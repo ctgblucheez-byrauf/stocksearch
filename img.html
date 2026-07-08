@@ -9,6 +9,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <!-- Added for the new Bulk Style Code Search export feature only. Does not affect any existing functionality. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<!-- Added for the new Export PDF feature only. Does not affect any existing functionality. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root{
     --bg:#F6F5F1;
@@ -190,10 +193,10 @@
     aspect-ratio:1/1; background:var(--img-bg); overflow:hidden; position:relative;
   }
   .card-img-wrap img{
-    width:100%; height:100%; object-fit:cover;
-    transition:transform .45s ease;
+    width:100%; height:100%;
+    object-fit:contain; object-position:center;
+    display:block;
   }
-  .card:hover .card-img-wrap img{ transform:scale(1.045); }
 
   .card-body{
     padding:14px 15px 17px;
@@ -261,7 +264,7 @@
 
   .hidden{ display:none !important; }
 
-  /* ---------- Modal ---------- */
+  /* ---------- Modal (Product Preview) ---------- */
   .modal-overlay{
     position:fixed; inset:0; z-index:100;
     background:rgba(18,20,16,.55);
@@ -275,9 +278,13 @@
   .modal{
     background:var(--bg-alt);
     border-radius:20px;
-    max-width:780px; width:100%;
-    max-height:88vh; overflow:auto;
-    display:grid; grid-template-columns:1fr 1fr;
+    max-width:920px; width:100%;
+    height:90vh; max-height:90vh;
+    display:grid;
+    grid-template-columns:1.05fr 1fr;
+    grid-template-rows:100%;
+    align-items:start;         /* both columns start at the top — nothing stretches/centers vertically */
+    overflow:hidden;           /* the modal itself never scrolls; each column manages its own content */
     position:relative;
     transform:translateY(14px) scale(.97);
     transition:transform .25s ease;
@@ -285,16 +292,13 @@
   }
   .modal-overlay.open .modal{ transform:translateY(0) scale(1); }
   @media (max-width:680px){
-    .modal{ grid-template-columns:1fr; }
+    .modal{
+      grid-template-columns:1fr;
+      grid-template-rows:auto 1fr;
+      height:92vh; max-height:92vh;
+    }
   }
 
-  .modal-img-wrap{ background:var(--img-bg); min-height:240px; }
-  .modal-img-wrap img{ width:100%; height:100%; object-fit:cover; min-height:240px; }
-
-  .modal-body{
-    padding:30px 28px 32px;
-    display:flex; flex-direction:column; gap:16px;
-  }
   .modal-close{
     position:absolute; top:14px; right:14px;
     width:36px; height:36px; border-radius:50%;
@@ -306,17 +310,91 @@
   }
   .modal-close:hover{ transform:rotate(90deg); }
 
-  .modal-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-  .modal-price{
-    font-family:'IBM Plex Mono', monospace; font-size:1.5rem; font-weight:700;
-    color:var(--gold);
+  /* Left column: image gallery. Fixed to the column's own height (100% of
+     the modal) — it never grows to match the info panel, so it can never
+     get pushed down or stretched by long description text. */
+  .modal-media{
+    height:100%;
+    min-height:0;
+    background:var(--img-bg);
+    padding:22px;
+    display:flex;
+    flex-direction:row;
+    gap:12px;
+    overflow:hidden;
   }
-  .modal-title{
-    font-family:'Fraunces', serif; font-weight:600; font-size:1.05rem; color:var(--ink-soft);
+  @media (max-width:680px){
+    .modal-media{ height:38vh; padding:16px; }
   }
-  .modal-desc{ font-size:.93rem; line-height:1.7; color:var(--ink-soft); }
-  .modal-desc p{ margin:0 0 12px; }
-  .modal-desc p:last-child{ margin-bottom:0; }
+
+  .modal-thumbs{
+    flex-shrink:0;
+    width:60px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    overflow-y:auto;
+  }
+  .modal-thumbs.hidden{ display:none; }
+  .modal-thumb-btn{
+    width:60px; height:60px; flex-shrink:0;
+    border-radius:9px; overflow:hidden;
+    border:1.5px solid var(--line);
+    background:var(--bg-alt);
+    padding:0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s ease;
+  }
+  .modal-thumb-btn:hover{ border-color:var(--accent); }
+  .modal-thumb-btn.active{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+  .modal-thumb-btn img{ width:100%; height:100%; object-fit:contain; object-position:center; display:block; }
+
+  .modal-main-image-wrap{
+    flex:1;
+    min-width:0; min-height:0;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg-alt);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .modal-main-image-wrap img{
+    width:100%; height:100%;
+    object-fit:contain; object-position:center;
+    display:block;
+  }
+
+  /* Right column: product information. This is the only part of the modal
+     that scrolls, so the image column stays put no matter how long the
+     description is. */
+  .modal-info{
+    height:100%;
+    min-height:0;
+    overflow-y:auto;
+    padding:28px 28px 32px;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .modal-sku-tag{ align-self:flex-start; margin-bottom:12px; }
+  .modal-product-title{
+    font-family:'Fraunces', serif; font-weight:600; font-size:1.3rem;
+    color:var(--ink); margin:0 0 8px; line-height:1.3;
+  }
+  .modal-price-value{
+    font-family:'IBM Plex Mono', monospace; font-size:1.4rem; font-weight:700;
+    color:var(--gold); margin-bottom:20px;
+  }
+
+  .modal-section{ margin-bottom:20px; }
+  .modal-section:last-child{ margin-bottom:0; }
+  .modal-section-heading{
+    font-family:'Fraunces', serif; font-size:.78rem; font-weight:600;
+    color:var(--ink-soft); text-transform:uppercase; letter-spacing:.08em;
+    margin:0 0 8px;
+  }
+  .modal-section-body{ font-size:.93rem; line-height:1.7; color:var(--ink-soft); }
+  .modal-section-body p{ margin:0 0 12px; }
+  .modal-section-body p:last-child{ margin-bottom:0; }
 
   footer.app-footer{
     text-align:center; padding:30px 20px 40px;
@@ -548,6 +626,7 @@ ABC125"
       <button type="button" class="btn-primary" id="bulkSearchBtn">Search</button>
       <button type="button" class="btn-ghost" id="bulkClearBtn">Clear</button>
       <button type="button" class="btn-outline" id="bulkExportBtn" disabled>Export to Excel</button>
+      <button type="button" class="btn-outline" id="bulkExportPdfBtn" disabled>Export PDF</button>
     </div>
 
     <div class="bulk-status-line" id="bulkStatusLine"></div>
@@ -577,22 +656,29 @@ ABC125"
 
   <footer class="app-footer">Blucheez Fashion · Internal SKU lookup tool</footer>
 
-  <!-- Modal -->
+  <!-- Modal (Product Preview — information only, no cart/checkout UI) -->
   <div class="modal-overlay" id="modalOverlay">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalSku">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <button class="modal-close" id="modalClose" type="button" aria-label="Close">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
-      <div class="modal-img-wrap">
-        <img id="modalImg" src="" alt="">
-      </div>
-      <div class="modal-body">
-        <div class="modal-row">
-          <span class="sku-tag" id="modalSku" style="font-size:.9rem; max-width:100%;"></span>
-          <span class="modal-price" id="modalPrice"></span>
+
+      <div class="modal-media">
+        <div class="modal-thumbs hidden" id="modalThumbs"></div>
+        <div class="modal-main-image-wrap">
+          <img id="modalImg" src="" alt="">
         </div>
-        <span class="modal-title">Description</span>
-        <div class="modal-desc" id="modalDesc"></div>
+      </div>
+
+      <div class="modal-info">
+        <span class="sku-tag modal-sku-tag" id="modalSku"></span>
+        <h2 class="modal-product-title hidden" id="modalTitle"></h2>
+        <div class="modal-price-value" id="modalPrice"></div>
+
+        <div class="modal-section hidden" id="modalDescSection">
+          <h3 class="modal-section-heading">Description</h3>
+          <div class="modal-section-body" id="modalDesc"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -621,8 +707,11 @@ ABC125"
   var modalOverlay = document.getElementById('modalOverlay');
   var modalClose = document.getElementById('modalClose');
   var modalImg = document.getElementById('modalImg');
+  var modalThumbs = document.getElementById('modalThumbs');
   var modalSku = document.getElementById('modalSku');
+  var modalTitle = document.getElementById('modalTitle');
   var modalPrice = document.getElementById('modalPrice');
+  var modalDescSection = document.getElementById('modalDescSection');
   var modalDesc = document.getElementById('modalDesc');
 
   function escapeHtml(str){
@@ -658,8 +747,58 @@ ABC125"
     return '৳' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  // ---------- Image selection: always the full, original gallery photo ----------
+  // This app reads Shopify's products.json feed (not the live HTML page), so
+  // there is no DOM to scrape — no data-zoom-image, srcset, or lightbox href
+  // to inspect. The equivalent fix here is at the JSON + CDN-URL level:
+  //   1. Prefer the first genuine gallery photo, skipping any leading
+  //      color-swatch thumbnail entries.
+  //   2. Strip Shopify CDN resize/crop query params (width, height, crop)
+  //      and filename size suffixes (e.g. "_240x240", "_medium") so the
+  //      master/original, uncropped, full-resolution file is always used —
+  //      this is what was producing the cropped/zoomed-in image before.
+  function getFullResolutionImageUrl(url){
+    if(!url) return url;
+    try{
+      var u = new URL(url, window.location.origin);
+
+      // Drop Shopify's on-the-fly resize/crop query parameters. These can
+      // silently swap the full photo for a smaller, server-cropped version.
+      ['width', 'height', 'crop', 'format'].forEach(function(p){ u.searchParams.delete(p); });
+
+      // Strip a trailing Shopify size suffix from the filename itself, e.g.
+      // "shirt_480x480.jpg" -> "shirt.jpg", "shirt_medium.jpg" -> "shirt.jpg".
+      var sizeSuffix = /_(pico|icon|thumb|small|compact|medium|large|grande|original|master|\d+x\d*)(?=\.[a-zA-Z]+$)/i;
+      u.pathname = u.pathname.replace(sizeSuffix, '');
+
+      return u.toString();
+    } catch(e){
+      return url; // if the URL can't be parsed for any reason, use it as-is
+    }
+  }
+
+  // Returns every genuine gallery photo for a product (full resolution,
+  // swatch icons filtered out, duplicates removed) — used to power the
+  // Product Preview modal's thumbnail rail. This reads data already
+  // present in the same products.json response; no extra requests.
+  function pickGalleryImages(product){
+    var images = (product.images && product.images.length > 0) ? product.images : [];
+    var out = [];
+    var seen = {};
+    images.forEach(function(imgObj){
+      var alt = (imgObj.alt || '').toLowerCase();
+      if(alt.indexOf('swatch') !== -1) return;
+      var url = getFullResolutionImageUrl(imgObj.src);
+      if(!url || seen[url]) return;
+      seen[url] = true;
+      out.push(url);
+    });
+    return out;
+  }
+
   function transformProduct(product){
-    var image = (product.images && product.images.length > 0) ? product.images[0].src : '';
+    var galleryImages = pickGalleryImages(product);
+    var image = galleryImages.length > 0 ? galleryImages[0] : '';
     var variant = (product.variants && product.variants.length > 0) ? product.variants[0] : null;
     var sku = (variant && variant.sku) ? String(variant.sku).trim() : '';
     var price = (variant && variant.price) ? variant.price : '0.00';
@@ -668,6 +807,7 @@ ABC125"
       id: product.id,
       title: product.title || '',
       image: image,
+      images: galleryImages,
       sku: sku,
       price: price,
       description: description
@@ -796,20 +936,78 @@ ABC125"
   }
 
   // ---------- Modal ----------
-  function openModal(p){
-    modalImg.src = p.image || PLACEHOLDER_IMG;
-    modalImg.alt = p.sku;
+  function setModalMainImage(url){
+    modalImg.src = url || PLACEHOLDER_IMG;
     modalImg.onerror = function(){ modalImg.src = PLACEHOLDER_IMG; };
-    modalSku.textContent = p.sku;
+  }
+
+  function renderModalThumbs(images, activeIndex){
+    modalThumbs.innerHTML = '';
+
+    // Only show the thumbnail rail when there's more than one photo —
+    // an empty/redundant field is hidden automatically.
+    if(images.length <= 1){
+      modalThumbs.classList.add('hidden');
+      return;
+    }
+    modalThumbs.classList.remove('hidden');
+
+    images.forEach(function(url, idx){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'modal-thumb-btn' + (idx === activeIndex ? ' active' : '');
+      btn.setAttribute('aria-label', 'View image ' + (idx + 1) + ' of ' + images.length);
+      btn.innerHTML = '<img src="' + escapeHtml(url) + '" alt="" loading="lazy">';
+
+      var thumbImg = btn.querySelector('img');
+      thumbImg.addEventListener('error', function(){ thumbImg.src = PLACEHOLDER_IMG; });
+
+      btn.addEventListener('click', function(){
+        setModalMainImage(url);
+        modalThumbs.querySelectorAll('.modal-thumb-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+      });
+
+      modalThumbs.appendChild(btn);
+    });
+  }
+
+  function openModal(p){
+    var images = (p.images && p.images.length > 0) ? p.images : (p.image ? [p.image] : []);
+    setModalMainImage(images[0] || '');
+    modalImg.alt = p.sku;
+    renderModalThumbs(images, 0);
+
+    // SKU
+    if(p.sku){
+      modalSku.textContent = p.sku;
+      modalSku.classList.remove('hidden');
+    } else {
+      modalSku.textContent = '';
+      modalSku.classList.add('hidden');
+    }
+
+    // Product name
+    if(p.title){
+      modalTitle.textContent = p.title;
+      modalTitle.classList.remove('hidden');
+    } else {
+      modalTitle.textContent = '';
+      modalTitle.classList.add('hidden');
+    }
+
+    // Price
     modalPrice.textContent = formatPrice(p.price);
 
+    // Description (only field this app has parsed data for; material/
+    // color/care instructions aren't separate fields in the product feed,
+    // so they're not fabricated here — see the description text itself)
     modalDesc.innerHTML = '';
     var paragraphs = (p.description || '').split(/\n+/).map(function(s){ return s.trim(); }).filter(Boolean);
     if(paragraphs.length === 0){
-      var none = document.createElement('p');
-      none.textContent = 'No description available.';
-      modalDesc.appendChild(none);
+      modalDescSection.classList.add('hidden');
     } else {
+      modalDescSection.classList.remove('hidden');
       paragraphs.forEach(function(par){
         var pEl = document.createElement('p');
         pEl.textContent = par;
@@ -878,6 +1076,7 @@ ABC125"
   var bulkSearchBtn = document.getElementById('bulkSearchBtn');
   var bulkClearBtn = document.getElementById('bulkClearBtn');
   var bulkExportBtn = document.getElementById('bulkExportBtn');
+  var bulkExportPdfBtn = document.getElementById('bulkExportPdfBtn');
   var bulkStatusLine = document.getElementById('bulkStatusLine');
   var bulkProgressTrack = document.getElementById('bulkProgressTrack');
   var bulkProgressFill = document.getElementById('bulkProgressFill');
@@ -990,9 +1189,95 @@ ABC125"
       inputEl.addEventListener('input', function(){
         row[inputEl.dataset.field] = inputEl.value;
       });
+      // Excel/Google Sheets style paste: a multi-row/multi-column clipboard
+      // selection is distributed across the matching cells below and to the
+      // right of where the paste started, instead of being dumped as one
+      // long string into a single cell.
+      inputEl.addEventListener('paste', function(e){
+        handleBulkPaste(e, row.index, inputEl.dataset.field);
+      });
     });
 
     bulkTableBody.appendChild(tr);
+  }
+
+  // ---- Smart clipboard paste (Excel / Google Sheets style) ----
+  // Editable columns, left to right, in table order.
+  var BULK_EDITABLE_FIELDS = ['colour', 'size', 'rqQty'];
+
+  // Reflects a value into the actual <input> for a given row/field so the
+  // visible cell and the underlying row data stay in sync.
+  function setBulkCellValue(rowIndex, field, value){
+    if(rowIndex < 0 || rowIndex >= bulkResults.length) return;
+    bulkResults[rowIndex][field] = value;
+    var input = bulkTableBody.querySelector(
+      'tr[data-index="' + rowIndex + '"] input[data-field="' + field + '"]'
+    );
+    if(input) input.value = value;
+  }
+
+  function handleBulkPaste(e, startRowIndex, startField){
+    var clipboardData = e.clipboardData || window.clipboardData;
+    var text = clipboardData ? clipboardData.getData('text') : '';
+    if(!text) return; // nothing usable on the clipboard — let the browser handle it
+
+    e.preventDefault();
+
+    // Rows split on newlines, columns split on tabs — the same shape Excel
+    // and Google Sheets use when copying a cell range to the clipboard.
+    var lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    while(lines.length && lines[lines.length - 1] === '') lines.pop();
+    if(lines.length === 0) return;
+
+    var matrix = lines.map(function(line){ return line.split('\t'); });
+    var nCols = matrix.reduce(function(max, cols){ return Math.max(max, cols.length); }, 1);
+
+    var startFieldIndex = BULK_EDITABLE_FIELDS.indexOf(startField);
+    if(startFieldIndex === -1) startFieldIndex = 0;
+    var availableSlots = BULK_EDITABLE_FIELDS.length - startFieldIndex;
+
+    // Work out which clipboard column to start reading from, and which
+    // editable fields to fill:
+    //  - 1 column  -> paste straight down into the cell that was clicked.
+    //  - 2 columns -> treat as [identifier, value]; ignore column 1, use
+    //                 column 2 for the clicked field only (e.g. pasting a
+    //                 Style Code + Colour pair into the Colour column).
+    //  - columns match the remaining editable fields exactly -> fill them
+    //    directly, left to right, starting at the clicked field.
+    //  - one extra column beyond the remaining editable fields -> treat the
+    //    first clipboard column as an identifier (e.g. Style Code) and
+    //    ignore it, then fill the remaining fields as above.
+    var skip, fieldsToFill;
+    if(nCols === 1){
+      skip = 0;
+      fieldsToFill = [BULK_EDITABLE_FIELDS[startFieldIndex]];
+    } else if(nCols === 2){
+      skip = 1;
+      fieldsToFill = [BULK_EDITABLE_FIELDS[startFieldIndex]];
+    } else if(nCols === availableSlots){
+      skip = 0;
+      fieldsToFill = BULK_EDITABLE_FIELDS.slice(startFieldIndex);
+    } else if(nCols === availableSlots + 1){
+      skip = 1;
+      fieldsToFill = BULK_EDITABLE_FIELDS.slice(startFieldIndex);
+    } else {
+      // Fallback for any other shape: assume any extra leading columns are
+      // identifier columns to ignore, then fill whatever editable fields
+      // remain from the clicked column onward.
+      skip = Math.max(0, nCols - availableSlots);
+      fieldsToFill = BULK_EDITABLE_FIELDS.slice(startFieldIndex);
+    }
+
+    for(var r = 0; r < matrix.length; r++){
+      var targetRowIndex = startRowIndex + r;
+      if(targetRowIndex >= bulkResults.length) break; // no more rows to fill in the table
+      var cols = matrix[r];
+      for(var f = 0; f < fieldsToFill.length; f++){
+        var colIndex = skip + f;
+        if(colIndex >= cols.length) continue; // clipboard row is short a column; leave that cell as-is
+        setBulkCellValue(targetRowIndex, fieldsToFill[f], (cols[colIndex] || '').trim());
+      }
+    }
   }
 
   async function runBulkSearch(){
@@ -1011,6 +1296,7 @@ ABC125"
 
     setBulkRunning(true);
     bulkExportBtn.disabled = true;
+    bulkExportPdfBtn.disabled = true;
     bulkEmptyNote.classList.add('hidden');
     bulkTableWrap.style.display = 'block';
     bulkTableBody.innerHTML = '';
@@ -1053,6 +1339,7 @@ ABC125"
 
     setBulkRunning(false);
     bulkExportBtn.disabled = false;
+    bulkExportPdfBtn.disabled = false;
   }
 
   function clearBulkSearch(){
@@ -1065,6 +1352,7 @@ ABC125"
     bulkProgressTrack.classList.remove('active');
     bulkProgressFill.style.width = '0%';
     bulkExportBtn.disabled = true;
+    bulkExportPdfBtn.disabled = true;
     bulkEmptyNote.classList.remove('hidden');
   }
 
@@ -1220,6 +1508,199 @@ ABC125"
   }
 
   bulkExportBtn.addEventListener('click', exportBulkToExcel);
+
+  // =========================================================================
+  // PDF EXPORT — NEW FEATURE (additive only)
+  //
+  // Reuses imageToBase64() and getPlaceholderPng() exactly as defined above
+  // for the Excel export — no new fetch logic, no new image source. This
+  // section only adds what's needed to turn that same base64 data into a
+  // true vector PDF (jsPDF + jspdf-autotable), instead of a screenshot.
+  // =========================================================================
+
+  function formatPdfDate(d){
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var day = String(d.getDate()).padStart(2, '0');
+    return day + '-' + months[d.getMonth()] + '-' + d.getFullYear();
+  }
+
+  function formatPdfTime(d){
+    var hours = d.getHours();
+    var minutes = String(d.getMinutes()).padStart(2, '0');
+    var ampm = hours >= 12 ? 'PM' : 'AM';
+    var h12 = hours % 12;
+    if(h12 === 0) h12 = 12;
+    return h12 + ':' + minutes + ' ' + ampm;
+  }
+
+  // Base64 doesn't carry a mime type, and jsPDF needs to know the real
+  // image format to decode it correctly — so it's detected from the
+  // standard file-signature bytes at the start of the data.
+  function detectImageFormat(base64){
+    if(base64.indexOf('iVBORw0KGgo') === 0) return 'PNG';
+    if(base64.indexOf('/9j/') === 0) return 'JPEG';
+    if(base64.indexOf('R0lGOD') === 0) return 'GIF';
+    if(base64.indexOf('UklGR') === 0) return 'WEBP';
+    return 'JPEG'; // sensible default — most product photos are JPEG
+  }
+
+  function getImageNaturalSize(base64, format){
+    return new Promise(function(resolve){
+      var mime = format === 'PNG' ? 'image/png' : format === 'GIF' ? 'image/gif' : format === 'WEBP' ? 'image/webp' : 'image/jpeg';
+      var img = new Image();
+      img.onload = function(){ resolve({ width: img.naturalWidth || 1, height: img.naturalHeight || 1 }); };
+      img.onerror = function(){ resolve({ width: 1, height: 1 }); };
+      img.src = 'data:' + mime + ';base64,' + base64;
+    });
+  }
+
+  // Per-export cache: each unique product image is fetched/converted once
+  // (via the same imageToBase64() used by the Excel export) and reused for
+  // every duplicate style-code row, so repeated codes stay fast.
+  async function getPdfImageMeta(row, cache){
+    if(!(row.found && row.product.image)){
+      var phBase64 = getPlaceholderPng();
+      var phSize = await getImageNaturalSize(phBase64, 'PNG');
+      return { base64: phBase64, format: 'PNG', width: phSize.width, height: phSize.height };
+    }
+    var url = row.product.image;
+    if(Object.prototype.hasOwnProperty.call(cache, url)) return cache[url];
+    var base64 = await imageToBase64(url);
+    var format = detectImageFormat(base64);
+    var size = await getImageNaturalSize(base64, format);
+    var meta = { base64: base64, format: format, width: size.width, height: size.height };
+    cache[url] = meta;
+    return meta;
+  }
+
+  async function exportBulkToPdf(){
+    var JsPdfCtor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+    if(!JsPdfCtor){
+      alert('PDF export library failed to load. Please check your connection and try again.');
+      return;
+    }
+    if(bulkResults.length === 0) return;
+
+    var originalLabel = bulkExportPdfBtn.textContent;
+    bulkExportPdfBtn.disabled = true;
+    bulkExportPdfBtn.innerHTML = '<span class="btn-spinner" style="border-top-color:var(--accent-dark); border-color:rgba(31,92,77,.25);"></span>Exporting…';
+
+    try{
+      // Convert every unique image up front (yielding periodically so the
+      // browser stays responsive even at 300–500+ rows), then build the PDF.
+      var pdfImageCache = {};
+      var imageMeta = new Array(bulkResults.length);
+      for(var m = 0; m < bulkResults.length; m++){
+        imageMeta[m] = await getPdfImageMeta(bulkResults[m], pdfImageCache);
+        bulkStatusLine.textContent = 'Preparing PDF — image ' + (m + 1) + ' of ' + bulkResults.length + '…';
+        if((m + 1) % 20 === 0){
+          await new Promise(function(resolve){ setTimeout(resolve, 0); });
+        }
+      }
+
+      var doc = new JsPdfCtor({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      var margin = 10;
+      var pageWidth = doc.internal.pageSize.getWidth();
+      var now = new Date();
+      var dateStr = formatPdfDate(now);
+      var timeStr = formatPdfTime(now);
+
+      // Report header (title + export meta) — drawn once at the top of the
+      // first page, above the table.
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(22, 63, 53);
+      doc.text('Bulk Style Search Report', margin, 16);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(91, 98, 112);
+      doc.text('Export Date : ' + dateStr, margin, 23);
+      doc.text('Export Time : ' + timeStr, margin, 28);
+      doc.text('Total Items : ' + bulkResults.length, margin, 33);
+
+      var IMAGE_BOX_MM = 20; // ~80x80px print-equivalent, fits inside the 35mm Image column
+
+      doc.autoTable({
+        head: [['SL No', 'Style Code', 'Colour', 'Size', 'RQ Qty', 'Image']],
+        body: bulkResults.map(function(row){
+          return [String(row.index + 1), row.code, row.colour || '', row.size || '', row.rqQty || '', ''];
+        }),
+        startY: 38,
+        margin: { top: 10, bottom: 16, left: 10, right: 10 },
+        styles: {
+          font: 'helvetica',
+          fontSize: 9,
+          cellPadding: 2,
+          valign: 'middle',
+          halign: 'center',
+          lineWidth: 0.15,
+          lineColor: [227, 225, 218],
+          minCellHeight: IMAGE_BOX_MM + 4 // guarantees every row has room for its image
+        },
+        headStyles: {
+          fillColor: [228, 239, 233],
+          textColor: [22, 63, 53],
+          fontStyle: 'bold',
+          halign: 'center',
+          valign: 'middle',
+          lineWidth: 0.15,
+          lineColor: [227, 225, 218]
+        },
+        alternateRowStyles: { fillColor: [245, 245, 242] },
+        columnStyles: {
+          0: { cellWidth: 15 },
+          1: { cellWidth: 45, halign: 'left' },
+          2: { cellWidth: 40 },
+          3: { cellWidth: 20 },
+          4: { cellWidth: 25 },
+          5: { cellWidth: 35 }
+        },
+        // The Image column's text stays blank; the real image (original
+        // resolution, aspect ratio preserved) is drawn as a vector-embedded
+        // XObject centered in the cell — never a screenshot of the page.
+        didDrawCell: function(data){
+          if(data.section === 'body' && data.column.index === 5){
+            var meta = imageMeta[data.row.index];
+            if(meta && meta.width && meta.height){
+              var ratio = meta.width / meta.height;
+              var drawW, drawH;
+              if(ratio >= 1){ drawW = IMAGE_BOX_MM; drawH = IMAGE_BOX_MM / ratio; }
+              else { drawH = IMAGE_BOX_MM; drawW = IMAGE_BOX_MM * ratio; }
+              var x = data.cell.x + (data.cell.width - drawW) / 2;
+              var y = data.cell.y + (data.cell.height - drawH) / 2;
+              try{ doc.addImage(meta.base64, meta.format, x, y, drawW, drawH); }
+              catch(imgErr){ /* one bad image never stops the export */ }
+            }
+          }
+        }
+      });
+
+      // Footer on every page, added after the table so the true final page
+      // count is known for "Page X of Y".
+      var totalPages = doc.internal.getNumberOfPages();
+      for(var p = 1; p <= totalPages; p++){
+        doc.setPage(p);
+        var pageHeight = doc.internal.pageSize.getHeight();
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(120, 124, 133);
+        doc.text('Generated by Stock Search Seystem ', margin, pageHeight - 8);
+        doc.text('Page ' + p + ' of ' + totalPages, pageWidth / 2, pageHeight - 8, { align: 'center' });
+        doc.text(dateStr + ' ' + timeStr, pageWidth - margin, pageHeight - 8, { align: 'right' });
+      }
+
+      doc.save('bulk-style-search-report.pdf');
+      bulkStatusLine.textContent = 'PDF exported — ' + bulkResults.length + ' rows across ' + totalPages + ' page' + (totalPages !== 1 ? 's' : '') + '.';
+    } catch(err){
+      bulkStatusLine.textContent = 'PDF export failed: ' + (err && err.message ? err.message : 'unknown error');
+    } finally {
+      bulkExportPdfBtn.disabled = false;
+      bulkExportPdfBtn.textContent = originalLabel;
+    }
+  }
+
+  bulkExportPdfBtn.addEventListener('click', exportBulkToPdf);
 
 })();
 </script>
