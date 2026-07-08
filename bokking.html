@@ -180,6 +180,77 @@
         .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* --- Product Image Preview (Feature 1) --- */
+        .product-image-preview {
+            display: flex; align-items: center; gap: 12px;
+            margin-top: 4px; margin-bottom: 16px;
+        }
+        .product-image-preview.hidden { display: none; }
+        .product-image-box {
+            width: 150px; height: 150px; flex-shrink: 0;
+            border-radius: var(--radius-sm); border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm); background: #f8fafc;
+            overflow: hidden; cursor: pointer; position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .product-image-box img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
+        .product-image-box .img-loading-dot {
+            width: 20px; height: 20px; border-radius: 50%;
+            border: 2px solid var(--border); border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+        }
+        .product-image-meta { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* --- History Table Thumbnails (Feature 3) --- */
+        .history-thumb-wrap {
+            width: 70px; height: 70px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            background: #f8fafc; margin: 0 auto; cursor: pointer;
+            position: relative;
+        }
+        .history-thumb-wrap img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
+        .history-thumb-placeholder {
+            font-size: 0.6rem; color: var(--text-muted); text-align: center;
+            line-height: 1.2; padding: 4px;
+        }
+        .history-thumb-stack { display: flex; align-items: center; justify-content: center; gap: 2px; }
+        .history-thumb-stack .history-thumb-wrap { width: 44px; height: 44px; margin: 0; }
+        .history-thumb-more { font-size: 0.7rem; color: var(--text-muted); margin-left: 2px; }
+        .thumb-skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; }
+        @keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+        /* --- Product Preview Modal (reused from Single SKU Search) --- */
+        .pv-modal-overlay {
+            position: fixed; inset: 0; z-index: 30000;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+        }
+        .pv-modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .pv-modal {
+            background: #fff; border-radius: 16px; max-width: 640px; width: 100%;
+            max-height: 88vh; display: grid; grid-template-columns: 1fr 1fr;
+            overflow: hidden; position: relative; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.4);
+            transform: translateY(10px) scale(0.97); transition: transform 0.2s ease;
+        }
+        .pv-modal-overlay.open .pv-modal { transform: translateY(0) scale(1); }
+        @media (max-width: 620px) { .pv-modal { grid-template-columns: 1fr; max-height: 92vh; } }
+        .pv-modal-close {
+            position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+            border-radius: 50%; border: none; background: rgba(255,255,255,0.92);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: var(--shadow-sm); z-index: 5; color: var(--text-main);
+        }
+        .pv-modal-media { background: #f1f5f9; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 220px; }
+        .pv-modal-media img { width: 100%; height: 100%; object-fit: contain; object-position: center; }
+        .pv-modal-info { padding: 22px; overflow-y: auto; display: flex; flex-direction: column; }
+        .pv-modal-sku { display: inline-block; background: #eff6ff; color: var(--primary-dark); font-weight: 600; font-size: 0.8rem; padding: 5px 10px; border-radius: 6px; align-self: flex-start; margin-bottom: 10px; }
+        .pv-modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+        .pv-modal-price { font-weight: 700; color: var(--warning); font-size: 1.15rem; margin-bottom: 14px; }
+        .pv-modal-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+        .pv-modal-desc p { margin-bottom: 10px; }
+
         /* Print */
         #print-container { display: none; }
         @media print {
@@ -239,6 +310,14 @@
                         <label>Style Code</label>
                         <input type="text" id="styleCode" placeholder="Search code..." autocomplete="off" required>
                         <div id="styleCodeList" class="autocomplete-items"></div>
+                    </div>
+
+                    <!-- Feature 1: Product image preview, shown after a Style Code is selected -->
+                    <div id="productImagePreview" class="product-image-preview hidden">
+                        <div class="product-image-box" id="productImageBox" onclick="openStyleImagePreview()">
+                            <div class="img-loading-dot"></div>
+                        </div>
+                        <div class="product-image-meta">Tap image to preview</div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -334,6 +413,7 @@
                             <th style="width: 40%;">Products</th>
                             <th>Branches</th>
                             <th>Status</th>
+                            <th>Image</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -349,6 +429,24 @@
             <span>Confirm Booking</span>
             <div class="spinner" id="btnSpinnerMobile"></div>
         </button>
+    </div>
+
+    <!-- Product Preview Modal (reused component, same as Single SKU Search) -->
+    <div class="pv-modal-overlay" id="pvModalOverlay">
+        <div class="pv-modal" role="dialog" aria-modal="true">
+            <button class="pv-modal-close" id="pvModalClose" type="button" aria-label="Close">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="pv-modal-media">
+                <img id="pvModalImg" src="" alt="">
+            </div>
+            <div class="pv-modal-info">
+                <span class="pv-modal-sku" id="pvModalSku"></span>
+                <div class="pv-modal-title" id="pvModalTitle"></div>
+                <div class="pv-modal-price" id="pvModalPrice"></div>
+                <div class="pv-modal-desc" id="pvModalDesc"></div>
+            </div>
+        </div>
     </div>
 
     <div id="print-container"></div>
@@ -371,9 +469,157 @@
             "Bill Done": { color: "#334155", label: "Bill Done", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>` }
         };
 
+        // ==========================================================================
+        // PRODUCT IMAGE SUPPORT (new) — reused verbatim from the Single SKU Search
+        // tool's image-fetching implementation. Nothing here is a new fetching
+        // method: same feed URL, same pagination, same getFullResolutionImageUrl /
+        // pickGalleryImages logic, same placeholder image, same modal shape.
+        // ==========================================================================
+        const IMG_BASE_URL = "https://blucheez.fashion/products.json";
+        const PLACEHOLDER_IMG = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23ECEAE3'/%3E%3Cpath d='M60 130 L90 95 L115 120 L135 90 L150 130 Z' fill='%23D9D6CB'/%3E%3Ccircle cx='75' cy='75' r='10' fill='%23D9D6CB'/%3E%3C/svg%3E";
+
+        // Same URL-normalizing helper as the Single SKU Search: strips Shopify's
+        // resize/crop query params and filename size suffixes so the full,
+        // original photo is always used instead of a cropped thumbnail.
+        function getFullResolutionImageUrl(url) {
+            if (!url) return url;
+            try {
+                const u = new URL(url, window.location.origin);
+                ['width', 'height', 'crop', 'format'].forEach(p => u.searchParams.delete(p));
+                const sizeSuffix = /_(pico|icon|thumb|small|compact|medium|large|grande|original|master|\d+x\d*)(?=\.[a-zA-Z]+$)/i;
+                u.pathname = u.pathname.replace(sizeSuffix, '');
+                return u.toString();
+            } catch (e) { return url; }
+        }
+
+        // Same gallery-image picker as the Single SKU Search: filters out
+        // swatch-icon entries and de-duplicates.
+        function pickGalleryImages(product) {
+            const images = (product.images && product.images.length > 0) ? product.images : [];
+            const out = []; const seen = {};
+            images.forEach(imgObj => {
+                const alt = (imgObj.alt || '').toLowerCase();
+                if (alt.indexOf('swatch') !== -1) return;
+                const url = getFullResolutionImageUrl(imgObj.src);
+                if (!url || seen[url]) return;
+                seen[url] = true;
+                out.push(url);
+            });
+            return out;
+        }
+
+        function transformImageProduct(product) {
+            const galleryImages = pickGalleryImages(product);
+            const image = galleryImages.length > 0 ? galleryImages[0] : '';
+            const variant = (product.variants && product.variants.length > 0) ? product.variants[0] : null;
+            const sku = (variant && variant.sku) ? String(variant.sku).trim() : '';
+            const price = (variant && variant.price) ? variant.price : '0.00';
+            let description = '';
+            if (product.body_html) {
+                const tmp = document.createElement('div');
+                tmp.innerHTML = product.body_html.replace(/<\/(p|div|li|h[1-6])>/gi, '\n').replace(/<br\s*\/?>/gi, '\n');
+                description = (tmp.textContent || tmp.innerText || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+            }
+            return { title: product.title || '', image, images: galleryImages, sku, price, description };
+        }
+
+        // Same pagination loop as the Single SKU Search's loadProducts(). Runs
+        // once in the background; every style-code image lookup afterwards is
+        // a client-side lookup against this cached catalog — no repeat fetches.
+        let imageCatalog = [];
+        let imageCatalogLoading = null;
+        function ensureImageCatalogLoaded() {
+            if (imageCatalog.length > 0) return Promise.resolve(imageCatalog);
+            if (imageCatalogLoading) return imageCatalogLoading;
+            imageCatalogLoading = (async () => {
+                let page = 1; const MAX_PAGES = 200; let combined = [];
+                try {
+                    while (page <= MAX_PAGES) {
+                        const res = await fetch(IMG_BASE_URL + '?limit=250&page=' + page);
+                        if (!res.ok) { if (page === 1) throw new Error('status ' + res.status); break; }
+                        const data = await res.json();
+                        const products = (data && data.products) ? data.products : [];
+                        if (products.length === 0) break;
+                        combined = combined.concat(products);
+                        page++;
+                    }
+                    imageCatalog = combined.map(transformImageProduct).filter(p => p.sku && p.sku.length > 0);
+                } catch (e) { console.error('Image catalog load failed', e); imageCatalog = []; }
+                return imageCatalog;
+            })();
+            return imageCatalogLoading;
+        }
+
+        // Image lookup cache keyed by style code (lowercase) — a style code is
+        // only ever searched against the catalog once and reused after that.
+        const styleImageCache = {};
+        function findImageProductByStyleCode(code) {
+            const q = code.toLowerCase();
+            for (let i = 0; i < imageCatalog.length; i++) if (imageCatalog[i].sku.toLowerCase() === q) return imageCatalog[i];
+            for (let j = 0; j < imageCatalog.length; j++) if (imageCatalog[j].sku.toLowerCase().indexOf(q) !== -1) return imageCatalog[j];
+            return null;
+        }
+        async function getImageProductForStyle(code) {
+            if (!code) return null;
+            const key = code.toLowerCase();
+            if (Object.prototype.hasOwnProperty.call(styleImageCache, key)) return styleImageCache[key];
+            await ensureImageCatalogLoaded();
+            const product = findImageProductByStyleCode(code);
+            styleImageCache[key] = product;
+            return product;
+        }
+
+        // --- Product Preview Modal (reused component, same shape as Single SKU Search) ---
+        let pvModalProduct = null;
+        const pvModalOverlay = document.getElementById('pvModalOverlay');
+        const pvModalClose = document.getElementById('pvModalClose');
+        const pvModalImg = document.getElementById('pvModalImg');
+        const pvModalSku = document.getElementById('pvModalSku');
+        const pvModalTitle = document.getElementById('pvModalTitle');
+        const pvModalPrice = document.getElementById('pvModalPrice');
+        const pvModalDesc = document.getElementById('pvModalDesc');
+
+        function formatImgPrice(price) {
+            const num = parseFloat(price);
+            if (isNaN(num)) return '৳' + (price || '0.00');
+            return '৳' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function openProductPreviewModal(product, fallbackCode) {
+            pvModalProduct = product;
+            pvModalImg.src = (product && product.image) ? product.image : PLACEHOLDER_IMG;
+            pvModalImg.onerror = () => { pvModalImg.src = PLACEHOLDER_IMG; };
+            pvModalSku.textContent = (product && product.sku) ? product.sku : (fallbackCode || '');
+            pvModalTitle.textContent = (product && product.title) ? product.title : '';
+            pvModalPrice.textContent = product ? formatImgPrice(product.price) : '';
+            pvModalDesc.innerHTML = '';
+            if (product && product.description) {
+                product.description.split(/\n+/).map(s => s.trim()).filter(Boolean).forEach(par => {
+                    const p = document.createElement('p'); p.textContent = par; pvModalDesc.appendChild(p);
+                });
+            } else if (!product) {
+                const p = document.createElement('p'); p.textContent = 'No Image Available'; pvModalDesc.appendChild(p);
+            }
+            pvModalOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeProductPreviewModal() {
+            pvModalOverlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+        pvModalClose.addEventListener('click', closeProductPreviewModal);
+        pvModalOverlay.addEventListener('click', (e) => { if (e.target === pvModalOverlay) closeProductPreviewModal(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pvModalOverlay.classList.contains('open')) closeProductPreviewModal(); });
+
+        // Kick off the background catalog load early so the first style-code
+        // selection doesn't have to wait for the full fetch.
+        ensureImageCatalogLoaded();
+
         // --- STATE ---
         let cart = [];
         let currentStyle = null;
+        let currentStyleImageUrl = '';
+        let currentStyleImageProduct = null;
         let bookingDataCache = [];
 
         // --- DOM ---
@@ -395,7 +641,11 @@
 
             if(!style || !size || !color || !price || !branch) { showToast("Fill product details", "error"); return; }
 
-            cart.push({ style, size, color, price, branch, id: Date.now() });
+            // Feature 2: carry the already-fetched image URL along with the item
+            // (only if it matches the currently selected style code).
+            const imageUrl = (currentStyle && style.trim() === currentStyle.trim()) ? currentStyleImageUrl : '';
+
+            cart.push({ style, size, color, price, branch, imageUrl, id: Date.now() });
             updateCartUI();
             resetProductFields();
             showToast("Item added", "success");
@@ -428,6 +678,59 @@
             document.getElementById('price').value = '';
             document.getElementById('reqFrom').value = '';
             currentStyle = null;
+            hideStyleImagePreview();
+        }
+
+        // --- Feature 1: fetch & display product image when a Style Code is selected ---
+        function hideStyleImagePreview() {
+            currentStyleImageUrl = '';
+            currentStyleImageProduct = null;
+            document.getElementById('productImagePreview').classList.add('hidden');
+        }
+
+        async function showStyleImagePreview(code) {
+            const wrap = document.getElementById('productImagePreview');
+            const box = document.getElementById('productImageBox');
+            wrap.classList.remove('hidden');
+            box.innerHTML = '<div class="img-loading-dot"></div>';
+            currentStyleImageUrl = '';
+            currentStyleImageProduct = null;
+
+            const product = await getImageProductForStyle(code);
+
+            // If the user changed/cleared the style code while this was loading, drop the result.
+            if (document.getElementById('styleCode').value.trim() !== code.trim()) return;
+
+            if (product && product.image) {
+                currentStyleImageUrl = product.image;
+                currentStyleImageProduct = product;
+                const img = new Image();
+                img.onload = () => { box.innerHTML = ''; box.appendChild(img); };
+                img.onerror = () => {
+                    // Retry once, then fall back to the placeholder — same
+                    // resilience pattern used elsewhere for product images.
+                    const retryImg = new Image();
+                    retryImg.onload = () => { box.innerHTML = ''; box.appendChild(retryImg); };
+                    retryImg.onerror = () => { showNoImagePlaceholder(box); currentStyleImageUrl = ''; };
+                    retryImg.src = product.image + (product.image.indexOf('?') === -1 ? '?retry=1' : '&retry=1');
+                };
+                img.src = product.image;
+                img.alt = code;
+            } else {
+                showNoImagePlaceholder(box);
+            }
+        }
+
+        function showNoImagePlaceholder(box) {
+            box.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = PLACEHOLDER_IMG;
+            img.alt = 'No Image Available';
+            box.appendChild(img);
+        }
+
+        function openStyleImagePreview() {
+            openProductPreviewModal(currentStyleImageProduct, document.getElementById('styleCode').value);
         }
 
         // --- AUTOCOMPLETE & FETCH ---
@@ -435,6 +738,7 @@
             const val = e.target.value;
             const list = document.getElementById('styleCodeList');
             list.innerHTML = '';
+            if (currentStyle && val.trim() !== currentStyle.trim()) hideStyleImagePreview();
             if(!val || val.length < 2) return;
             
             try {
@@ -447,6 +751,7 @@
                         currentStyle = item.style_code;
                         list.innerHTML = '';
                         fetchSizes(item.style_code);
+                        showStyleImagePreview(item.style_code); // Feature 1
                     };
                     list.appendChild(div);
                 });
@@ -503,7 +808,8 @@
                 itemsToBook = cart.map(i => ({
                     booking_date: cDate, customer_name: cName, phone: cPhone, 
                     style_code: i.style, size: i.size, color: i.color, price: i.price, requirement_from: i.branch, status: cStatus,
-                    note: cNote // INCLUDE NOTE
+                    note: cNote, // INCLUDE NOTE
+                    image_url: i.imageUrl || null // Feature 2: save image reference with the booking
                 }));
             } else {
                 const style = document.getElementById('styleCode').value;
@@ -515,10 +821,12 @@
                 if(!style || !size || !color || !price || !branch) {
                     showToast("Add items or fill product details", "error"); return;
                 }
+                const singleImageUrl = (currentStyle && style.trim() === currentStyle.trim()) ? currentStyleImageUrl : '';
                 itemsToBook.push({
                     booking_date: cDate, customer_name: cName, phone: cPhone, 
                     style_code: style, size: size, color: color, price: price, requirement_from: branch, status: cStatus,
-                    note: cNote // INCLUDE NOTE
+                    note: cNote, // INCLUDE NOTE
+                    image_url: singleImageUrl || null // Feature 2: save image reference with the booking
                 });
             }
 
@@ -529,7 +837,15 @@
 
             btn.disabled = true; spin.style.display = 'inline-block';
             try {
-                const { error } = await sbClient.from('bookings').insert(itemsToBook);
+                let { error } = await sbClient.from('bookings').insert(itemsToBook);
+                if (error && /image_url/i.test(error.message || '')) {
+                    // The `image_url` column hasn't been added to the bookings table
+                    // yet — fall back to the original insert shape so booking never
+                    // breaks. (See "Database" note in the summary: add a nullable
+                    // `image_url text` column to `bookings` to enable Feature 2.)
+                    const legacyItems = itemsToBook.map(({ image_url, ...rest }) => rest);
+                    ({ error } = await sbClient.from('bookings').insert(legacyItems));
+                }
                 if(error) throw error;
                 showToast(`Success: ${itemsToBook.length} booking(s)`, "success");
                 form.reset(); dateInput.valueAsDate = new Date(); clearCart(); resetProductFields();
@@ -575,11 +891,100 @@
             }
         });
 
+        // Escapes text for safe inline use inside onclick="" attribute strings.
+        function escAttr(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+        }
+
+        // Retry-once + placeholder fallback for history thumbnails — kept as a
+        // real function (not an inline string) so the placeholder data URI's
+        // own quote characters can never break generated HTML.
+        function historyThumbImgError(imgEl) {
+            if (!imgEl.dataset.retried && imgEl.dataset.original) {
+                imgEl.dataset.retried = '1';
+                const orig = imgEl.dataset.original;
+                imgEl.src = orig + (orig.indexOf('?') === -1 ? '?retry=1' : '&retry=1');
+            } else {
+                imgEl.src = PLACEHOLDER_IMG;
+            }
+        }
+
+        // Builds an (initially empty/skeleton) thumbnail wrapper for one item.
+        // The actual image is filled in afterwards by hydrateHistoryThumbnails()
+        // once it has been fetched via the SAME image lookup function used by
+        // the booking form and cached by Style Code.
+        function buildHistoryThumbHtml(item, sizeClass) {
+            const code = item.style_code || '';
+            return `
+                <div class="history-thumb-wrap thumb-skeleton ${sizeClass || ''}" data-style-code="${escAttr(code)}" onclick="openHistoryImagePreviewByCode('${escAttr(code)}')">
+                </div>`;
+        }
+
+        // Fills in a thumbnail wrapper once its Style Code's image has resolved
+        // (found or not found), with retry-once + "No Image Available" fallback.
+        function renderHistoryThumbImage(wrap, product, code) {
+            wrap.classList.remove('thumb-skeleton');
+            wrap.innerHTML = '';
+            if (product && product.image) {
+                const img = document.createElement('img');
+                img.loading = 'lazy';
+                img.alt = code || '';
+                img.dataset.original = product.image;
+                img.onerror = () => historyThumbImgError(img);
+                img.src = product.image;
+                wrap.appendChild(img);
+            } else {
+                const img = document.createElement('img');
+                img.loading = 'lazy';
+                img.alt = 'No Image Available';
+                img.src = PLACEHOLDER_IMG;
+                wrap.appendChild(img);
+            }
+        }
+
+        // ISSUE 1 fix: automatically loads every visible row's product image
+        // as soon as the History table is (re)rendered — no click needed.
+        // Reuses getImageProductForStyle() (same catalog + cache used by the
+        // booking form's own image preview), so a Style Code already looked up
+        // anywhere in the app is never fetched twice.
+        async function hydrateHistoryThumbnails(tbody) {
+            const wraps = Array.from(tbody.querySelectorAll('.history-thumb-wrap[data-style-code]'));
+            if (!wraps.length) return;
+            const uniqueCodes = [...new Set(wraps.map(w => w.dataset.styleCode).filter(Boolean))];
+            await Promise.all(uniqueCodes.map(code => getImageProductForStyle(code)));
+            wraps.forEach(wrap => {
+                const code = wrap.dataset.styleCode;
+                const product = code ? styleImageCache[code.toLowerCase()] : null;
+                renderHistoryThumbImage(wrap, product, code);
+            });
+        }
+
+        function openHistoryImagePreviewByCode(code) {
+            const product = code ? styleImageCache[code.toLowerCase()] : null;
+            openProductPreviewModal(product || null, code);
+        }
+
+        // Chooses single-thumbnail vs. stacked-thumbnails layout for a booking
+        // group's Image column, whichever gives the cleaner UI as requested.
+        function buildHistoryImageCellHtml(items) {
+            if (!items.length) return `<div class="history-thumb-wrap"><img src="${PLACEHOLDER_IMG}" alt="No Image Available"></div>`;
+            if (items.length === 1) return buildHistoryThumbHtml(items[0]);
+
+            const STACK_LIMIT = 3;
+            const shown = items.slice(0, STACK_LIMIT);
+            let html = '<div class="history-thumb-stack">';
+            shown.forEach(i => { html += buildHistoryThumbHtml(i, 'stacked'); });
+            if (items.length > STACK_LIMIT) html += `<span class="history-thumb-more">+${items.length - STACK_LIMIT}</span>`;
+            html += '</div>';
+            return html;
+        }
+
         function renderGroupedBookings(data) {
             const tbody = document.getElementById('bookingsBody');
             tbody.innerHTML = '';
 
-            if(!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#94a3b8">No bookings</td></tr>'; return; }
+            if(!data.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#94a3b8">No bookings</td></tr>'; return; }
 
             const groups = {};
             data.forEach(b => {
@@ -647,6 +1052,10 @@
 
                 statusHtml += `</div></div>`;
 
+                // Image column (Feature 3): show up to 3 stacked thumbnails when
+                // there are multiple products, otherwise a single 70x70 thumb.
+                const imageItemsHtml = buildHistoryImageCellHtml(items);
+
                 tr.innerHTML = `
                     <td><div style="font-weight:600;">${main.booking_date}</div></td>
                     <td>
@@ -657,6 +1066,7 @@
                     <td>${itemsHtml}</td>
                     <td style="font-size:0.85rem;">${branchDisplay}</td>
                     <td>${statusHtml}</td>
+                    <td>${imageItemsHtml}</td>
                     <td>
                         <div class="action-cell">
                             <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="copyBookingGroup('${main.booking_date}', '${main.customer_name}', '${main.phone}')">
@@ -672,6 +1082,11 @@
                 `;
                 tbody.appendChild(tr);
             });
+
+            // ISSUE 1 fix: load every row's product image automatically, no
+            // click required. Runs after every render (initial load, refresh,
+            // and search filtering) so images always reflect what's on screen.
+            hydrateHistoryThumbnails(tbody);
         }
 
         // --- ACTIONS ---
@@ -685,20 +1100,131 @@
             } catch(err) { showToast("Error", "error"); }
         }
 
-        function copyBookingGroup(date, name, phone) {
-            const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
-            let text = `DATE: ${date}\nNAME: ${name}\nPHONE: ${phone}\n`;
-            if(group[0] && group[0].note) {
-                text += `NOTE: ${group[0].note}\n\n`;
-            } else {
-                text += `\n`;
+        // WhatsApp Desktop/Web's paste handler doesn't render text/html (no
+        // inline <img> support) — it only recognizes real image bytes on the
+        // clipboard. Chrome's Clipboard API only accepts 'image/png' for image
+        // writes, so any fetched product photo (jpg/webp/etc.) is redrawn onto
+        // a canvas and re-encoded as PNG here. Returns null if the image can't
+        // be fetched or the canvas gets tainted (e.g. a CORS-blocked host) so
+        // callers can fall back gracefully instead of failing the whole copy.
+        async function imageUrlToPngBlob(url) {
+            if (!url) return null;
+            try {
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                const blob = await res.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                try {
+                    const img = await new Promise((resolve, reject) => {
+                        const im = new Image();
+                        im.onload = () => resolve(im);
+                        im.onerror = reject;
+                        im.src = objectUrl;
+                    });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || 1;
+                    canvas.height = img.naturalHeight || 1;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    return await new Promise(resolve => canvas.toBlob(b => resolve(b), 'image/png'));
+                } finally {
+                    URL.revokeObjectURL(objectUrl);
+                }
+            } catch (e) {
+                console.warn('Could not convert product image to clipboard-ready PNG (fetch or CORS issue):', e);
+                return null;
             }
-            text += `ITEMS:\n`;
-            group.forEach(i => {
-                text += `- ${i.style_code} | ${i.size} | ${i.color} | BDT ${i.price} | Branch: ${i.requirement_from}\n`;
-            });
+        }
 
-            navigator.clipboard.writeText(text).then(() => showToast("Copied!", "success")).catch(() => showToast("Failed", "error"));
+        // Reads a Blob into a base64 data: URL without re-fetching it — used so
+        // the exact same image bytes fetched once (imageUrlToPngBlob) can also
+        // be embedded inline in the HTML payload.
+        function blobToDataUrl(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // Feature 4 / Issue 2: Copy Booking With Image — writes image/png,
+        // text/html, and text/plain together in a SINGLE ClipboardItem via a
+        // SINGLE clipboard.write() call, so the image and booking details are
+        // copied together instead of one overwriting the other. The
+        // booking-details TEXT FORMAT is exactly the original format
+        // (unchanged); the image is fetched once and reused for both the raw
+        // image/png entry (for apps like WhatsApp that only read image bytes)
+        // and the inline <img> in the HTML entry (for apps like Word/Docs/
+        // Outlook/Gmail that read text/html).
+        async function copyBookingGroup(date, name, phone) {
+            const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
+
+            // --- Plain text: exactly the original format, unchanged ---
+            let text = `DATE: ${date}\nNAME: ${name}\nPHONE: ${phone}\n`;
+            text += `\nITEMS:\n`;
+            group.forEach(i => { text += `- ${i.style_code} | ${i.size} | ${i.color} | BDT ${i.price} | Branch: ${i.requirement_from}\n`; });
+
+            const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+            // Reuse the already-fetched product image (same cached lookup used
+            // by the booking form and History thumbnails) — no re-fetch here.
+            // Only the first item's image is needed since just one image is
+            // placed above the details.
+            let productImageUrl = '';
+            for (const i of group) {
+                const product = await getImageProductForStyle(i.style_code);
+                productImageUrl = (product && product.image) ? product.image : (i.image_url || '');
+                if (productImageUrl) break;
+            }
+
+            // Fetch the image ONCE as a PNG Blob (existing, working logic —
+            // unchanged), then derive the data URL for the HTML entry from
+            // that SAME blob (no second fetch).
+            const pngBlob = productImageUrl ? await imageUrlToPngBlob(productImageUrl) : null;
+            const imageDataUrl = pngBlob ? await blobToDataUrl(pngBlob) : null;
+
+            const imageHtmlBlock = imageDataUrl
+                ? `<img src="${imageDataUrl}" width="140" alt="Product">`
+                : `<p>No Image Available</p>`;
+
+            // --- HTML: product image, then the SAME booking details format,
+            // preserved verbatim inside a <pre> block (no table, no extra labels).
+            const html = `${imageHtmlBlock}<pre>${escHtml(text)}</pre>`;
+
+            const canUseClipboardItems = !!(navigator.clipboard && window.ClipboardItem);
+
+            if (canUseClipboardItems) {
+                // Build ONE ClipboardItem with all three representations
+                // together — image/png, text/html, and text/plain all live in
+                // the same clipboard write, so no format overwrites another.
+                const items = {
+                    'text/plain': new Blob([text], { type: 'text/plain' }),
+                    'text/html': new Blob([html], { type: 'text/html' })
+                };
+                if (pngBlob) items['image/png'] = pngBlob;
+
+                console.log('Writing ClipboardItem with formats:', Object.keys(items));
+
+                try {
+                    const clipboardItem = new ClipboardItem(items);
+                    console.log('ClipboardItem types:', clipboardItem.types);
+                    await navigator.clipboard.write([clipboardItem]);
+                    showToast(pngBlob ? "Copied — image & details" : "Copied — details (image unavailable)", "success");
+                    return;
+                } catch (e) {
+                    console.warn('Clipboard write attempt failed:', e);
+                }
+            }
+
+            // Last resort: plain text only.
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast("Copied (text only)", "success");
+            } catch (err2) {
+                console.error(err2);
+                showToast("Failed", "error");
+            }
         }
 
         function printGroup(date, name, phone) {
