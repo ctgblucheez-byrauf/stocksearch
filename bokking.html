@@ -260,6 +260,30 @@
             .print-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
             .print-label { font-weight: bold; }
         }
+
+        /* --- Copy Image dropdown (new, additive) --- */
+        .copy-image-dropdown-wrap { position: relative; display: inline-flex; }
+        .copy-image-menu {
+            position: absolute; top: 100%; left: 0; margin-top: 6px;
+            min-width: 230px; background: #fff; border: 1px solid var(--border);
+            border-radius: 8px; box-shadow: var(--shadow-md); z-index: 4000;
+            overflow: hidden; opacity: 0; transform: translateY(-6px);
+            pointer-events: none; transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        .copy-image-menu.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .copy-image-menu-item {
+            padding: 10px 12px; font-size: 0.8rem; color: var(--text-main);
+            cursor: pointer; border-bottom: 1px solid #f1f5f9; white-space: nowrap;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .copy-image-menu-item:last-child { border-bottom: none; }
+        .copy-image-menu-item:hover { background: #f8fafc; }
+        @media (hover: hover) and (pointer: fine) {
+            .copy-image-dropdown-wrap.has-multi:hover .copy-image-menu { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        }
+        @media (max-width: 768px) {
+            .copy-image-menu { left: auto; right: 0; }
+        }
     </style>
 </head>
 <body>
@@ -1056,6 +1080,53 @@
                 // there are multiple products, otherwise a single 70x70 thumb.
                 const imageItemsHtml = buildHistoryImageCellHtml(items);
 
+                // --- Copy Image button/dropdown (new, additive) ---
+                // Determine the distinct style codes in this booking group so we
+                // know whether to copy the single image immediately or show a
+                // picker. Reuses copyBookingGroup() (unchanged) for the actual
+                // fetch/clipboard work — this block only decides WHICH style
+                // code to pass it.
+                const uniqueCodesInGroup = [...new Set(items.map(i => i.style_code).filter(Boolean))];
+                const copyImgMenuId = `copyimg-menu-${ids[0]}`;
+                const dSafeDate = escAttr(main.booking_date);
+                const dSafeName = escAttr(main.customer_name);
+                const dSafePhone = escAttr(main.phone);
+
+                let copyImageBtnHtml;
+                if (uniqueCodesInGroup.length <= 1) {
+                    // Single product (or no style codes at all) — identical to
+                    // previous one-click behavior, just calling the existing,
+                    // unmodified copyBookingGroup() function.
+                    copyImageBtnHtml = `
+                        <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="copyBookingGroup('${dSafeDate}', '${dSafeName}', '${dSafePhone}')">
+                            📷 Copy Image
+                        </button>`;
+                } else {
+                    // Multiple products — show a dropdown; each item still calls
+                    // the same existing copyBookingGroup(), just with a specific
+                    // style code so it copies that product's image.
+                    let menuItemsHtml = '';
+                    uniqueCodesInGroup.forEach((code, idx) => {
+                        const label = code ? `Copy Image - ${code}` : `Copy Image ${idx + 1}`;
+                        menuItemsHtml += `
+                            <div class="copy-image-menu-item" onclick="event.stopPropagation(); closeAllCopyImageMenus(); copyBookingGroup('${dSafeDate}', '${dSafeName}', '${dSafePhone}', '${escAttr(code)}')">
+                                📷 ${escAttr(label)}
+                            </div>`;
+                    });
+                    copyImageBtnHtml = `
+                        <div class="copy-image-dropdown-wrap has-multi">
+                            <button type="button" class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="event.stopPropagation(); toggleCopyImageMenu('${copyImgMenuId}')">
+                                📷 Copy Image
+                            </button>
+                            <div class="copy-image-menu" id="${copyImgMenuId}">${menuItemsHtml}</div>
+                        </div>`;
+                }
+
+                const copyTextBtnHtml = `
+                    <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="copyBookingTextOnly('${dSafeDate}', '${dSafeName}', '${dSafePhone}')">
+                        📄 Copy Text
+                    </button>`;
+
                 tr.innerHTML = `
                     <td><div style="font-weight:600;">${main.booking_date}</div></td>
                     <td>
@@ -1069,10 +1140,8 @@
                     <td>${imageItemsHtml}</td>
                     <td>
                         <div class="action-cell">
-                            <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="copyBookingGroup('${main.booking_date}', '${main.customer_name}', '${main.phone}')">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                Copy
-                            </button>
+                            ${copyImageBtnHtml}
+                            ${copyTextBtnHtml}
                             <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="printGroup('${main.booking_date}', '${main.customer_name}', '${main.phone}')">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                                 Print
@@ -1088,6 +1157,23 @@
             // and search filtering) so images always reflect what's on screen.
             hydrateHistoryThumbnails(tbody);
         }
+
+        // --- Copy Image dropdown open/close (new, additive) ---
+        function toggleCopyImageMenu(menuId) {
+            document.querySelectorAll('.copy-image-menu').forEach(el => {
+                if (el.id !== menuId) el.classList.remove('show');
+            });
+            const el = document.getElementById(menuId);
+            if (el) el.classList.toggle('show');
+        }
+        function closeAllCopyImageMenus() {
+            document.querySelectorAll('.copy-image-menu').forEach(el => el.classList.remove('show'));
+        }
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.copy-image-dropdown-wrap')) {
+                closeAllCopyImageMenus();
+            }
+        });
 
         // --- ACTIONS ---
         async function updateGroupStatus(ids, newStatus) {
@@ -1157,7 +1243,15 @@
         // image/png entry (for apps like WhatsApp that only read image bytes)
         // and the inline <img> in the HTML entry (for apps like Word/Docs/
         // Outlook/Gmail that read text/html).
-        async function copyBookingGroup(date, name, phone) {
+        //
+        // ADDITIVE CHANGE ONLY: this now accepts an optional 4th argument,
+        // forcedStyleCode. When omitted, behavior is 100% identical to before
+        // (auto-picks the first item in the group that has an image). When
+        // provided (used by the new multi-product "Copy Image" dropdown), the
+        // image for that specific style code is looked up and used instead —
+        // via the SAME getImageProductForStyle() cache/lookup, no new fetching
+        // logic. Nothing else in this function was changed.
+        async function copyBookingGroup(date, name, phone, forcedStyleCode) {
             const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
 
             // --- Plain text: exactly the original format, unchanged ---
@@ -1172,10 +1266,17 @@
             // Only the first item's image is needed since just one image is
             // placed above the details.
             let productImageUrl = '';
-            for (const i of group) {
-                const product = await getImageProductForStyle(i.style_code);
-                productImageUrl = (product && product.image) ? product.image : (i.image_url || '');
-                if (productImageUrl) break;
+            if (forcedStyleCode) {
+                // Specific product requested (multi-image dropdown selection).
+                const item = group.find(i => i.style_code === forcedStyleCode);
+                const product = await getImageProductForStyle(forcedStyleCode);
+                productImageUrl = (product && product.image) ? product.image : ((item && item.image_url) ? item.image_url : '');
+            } else {
+                for (const i of group) {
+                    const product = await getImageProductForStyle(i.style_code);
+                    productImageUrl = (product && product.image) ? product.image : (i.image_url || '');
+                    if (productImageUrl) break;
+                }
             }
 
             // Fetch the image ONCE as a PNG Blob (existing, working logic —
@@ -1223,6 +1324,26 @@
                 showToast("Copied (text only)", "success");
             } catch (err2) {
                 console.error(err2);
+                showToast("Failed", "error");
+            }
+        }
+
+        // New, additive: "Copy Text" button handler. Copies ONLY the booking
+        // details as plain text, in the exact same format used inside
+        // copyBookingGroup() above — no image, no HTML, no base64. Does not
+        // touch or call any image-fetching or clipboard-image logic.
+        async function copyBookingTextOnly(date, name, phone) {
+            const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
+
+            let text = `DATE: ${date}\nNAME: ${name}\nPHONE: ${phone}\n`;
+            text += `\nITEMS:\n`;
+            group.forEach(i => { text += `- ${i.style_code} | ${i.size} | ${i.color} | BDT ${i.price} | Branch: ${i.requirement_from}\n`; });
+
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast("Copied — booking details", "success");
+            } catch (err) {
+                console.error(err);
                 showToast("Failed", "error");
             }
         }
