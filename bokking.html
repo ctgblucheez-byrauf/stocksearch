@@ -164,8 +164,6 @@
             th, td { padding: 10px 12px; }
             .status-menu { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; border-radius: 12px 12px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); animation: slideUp 0.2s ease; max-height: 50vh; overflow-y: auto; }
             @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-            .action-cell { display: flex; gap: 6px; }
-            .icon-btn { padding: 6px 10px; font-size: 0.75rem; white-space: nowrap; }
         }
 
         /* Toast */
@@ -261,28 +259,125 @@
             .print-label { font-weight: bold; }
         }
 
-        /* --- Copy Image dropdown (new, additive) --- */
-        .copy-image-dropdown-wrap { position: relative; display: inline-flex; }
+        /* ==========================================================================
+           ACTION BUTTONS (Copy Image / Copy Text / Print) — UI/UX polish only.
+           No onclick handlers, no data logic, nothing functional lives here.
+           ========================================================================== */
+        .action-cell {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text-main);
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            line-height: 1.2;
+            white-space: nowrap;
+            min-height: 34px;
+            cursor: pointer;
+            box-sizing: border-box;
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+        }
+        .icon-btn svg { flex-shrink: 0; }
+        .icon-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .icon-btn:active { background: #f1f5f9; transform: translateY(1px); }
+        .icon-btn:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* --- Copy Image dropdown --- */
+        .copy-image-dropdown-wrap { position: relative; display: inline-flex; min-width: 0; }
+        .copy-image-dropdown-wrap .icon-btn[aria-expanded="true"] {
+            border-color: var(--primary);
+            background: #eff6ff;
+            color: var(--primary-dark);
+        }
         .copy-image-menu {
-            position: absolute; top: 100%; left: 0; margin-top: 6px;
-            min-width: 230px; background: #fff; border: 1px solid var(--border);
-            border-radius: 8px; box-shadow: var(--shadow-md); z-index: 4000;
-            overflow: hidden; opacity: 0; transform: translateY(-6px);
-            pointer-events: none; transition: opacity 0.15s ease, transform 0.15s ease;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 8px;
+            min-width: 240px;
+            max-width: min(320px, 90vw);
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.18), 0 4px 8px -2px rgba(15, 23, 42, 0.08);
+            z-index: 4000;
+            overflow: hidden;
+            padding: 6px;
+            opacity: 0;
+            transform: translateY(-6px) scale(0.98);
+            pointer-events: none;
+            transition: opacity 0.16s ease, transform 0.16s ease;
         }
-        .copy-image-menu.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .copy-image-menu.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+            animation: copyMenuPop 0.16s ease;
+        }
+        @keyframes copyMenuPop {
+            from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
         .copy-image-menu-item {
-            padding: 10px 12px; font-size: 0.8rem; color: var(--text-main);
-            cursor: pointer; border-bottom: 1px solid #f1f5f9; white-space: nowrap;
-            display: flex; align-items: center; gap: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 10px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-main);
+            cursor: pointer;
+            white-space: normal;
+            word-break: break-word;
+            min-height: 40px;
+            transition: background-color 0.12s ease;
         }
-        .copy-image-menu-item:last-child { border-bottom: none; }
-        .copy-image-menu-item:hover { background: #f8fafc; }
+        .copy-image-menu-item svg { flex-shrink: 0; color: var(--text-muted); }
+        .copy-image-menu-item:hover,
+        .copy-image-menu-item:focus-visible { background: #eff6ff; color: var(--primary-dark); outline: none; }
+        .copy-image-menu-item:focus-visible { box-shadow: inset 0 0 0 2px var(--primary); }
+        .copy-image-menu-item:active { background: #dbeafe; }
+
         @media (hover: hover) and (pointer: fine) {
-            .copy-image-dropdown-wrap.has-multi:hover .copy-image-menu { opacity: 1; transform: translateY(0); pointer-events: auto; }
+            .copy-image-dropdown-wrap.has-multi:hover > .copy-image-menu {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                pointer-events: auto;
+            }
         }
-        @media (max-width: 768px) {
-            .copy-image-menu { left: auto; right: 0; }
+
+        /* Tablet: allow wrapping, keep buttons compact but comfortable */
+        @media screen and (max-width: 768px) {
+            .action-cell { gap: 6px; }
+            .icon-btn { padding: 8px 10px; font-size: 0.78rem; min-height: 36px; }
+            .copy-image-menu-item { min-height: 44px; font-size: 0.85rem; }
+        }
+
+        /* Mobile: full-width stacked buttons, no clipping, no horizontal scroll */
+        @media screen and (max-width: 480px) {
+            .action-cell { flex-direction: column; }
+            .action-cell > .icon-btn,
+            .action-cell > .copy-image-dropdown-wrap { width: 100%; }
+            .copy-image-dropdown-wrap .icon-btn { width: 100%; }
+            .copy-image-menu { left: 0; right: 0; min-width: 0; max-width: 100%; width: 100%; }
         }
     </style>
 </head>
@@ -1004,6 +1099,12 @@
             return html;
         }
 
+        // --- Icon markup for action buttons (UI only — SVG icon set, replaces old emoji) ---
+        const ICON_IMAGE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+        const ICON_COPY = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+        const ICON_CHEVRON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+        const ICON_PRINT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>`;
+
         function renderGroupedBookings(data) {
             const tbody = document.getElementById('bookingsBody');
             tbody.innerHTML = '';
@@ -1080,14 +1181,15 @@
                 // there are multiple products, otherwise a single 70x70 thumb.
                 const imageItemsHtml = buildHistoryImageCellHtml(items);
 
-                // --- Copy Image button/dropdown (new, additive) ---
+                // --- Copy Image button/dropdown ---
                 // Determine the distinct style codes in this booking group so we
                 // know whether to copy the single image immediately or show a
-                // picker. Reuses copyBookingGroup() (unchanged) for the actual
-                // fetch/clipboard work — this block only decides WHICH style
-                // code to pass it.
+                // picker. Reuses copyBookingGroup() (unmodified core logic) for
+                // the actual fetch/clipboard work — this block only decides
+                // WHICH style code to pass it, and renders the button/menu UI.
                 const uniqueCodesInGroup = [...new Set(items.map(i => i.style_code).filter(Boolean))];
                 const copyImgMenuId = `copyimg-menu-${ids[0]}`;
+                const copyImgBtnId = `copyimg-btn-${ids[0]}`;
                 const dSafeDate = escAttr(main.booking_date);
                 const dSafeName = escAttr(main.customer_name);
                 const dSafePhone = escAttr(main.phone);
@@ -1098,33 +1200,44 @@
                     // previous one-click behavior, just calling the existing,
                     // unmodified copyBookingGroup() function.
                     copyImageBtnHtml = `
-                        <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="copyBookingGroup('${dSafeDate}', '${dSafeName}', '${dSafePhone}')">
-                            📷 Copy Image
+                        <button type="button" class="icon-btn" aria-label="Copy product image and booking details"
+                            onclick="copyBookingGroup('${dSafeDate}', '${dSafeName}', '${dSafePhone}')">
+                            ${ICON_IMAGE}<span>Copy Image</span>
                         </button>`;
                 } else {
-                    // Multiple products — show a dropdown; each item still calls
-                    // the same existing copyBookingGroup(), just with a specific
-                    // style code so it copies that product's image.
+                    // Multiple products — show an accessible dropdown; each item
+                    // still calls the same existing copyBookingGroup(), just with
+                    // a specific style code so it copies that product's image.
                     let menuItemsHtml = '';
                     uniqueCodesInGroup.forEach((code, idx) => {
                         const label = code ? `Copy Image - ${code}` : `Copy Image ${idx + 1}`;
                         menuItemsHtml += `
-                            <div class="copy-image-menu-item" onclick="event.stopPropagation(); closeAllCopyImageMenus(); copyBookingGroup('${dSafeDate}', '${dSafeName}', '${dSafePhone}', '${escAttr(code)}')">
-                                📷 ${escAttr(label)}
+                            <div class="copy-image-menu-item" role="menuitem" tabindex="0"
+                                onclick="event.stopPropagation(); closeAllCopyImageMenus(); copyBookingGroup('${dSafeDate}', '${dSafeName}', '${dSafePhone}', '${escAttr(code)}')"
+                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
+                                ${ICON_IMAGE}<span>${escAttr(label)}</span>
                             </div>`;
                     });
                     copyImageBtnHtml = `
                         <div class="copy-image-dropdown-wrap has-multi">
-                            <button type="button" class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="event.stopPropagation(); toggleCopyImageMenu('${copyImgMenuId}')">
-                                📷 Copy Image
+                            <button type="button" id="${copyImgBtnId}" class="icon-btn" aria-haspopup="true" aria-expanded="false" aria-controls="${copyImgMenuId}"
+                                onclick="event.stopPropagation(); toggleCopyImageMenu('${copyImgMenuId}', '${copyImgBtnId}')">
+                                ${ICON_IMAGE}<span>Copy Image</span>${ICON_CHEVRON}
                             </button>
-                            <div class="copy-image-menu" id="${copyImgMenuId}">${menuItemsHtml}</div>
+                            <div class="copy-image-menu" id="${copyImgMenuId}" role="menu" aria-label="Choose product image to copy">${menuItemsHtml}</div>
                         </div>`;
                 }
 
                 const copyTextBtnHtml = `
-                    <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="copyBookingTextOnly('${dSafeDate}', '${dSafeName}', '${dSafePhone}')">
-                        📄 Copy Text
+                    <button type="button" class="icon-btn" aria-label="Copy booking details as text"
+                        onclick="copyBookingTextOnly('${dSafeDate}', '${dSafeName}', '${dSafePhone}')">
+                        ${ICON_COPY}<span>Copy Text</span>
+                    </button>`;
+
+                const printBtnHtml = `
+                    <button type="button" class="icon-btn" aria-label="Print booking slip"
+                        onclick="printGroup('${main.booking_date}', '${main.customer_name}', '${main.phone}')">
+                        ${ICON_PRINT}<span>Print</span>
                     </button>`;
 
                 tr.innerHTML = `
@@ -1142,10 +1255,7 @@
                         <div class="action-cell">
                             ${copyImageBtnHtml}
                             ${copyTextBtnHtml}
-                            <button class="icon-btn" style="border:1px solid #e2e8f0; background:white; padding:6px 10px; border-radius:6px; font-size:0.8rem; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="printGroup('${main.booking_date}', '${main.customer_name}', '${main.phone}')">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                                Print
-                            </button>
+                            ${printBtnHtml}
                         </div>
                     </td>
                 `;
@@ -1158,20 +1268,79 @@
             hydrateHistoryThumbnails(tbody);
         }
 
-        // --- Copy Image dropdown open/close (new, additive) ---
-        function toggleCopyImageMenu(menuId) {
+        // --- Copy Image dropdown open/close (positioning + accessibility only;
+        // does not touch what happens when an item is selected) ---
+        function positionCopyImageMenu(menuEl, btnEl) {
+            // Reset any previous edge-flip overrides before measuring again.
+            menuEl.style.left = '';
+            menuEl.style.right = '';
+            menuEl.style.top = '';
+            menuEl.style.bottom = '';
+            menuEl.style.marginTop = '';
+            menuEl.style.marginBottom = '';
+
+            if (window.innerWidth <= 480) return; // full-width mobile layout handles itself via CSS
+
+            const btnRect = btnEl.getBoundingClientRect();
+            const menuRect = menuEl.getBoundingClientRect();
+
+            // Flip horizontally if it would overflow the right edge of the viewport.
+            if (btnRect.left + menuRect.width > window.innerWidth - 8) {
+                menuEl.style.left = 'auto';
+                menuEl.style.right = '0';
+            }
+            // Flip vertically (open upward) if it would overflow the bottom edge.
+            if (btnRect.bottom + menuRect.height > window.innerHeight - 8) {
+                menuEl.style.top = 'auto';
+                menuEl.style.bottom = '100%';
+                menuEl.style.marginTop = '0';
+                menuEl.style.marginBottom = '8px';
+            }
+        }
+
+        function toggleCopyImageMenu(menuId, btnId) {
+            const menuEl = document.getElementById(menuId);
+            const btnEl = btnId ? document.getElementById(btnId) : null;
+            if (!menuEl) return;
+
+            const willOpen = !menuEl.classList.contains('show');
+
             document.querySelectorAll('.copy-image-menu').forEach(el => {
                 if (el.id !== menuId) el.classList.remove('show');
             });
-            const el = document.getElementById(menuId);
-            if (el) el.classList.toggle('show');
+            document.querySelectorAll('.copy-image-dropdown-wrap .icon-btn[aria-expanded]').forEach(b => {
+                if (b.id !== btnId) b.setAttribute('aria-expanded', 'false');
+            });
+
+            menuEl.classList.toggle('show', willOpen);
+            if (btnEl) btnEl.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+
+            if (willOpen) {
+                // Position after the menu is visible so its real dimensions are measurable.
+                requestAnimationFrame(() => positionCopyImageMenu(menuEl, btnEl || menuEl.parentElement));
+            }
         }
+
         function closeAllCopyImageMenus() {
             document.querySelectorAll('.copy-image-menu').forEach(el => el.classList.remove('show'));
+            document.querySelectorAll('.copy-image-dropdown-wrap .icon-btn[aria-expanded]').forEach(b => b.setAttribute('aria-expanded', 'false'));
         }
+
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.copy-image-dropdown-wrap')) {
                 closeAllCopyImageMenus();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const openMenu = document.querySelector('.copy-image-menu.show');
+                if (openMenu) {
+                    const wrap = openMenu.closest('.copy-image-dropdown-wrap');
+                    const trigger = wrap ? wrap.querySelector('.icon-btn[aria-expanded]') : null;
+                    closeAllCopyImageMenus();
+                    if (trigger) trigger.focus();
+                }
             }
         });
 
@@ -1247,10 +1416,10 @@
         // ADDITIVE CHANGE ONLY: this now accepts an optional 4th argument,
         // forcedStyleCode. When omitted, behavior is 100% identical to before
         // (auto-picks the first item in the group that has an image). When
-        // provided (used by the new multi-product "Copy Image" dropdown), the
+        // provided (used by the multi-product "Copy Image" dropdown), the
         // image for that specific style code is looked up and used instead —
         // via the SAME getImageProductForStyle() cache/lookup, no new fetching
-        // logic. Nothing else in this function was changed.
+        // logic. The clipboard-writing logic itself is untouched.
         async function copyBookingGroup(date, name, phone, forcedStyleCode) {
             const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
 
@@ -1311,7 +1480,7 @@
                     const clipboardItem = new ClipboardItem(items);
                     console.log('ClipboardItem types:', clipboardItem.types);
                     await navigator.clipboard.write([clipboardItem]);
-                    showToast(pngBlob ? "Copied — image & details" : "Copied — details (image unavailable)", "success");
+                    showToast(pngBlob ? "✓ Image Copied" : "Image unavailable — details copied", "success");
                     return;
                 } catch (e) {
                     console.warn('Clipboard write attempt failed:', e);
@@ -1328,10 +1497,10 @@
             }
         }
 
-        // New, additive: "Copy Text" button handler. Copies ONLY the booking
-        // details as plain text, in the exact same format used inside
-        // copyBookingGroup() above — no image, no HTML, no base64. Does not
-        // touch or call any image-fetching or clipboard-image logic.
+        // "Copy Text" button handler. Copies ONLY the booking details as plain
+        // text, in the exact same format used inside copyBookingGroup() above —
+        // no image, no HTML, no base64. Does not touch or call any
+        // image-fetching or clipboard-image logic.
         async function copyBookingTextOnly(date, name, phone) {
             const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
 
@@ -1341,7 +1510,7 @@
 
             try {
                 await navigator.clipboard.writeText(text);
-                showToast("Copied — booking details", "success");
+                showToast("✓ Text Copied", "success");
             } catch (err) {
                 console.error(err);
                 showToast("Failed", "error");
