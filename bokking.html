@@ -1425,6 +1425,9 @@
 
             // --- Plain text: exactly the original format, unchanged ---
             let text = `DATE: ${date}\nNAME: ${name}\nPHONE: ${phone}\n`;
+            // Bug fix: booking note was missing from the copied text — include it
+            // (same as the Print slip already does) without altering anything else.
+            if (group[0] && group[0].note) { text += `NOTE: ${group[0].note}\n`; }
             text += `\nITEMS:\n`;
             group.forEach(i => { text += `- ${i.style_code} | ${i.size} | ${i.color} | BDT ${i.price} | Branch: ${i.requirement_from}\n`; });
 
@@ -1505,6 +1508,9 @@
             const group = bookingDataCache.filter(b => b.booking_date === date && b.customer_name === name && b.phone === phone);
 
             let text = `DATE: ${date}\nNAME: ${name}\nPHONE: ${phone}\n`;
+            // Bug fix: booking note was missing from the copied text — include it
+            // (same as the Print slip already does) without altering anything else.
+            if (group[0] && group[0].note) { text += `NOTE: ${group[0].note}\n`; }
             text += `\nITEMS:\n`;
             group.forEach(i => { text += `- ${i.style_code} | ${i.size} | ${i.color} | BDT ${i.price} | Branch: ${i.requirement_from}\n`; });
 
