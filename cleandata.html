@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sales Data Processor</title>
+<title>Sales Data Processor & Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 /* ===== CSS Variables ===== */
 :root {
@@ -26,6 +28,11 @@
     --success-dim: rgba(45,212,160,0.12);
     --error: #f06060;
     --error-dim: rgba(240,96,96,0.12);
+    --chart-1: #3b82f6;
+    --chart-2: #10b981;
+    --chart-3: #f59e0b;
+    --chart-4: #8b5cf6;
+    --chart-5: #ec4899;
     --radius: 10px;
     --radius-sm: 6px;
     --radius-lg: 14px;
@@ -81,7 +88,7 @@ body::after {
 .container {
     position: relative;
     z-index: 1;
-    max-width: 1400px;
+    max-width: 1500px;
     margin: 0 auto;
     padding: 2rem 1.5rem 4rem;
 }
@@ -105,1388 +112,761 @@ body::after {
     flex-shrink: 0;
 }
 .app-header h1 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: var(--text);
-    line-height: 1.2;
+    font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.2;
 }
 .app-header p {
-    font-size: 0.9rem;
-    color: var(--text-2);
-    font-weight: 400;
-    margin-top: 0.15rem;
+    font-size: 0.9rem; color: var(--text-2); font-weight: 400; margin-top: 0.15rem;
 }
 
-/* ===== Cards ===== */
+/* ===== Cards & Inputs ===== */
 .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    box-shadow: var(--shadow);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow);
 }
-
-/* ===== Input Section ===== */
 .input-section { margin-bottom: 1.25rem; }
 .input-section label {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-2);
-    margin-bottom: 0.6rem;
+    display: block; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-2); margin-bottom: 0.6rem;
 }
 #rawData {
-    width: 100%;
-    min-height: 220px;
-    max-height: 50vh;
-    background: var(--bg);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1rem 1.15rem;
-    font-family: var(--font-mono);
-    font-size: 0.82rem;
-    line-height: 1.7;
-    color: var(--text);
-    resize: vertical;
-    outline: none;
+    width: 100%; min-height: 180px; background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 1rem 1.15rem; font-family: var(--font-mono);
+    font-size: 0.82rem; color: var(--text); resize: vertical; outline: none;
     transition: border-color var(--transition), box-shadow var(--transition);
 }
-#rawData::placeholder { color: var(--text-3); }
-#rawData:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim), 0 0 30px rgba(232,160,32,0.06);
-}
+#rawData:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 
 /* ===== Buttons ===== */
-.btn-row {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
-}
+.btn-row { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
 .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.7rem 1.4rem;
-    font-family: var(--font-ui);
-    font-size: 0.88rem;
-    font-weight: 600;
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all var(--transition);
-    white-space: nowrap;
-    user-select: none;
+    display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 1.4rem;
+    font-family: var(--font-ui); font-size: 0.88rem; font-weight: 600; border: none;
+    border-radius: var(--radius); cursor: pointer; transition: all var(--transition);
 }
-.btn:active { transform: scale(0.97); }
-.btn i { font-size: 0.85em; }
+.btn-primary { background: linear-gradient(135deg, var(--accent), #cc8a10); color: #0d0f14; }
+.btn-primary:hover { background: linear-gradient(135deg, #f0b030, var(--accent)); }
+.btn-secondary { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+.btn-outline { background: transparent; color: var(--text-2); border: 1px solid var(--border); padding: 0.5rem 1rem; font-size: 0.82rem;}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
-.btn-primary {
-    background: linear-gradient(135deg, var(--accent), #cc8a10);
-    color: #0d0f14;
-    box-shadow: 0 2px 12px rgba(232,160,32,0.3);
-}
-.btn-primary:hover {
-    background: linear-gradient(135deg, #f0b030, var(--accent));
-    box-shadow: 0 4px 20px rgba(232,160,32,0.4);
-}
-.btn-secondary {
-    background: var(--surface-2);
-    color: var(--text-2);
-    border: 1px solid var(--border);
-}
-.btn-secondary:hover {
-    background: var(--surface-3);
-    color: var(--text);
-    border-color: var(--border-light);
-}
-.btn-outline {
-    background: transparent;
-    color: var(--text-2);
-    border: 1px solid var(--border);
-    padding: 0.5rem 1rem;
-    font-size: 0.82rem;
-}
-.btn-outline:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-dim);
-}
-.btn-sm { padding: 0.45rem 0.9rem; font-size: 0.8rem; }
-
-/* ===== Stats ===== */
-.stats-section {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.25rem;
-}
-.stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-.stat-value {
-    font-size: 1.6rem;
-    font-weight: 800;
-    font-family: var(--font-mono);
-    color: var(--accent);
-    letter-spacing: -0.02em;
-}
-.stat-label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-3);
-}
-
-/* ===== Output Section ===== */
-.output-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-}
-.search-box {
-    position: relative;
-    flex: 1;
-    min-width: 200px;
-    max-width: 400px;
-}
-.search-box i {
-    position: absolute;
-    left: 0.85rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-3);
-    font-size: 0.85rem;
-}
-.search-box input {
-    width: 100%;
-    padding: 0.55rem 0.9rem 0.55rem 2.4rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: var(--font-ui);
-    font-size: 0.85rem;
-    outline: none;
-    transition: border-color var(--transition), box-shadow var(--transition);
-}
-.search-box input::placeholder { color: var(--text-3); }
-.search-box input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
-}
-.export-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.results-info {
-    font-size: 0.8rem;
-    color: var(--text-3);
-    margin-bottom: 0.6rem;
-    font-weight: 500;
-}
-.results-info span { color: var(--accent); font-weight: 700; }
-
-/* ===== Table ===== */
-.table-wrap {
-    overflow: auto;
-    max-height: 65vh;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
-}
-#outputTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.82rem;
-    white-space: nowrap;
-}
+/* ===== Table & Pagination ===== */
+.output-header { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.search-box { position: relative; flex: 1; max-width: 400px; }
+.search-box i { position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-3); }
+.search-box input { width: 100%; padding: 0.55rem 0.9rem 0.55rem 2.4rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); }
+.table-wrap { overflow: auto; max-height: 40vh; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 1rem;}
+#outputTable { width: 100%; border-collapse: collapse; font-size: 0.82rem; white-space: nowrap; }
 #outputTable thead { position: sticky; top: 0; z-index: 5; }
-#outputTable th {
-    background: var(--surface-2);
-    padding: 0.7rem 0.85rem;
-    text-align: left;
-    font-weight: 600;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-2);
-    border-bottom: 2px solid var(--border);
-    cursor: pointer;
-    user-select: none;
-    transition: color var(--transition), background var(--transition);
-    position: relative;
-}
-#outputTable th:hover {
-    color: var(--accent);
-    background: var(--surface-3);
-}
-#outputTable th .sort-icon {
-    margin-left: 0.35rem;
-    font-size: 0.7rem;
-    opacity: 0.3;
-    transition: opacity var(--transition), color var(--transition);
-}
-#outputTable th.sorted .sort-icon {
-    opacity: 1;
-    color: var(--accent);
-}
-#outputTable td {
-    padding: 0.55rem 0.85rem;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-}
-#outputTable tbody tr { transition: background var(--transition); }
-#outputTable tbody tr:hover { background: rgba(232,160,32,0.04); }
-#outputTable tbody tr:nth-child(even) { background: rgba(255,255,255,0.012); }
-#outputTable tbody tr:nth-child(even):hover { background: rgba(232,160,32,0.04); }
+#outputTable th { background: var(--surface-2); padding: 0.7rem 0.85rem; text-align: left; font-weight: 600; font-size: 0.75rem; color: var(--text-2); border-bottom: 2px solid var(--border); cursor: pointer; }
+#outputTable td { padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text); font-family: var(--font-mono); }
+.pagination { display: flex; justify-content: center; gap: 0.35rem; }
+.page-btn { width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-2); cursor: pointer; }
+.page-btn.active { background: var(--accent); border-color: var(--accent); color: #0d0f14; font-weight: 700; }
 
-/* ===== Pagination ===== */
-.pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
+/* ===== Dashboard Section ===== */
+.dashboard-wrap { margin-top: 3rem; display: none; flex-direction: column; gap: 2rem; }
+.dash-section {
+    background: var(--surface); border-radius: var(--radius-lg); padding: 2rem;
+    border-top: 4px solid var(--accent); box-shadow: var(--shadow);
 }
-.page-btn {
-    width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-2);
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition);
+.dash-title {
+    font-size: 1.25rem; font-weight: 800; color: var(--text); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 1.5rem; display: inline-block;
+    border-bottom: 2px solid var(--border-light); padding-bottom: 0.5rem;
 }
-.page-btn:hover:not(:disabled) {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-dim);
-}
-.page-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #0d0f14;
-    font-weight: 700;
-}
-.page-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-.page-ellipsis {
-    width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text-3);
-    font-size: 0.85rem;
-}
+.report-period { color: var(--text-2); font-size: 0.95rem; font-weight: 500; margin-bottom: 2rem; }
 
-/* ===== Empty State ===== */
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: var(--text-3);
-}
-.empty-state i {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.3;
-    display: block;
-}
-.empty-state p { font-size: 0.95rem; }
+/* Dashboard Grids */
+.grid-8 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-top: 1.5rem; }
+.split-view { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+@media (max-width: 992px) { .split-view { grid-template-columns: 1fr; } }
 
-/* ===== Toast ===== */
-#toastContainer {
-    position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    pointer-events: none;
+/* KPI Cards */
+.kpi {
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.5rem; text-align: center; transition: transform 0.2s;
 }
-.toast {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.75rem 1.2rem;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    transform: translateX(120%);
-    opacity: 0;
-    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-    pointer-events: auto;
-    max-width: 380px;
-}
-.toast.show { transform: translateX(0); opacity: 1; }
-.toast-success i { color: var(--success); }
-.toast-error i { color: var(--error); }
-.toast-info i { color: var(--accent); }
+.kpi:hover { transform: translateY(-3px); border-color: var(--border-light); }
+.kpi.highlight { background: rgba(232,160,32,0.05); border-color: var(--accent-dim); }
+.kpi-label { font-size: 0.85rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; font-weight: 600; }
+.kpi-val { font-size: 1.8rem; font-weight: 800; color: var(--text); font-family: var(--font-mono); }
+.kpi-sub { font-size: 0.75rem; color: var(--text-3); margin-top: 0.4rem; }
 
-/* ===== Loading Overlay ===== */
-.loading-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(13,15,20,0.92);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 9000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s;
-    gap: 1rem;
-}
-.loading-overlay.active { opacity: 1; pointer-events: all; }
-.loader {
-    width: 44px; height: 44px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-}
-.loading-overlay p { color: var(--text-2); font-size: 0.9rem; font-weight: 500; }
+/* Charts */
+.chart-box { position: relative; height: 350px; width: 100%; background: var(--bg); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border); }
+.chart-box.tall { height: 450px; }
 
-/* ===== Helpers ===== */
+/* Dash Tables */
+.dash-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.dash-table th { background: var(--surface-2); padding: 0.8rem; text-align: left; color: var(--text-2); }
+.dash-table td { padding: 0.8rem; border-bottom: 1px solid var(--border); color: var(--text); }
+.dash-table tr:hover { background: rgba(255,255,255,0.02); }
+
+/* Utility */
 .hidden { display: none !important; }
-
-/* ===== Animations ===== */
+.text-accent { color: var(--accent) !important; }
+.text-success { color: var(--success) !important; }
+.loader-overlay { position: fixed; inset: 0; background: rgba(13,15,20,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9000; opacity: 0; pointer-events: none; transition: opacity 0.3s; gap: 1rem;}
+.loader-overlay.active { opacity: 1; pointer-events: all; }
+.loader { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.fade-up { animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.fade-up { animation: fadeUp 0.5s ease forwards; }
 
-/* ===== Responsive ===== */
-@media (max-width: 768px) {
-    .container { padding: 1rem; }
-    .app-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-    .app-header h1 { font-size: 1.35rem; }
-    .stats-section { grid-template-columns: 1fr; }
-    .output-header { flex-direction: column; align-items: stretch; }
-    .search-box { max-width: 100%; }
-    .export-buttons { justify-content: flex-start; }
-    .btn-row { flex-direction: column; }
-    .btn { justify-content: center; }
-    #rawData { min-height: 160px; font-size: 0.75rem; }
-}
-
-/* ===== Reduced Motion ===== */
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
-    }
-}
 </style>
 </head>
 <body>
 
-<!-- Toast Notifications -->
-<div id="toastContainer"></div>
-
-<!-- Loading Overlay -->
-<div class="loading-overlay" id="loadingOverlay">
+<div class="loader-overlay" id="loadingOverlay">
     <div class="loader"></div>
-    <p id="loadingText">Processing data...</p>
+    <p id="loadingText">Processing Data & Generating Dashboard...</p>
 </div>
 
 <div class="container">
-
-    <!-- Header -->
     <header class="app-header">
-        <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+        <div class="logo-icon"><i class="fas fa-chart-pie"></i></div>
         <div>
-            <h1>Sales Data Processor</h1>
-            <p>Paste raw sales reports and convert them into clean, structured tables</p>
+            <h1>Executive Sales Dashboard</h1>
+            <p>Data Processor & Analytics Engine</p>
         </div>
     </header>
 
-    <!-- Input Section -->
     <section class="input-section card">
-        <label for="rawData"><i class="fas fa-paste" style="margin-right:0.3rem"></i> Raw Sales Data</label>
-        <textarea id="rawData" placeholder="Paste your raw sales data here...&#10;&#10;Example:&#10;CODE	BARCODE	SAL_BARCODE	DISPLAY NAME	MRP	SQTY	...&#10;04-June-2026&#10;0100040003076	Invoice Time: 3:06:25 pm&#10;A014312	A014312	A014312	T-SHIRT, IMC-EF54-MTS-054, BLACK, XL	..."></textarea>
+        <label for="rawData"><i class="fas fa-paste"></i> Paste Raw Sales Data (Tab Delimited)</label>
+        <textarea id="rawData" placeholder="Paste data here... (Expected columns: Date, Invoice No, Time, Barcode, Name, Style, Qty, MRP, Net Amt etc.)"></textarea>
         <div class="btn-row">
-            <button class="btn btn-primary" id="processBtn">
-                <i class="fas fa-cogs"></i> Process Data
-            </button>
-            <button class="btn btn-secondary" id="clearBtn">
-                <i class="fas fa-eraser"></i> Clear
-            </button>
+            <button class="btn btn-primary" id="processBtn"><i class="fas fa-bolt"></i> Process & Generate</button>
+            <button class="btn btn-secondary" id="clearBtn"><i class="fas fa-eraser"></i> Reset</button>
         </div>
     </section>
 
-    <!-- Stats Section -->
-    <section class="stats-section hidden" id="statsSection">
-        <div class="stat-card">
-            <span class="stat-value" id="statInvoices">0</span>
-            <span class="stat-label">Invoices Processed</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-value" id="statProducts">0</span>
-            <span class="stat-label">Products Extracted</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-value" id="statTime">0 ms</span>
-            <span class="stat-label">Processing Time</span>
-        </div>
-    </section>
-
-    <!-- Output Section -->
-    <section class="card hidden" id="outputSection">
+    <section class="card hidden" id="outputSection" style="margin-bottom: 2rem;">
         <div class="output-header">
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search across all columns...">
+                <input type="text" id="searchInput" placeholder="Search parsed data...">
             </div>
-            <div class="export-buttons">
-                <button class="btn btn-sm btn-outline" id="copyBtn" title="Copy as TSV">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-                <button class="btn btn-sm btn-outline" id="csvBtn" title="Download as CSV">
-                    <i class="fas fa-file-csv"></i> CSV
-                </button>
-                <button class="btn btn-sm btn-outline" id="xlsxBtn" title="Download as Excel">
-                    <i class="fas fa-file-excel"></i> Excel
-                </button>
+            <div>
+                <button class="btn btn-sm btn-outline" id="csvBtn"><i class="fas fa-download"></i> CSV</button>
             </div>
         </div>
-        <div class="results-info" id="resultsInfo"></div>
         <div class="table-wrap" id="tableWrap">
             <table id="outputTable">
                 <thead id="tableHead"></thead>
                 <tbody id="tableBody"></tbody>
             </table>
-            <div class="empty-state" id="emptyState">
-                <i class="fas fa-table"></i>
-                <p>No data to display</p>
-            </div>
         </div>
         <div class="pagination" id="pagination"></div>
     </section>
 
+    <div id="dashboardWrap" class="dashboard-wrap">
+        <div class="report-period" id="reportPeriod"></div>
+
+        <!-- 2. EXECUTIVE SUMMARY -->
+        <div class="dash-section fade-up">
+            <h2 class="dash-title">2. Executive Summary</h2>
+            <div class="grid-8">
+                <div class="kpi"><div class="kpi-label">Total MRP Sales</div><div class="kpi-val" id="kpi-mrp">0</div><div class="kpi-sub">BDT</div></div>
+                <div class="kpi highlight"><div class="kpi-label text-accent">Total Net Sales</div><div class="kpi-val text-accent" id="kpi-net">0</div><div class="kpi-sub">BDT</div></div>
+                <div class="kpi"><div class="kpi-label">Total Qty Sold</div><div class="kpi-val" id="kpi-qty">0</div><div class="kpi-sub">Units</div></div>
+                <div class="kpi"><div class="kpi-label">Total VAT</div><div class="kpi-val" id="kpi-vat">0</div><div class="kpi-sub">BDT</div></div>
+                <div class="kpi"><div class="kpi-label">Total Discount</div><div class="kpi-val" id="kpi-disc">0</div><div class="kpi-sub">BDT</div></div>
+                <div class="kpi"><div class="kpi-label">Total Invoices</div><div class="kpi-val" id="kpi-inv">0</div><div class="kpi-sub">Transactions</div></div>
+                <div class="kpi"><div class="kpi-label">Avg Invoice Value (AIV)</div><div class="kpi-val" id="kpi-aiv">0</div><div class="kpi-sub">Per Invoice</div></div>
+                <div class="kpi"><div class="kpi-label">Avg Selling Price (ASP)</div><div class="kpi-val" id="kpi-asp">0</div><div class="kpi-sub">Per Unit</div></div>
+            </div>
+        </div>
+
+        <!-- 3. AIV REPORT -->
+        <div class="dash-section fade-up" style="animation-delay: 0.1s">
+            <h2 class="dash-title">3. Average Invoice Value (AIV) Report</h2>
+            <div class="split-view">
+                <div class="kpi highlight" style="display:flex; flex-direction:column; justify-content:center; height: 100%;">
+                    <div class="kpi-label">Average Invoice Value</div>
+                    <div class="kpi-val text-accent" style="font-size: 3.5rem;" id="aiv-large">0</div>
+                    <div class="kpi-sub" style="font-style:italic">Formula: Total Net Sales ÷ Total Invoices</div>
+                </div>
+                <div class="chart-box"><canvas id="aivChart"></canvas></div>
+            </div>
+            <div class="grid-4">
+                <div class="kpi"><div class="kpi-label">Net Sales</div><div class="kpi-val" id="aiv-net">0</div></div>
+                <div class="kpi"><div class="kpi-label">Total Invoices</div><div class="kpi-val" id="aiv-inv">0</div></div>
+                <div class="kpi"><div class="kpi-label">AIV</div><div class="kpi-val" id="aiv-val2">0</div></div>
+                <div class="kpi"><div class="kpi-label text-success">Peak Day Revenue</div><div class="kpi-val text-success" id="aiv-peak">0</div></div>
+            </div>
+        </div>
+
+        <!-- 4. ASP REPORT -->
+        <div class="dash-section fade-up" style="animation-delay: 0.2s">
+            <h2 class="dash-title">4. Average Selling Price (ASP) Report</h2>
+            <div class="split-view">
+                <div class="kpi highlight" style="display:flex; flex-direction:column; justify-content:center; height: 100%; border-color: var(--chart-4);">
+                    <div class="kpi-label">Average Selling Price</div>
+                    <div class="kpi-val" style="font-size: 3.5rem; color: var(--chart-4);" id="asp-large">0</div>
+                    <div class="kpi-sub" style="font-style:italic">Formula: Total Net Sales ÷ Total Qty Sold</div>
+                </div>
+                <div class="chart-box"><canvas id="aspChart"></canvas></div>
+            </div>
+            <div style="margin-top: 1.5rem; overflow-x: auto;">
+                <table class="dash-table" id="aspTable">
+                    <thead><tr><th>Product</th><th>Qty Sold</th><th>Net Revenue</th><th>ASP (BDT)</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 5. MONTHLY SALES OVERVIEW -->
+        <div class="dash-section fade-up" style="animation-delay: 0.3s">
+            <h2 class="dash-title">5. Monthly Sales Overview – Daily Trend</h2>
+            <div class="chart-box tall"><canvas id="trendChart"></canvas></div>
+            <div class="grid-4">
+                <div class="kpi"><div class="kpi-label">Peak Day</div><div class="kpi-val text-success" id="trend-peak-date">-</div></div>
+                <div class="kpi"><div class="kpi-label">Lowest Day</div><div class="kpi-val" style="color:var(--error)" id="trend-low-date">-</div></div>
+                <div class="kpi"><div class="kpi-label">Total Trading Days</div><div class="kpi-val" id="trend-days">0</div></div>
+                <div class="kpi"><div class="kpi-label">Daily Average</div><div class="kpi-val" id="trend-avg">0</div></div>
+            </div>
+        </div>
+
+        <!-- 6 & 7. PRODUCT PERFORMANCE (TOP & BOTTOM) -->
+        <div class="split-view">
+            <div class="dash-section fade-up">
+                <h2 class="dash-title">6. Best Selling Products (Revenue)</h2>
+                <div class="chart-box"><canvas id="topProdChart"></canvas></div>
+                <table class="dash-table" id="topProdTable" style="margin-top:1rem">
+                    <thead><tr><th>#</th><th>Product</th><th>Revenue</th><th>Share</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="dash-section fade-up">
+                <h2 class="dash-title">7. Slow Moving Products (Revenue)</h2>
+                <div class="chart-box"><canvas id="botProdChart"></canvas></div>
+                <table class="dash-table" id="botProdTable" style="margin-top:1rem">
+                    <thead><tr><th>#</th><th>Product</th><th>Revenue</th><th>Qty</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 8. FAST MOVING BY QTY -->
+        <div class="dash-section fade-up">
+            <h2 class="dash-title">8. Fast Moving Products – Top by Qty</h2>
+            <div class="chart-box tall"><canvas id="fastChart"></canvas></div>
+        </div>
+
+        <!-- 9. BEST SELLING STYLE -->
+        <div class="dash-section fade-up">
+            <h2 class="dash-title">9. Best Selling Styles – Top 10 By Value</h2>
+            <div class="chart-box tall"><canvas id="styleChart"></canvas></div>
+            <table class="dash-table" id="styleTable" style="margin-top:1rem">
+                <thead><tr><th>Rank</th><th>Style Code</th><th>Net Sales (BDT)</th><th>Qty Sold</th><th>ASP</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- 11. DISCOUNT ANALYSIS -->
+        <div class="dash-section fade-up">
+            <h2 class="dash-title">11. Product Discount Analysis</h2>
+            <div class="split-view">
+                <div class="chart-box"><canvas id="discBarChart"></canvas></div>
+                <div class="chart-box"><canvas id="discPieChart"></canvas></div>
+            </div>
+            <div class="grid-4">
+                <div class="kpi highlight"><div class="kpi-label">Total Discount Given</div><div class="kpi-val text-accent" id="disc-total">0</div></div>
+                <div class="kpi"><div class="kpi-label">Overall Discount %</div><div class="kpi-val" id="disc-pct">0%</div><div class="kpi-sub">Of MRP</div></div>
+                <div class="kpi"><div class="kpi-label">Revenue at 0% Disc</div><div class="kpi-val" id="disc-rev0">0</div></div>
+                <div class="kpi"><div class="kpi-label">Revenue at >10% Disc</div><div class="kpi-val" id="disc-rev10">0</div></div>
+            </div>
+        </div>
+
+        <!-- 12. QUARTERLY PERFORMANCE BREAKDOWN -->
+        <div class="dash-section fade-up">
+            <h2 class="dash-title">12. Quarterly Performance Breakdown</h2>
+            <div class="split-view">
+                <div class="kpi highlight" style="display:flex; flex-direction:column; justify-content:center; height: 100%;">
+                    <div class="kpi-label">Best Quarter</div>
+                    <div class="kpi-val text-accent" style="font-size: 3rem;" id="qtr-best-lakh">0L</div>
+                    <div class="kpi-sub" id="qtr-best-name">Q-Name</div>
+                    <div class="kpi-sub text-accent" style="margin-top:0.5rem" id="qtr-best-sub">0 BDT | 0% of Annual Revenue</div>
+                </div>
+                <div class="chart-box"><canvas id="quarterChart"></canvas></div>
+            </div>
+            <table class="dash-table" id="quarterTable" style="margin-top:1rem">
+                <thead><tr><th>Quarter</th><th>Invoices</th><th>Net Sales (BDT)</th><th>Share %</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- 13. MONTH-OVER-MONTH GROWTH ANALYSIS -->
+        <div class="dash-section fade-up">
+            <h2 class="dash-title">13. Month-Over-Month Growth Analysis</h2>
+            <div class="chart-box tall"><canvas id="momChart"></canvas></div>
+            <div class="grid-4" style="margin-top: 1rem;">
+                <div class="kpi"><div class="kpi-label">Highest Growth</div><div class="kpi-val text-success" id="mom-high-val">0%</div><div class="kpi-sub" id="mom-high-lbl">-</div></div>
+                <div class="kpi"><div class="kpi-label">Sharpest Drop</div><div class="kpi-val" style="color:var(--error)" id="mom-drop-val">0%</div><div class="kpi-sub" id="mom-drop-lbl">-</div></div>
+            </div>
+        </div>
+
+        <!-- 14. AIV & ASP TREND -->
+        <div class="dash-section fade-up">
+            <h2 class="dash-title">14. AIV & ASP Trend</h2>
+            <div class="chart-box tall"><canvas id="aivAspTrendChart"></canvas></div>
+            <div class="grid-4" style="margin-top: 1rem;">
+                <div class="kpi"><div class="kpi-label">Highest AIV Month</div><div class="kpi-val text-accent" id="trend-high-aiv">-</div><div class="kpi-sub" id="trend-high-aiv-val">0</div></div>
+                <div class="kpi"><div class="kpi-label">Lowest AIV Month</div><div class="kpi-val text-accent" id="trend-low-aiv">-</div><div class="kpi-sub" id="trend-low-aiv-val">0</div></div>
+                <div class="kpi"><div class="kpi-label">Annual AIV</div><div class="kpi-val" id="trend-ann-aiv">0</div><div class="kpi-sub">Full Year Avg</div></div>
+                <div class="kpi"><div class="kpi-label">Annual ASP</div><div class="kpi-val" id="trend-ann-asp">0</div><div class="kpi-sub">Full Year Avg</div></div>
+            </div>
+        </div>
+
+        <!-- 15. EXECUTIVE KPI DASHBOARD -->
+        <div class="dash-section fade-up" style="background: #09132b; border: 1px solid #1c3664;">
+            <h2 class="dash-title" style="text-align: center; display: block; border: none; font-size: 1.8rem; margin-bottom: 2rem;">EXECUTIVE KPI DASHBOARD</h2>
+            <div class="grid-4" style="gap: 1rem;">
+                <!-- Row 1 -->
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Total Net Sales</div><div class="kpi-val" id="exec-net-lakh">0L</div><div class="kpi-sub" id="exec-net-val">0</div></div>
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Total MRP Sales</div><div class="kpi-val" id="exec-mrp-lakh">0L</div><div class="kpi-sub" id="exec-mrp-val">0</div></div>
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Total Qty Sold</div><div class="kpi-val" id="exec-qty">0</div><div class="kpi-sub">Units</div></div>
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Total VAT</div><div class="kpi-val" id="exec-vat-lakh">0L</div><div class="kpi-sub" id="exec-vat-val">0</div></div>
+                <!-- Row 2 -->
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Total Discount</div><div class="kpi-val" id="exec-disc-lakh">0L</div><div class="kpi-sub" id="exec-disc-val">0</div></div>
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Total Invoices</div><div class="kpi-val" id="exec-inv">0</div><div class="kpi-sub">Transactions</div></div>
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Best Product</div><div class="kpi-val" style="font-size: 1.4rem;" id="exec-best-prod">-</div><div class="kpi-sub" id="exec-best-prod-val">0</div></div>
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Best Category</div><div class="kpi-val" style="font-size: 1.4rem;" id="exec-best-cat">-</div><div class="kpi-sub" id="exec-best-cat-val">0% Share</div></div>
+                <!-- Row 3 -->
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Best Style</div><div class="kpi-val" style="font-size: 1.2rem;" id="exec-best-style">-</div><div class="kpi-sub" id="exec-best-style-val">0</div></div>
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Avg Invoice Value</div><div class="kpi-val" id="exec-aiv">0</div><div class="kpi-sub">Per Invoice</div></div>
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Avg Selling Price</div><div class="kpi-val" id="exec-asp">0</div><div class="kpi-sub">Per Unit</div></div>
+                <div class="kpi" style="background: #112240; border-color: #1e3a8a;"><div class="kpi-label">Period</div><div class="kpi-val" id="exec-days">0 Days</div><div class="kpi-sub">Trading Days</div></div>
+            </div>
+        </div>
+
+    </div>
 </div>
 
 <script>
-/* ============================================================
-   CONFIGURATION & CONSTANTS
-   ============================================================ */
-
 const HEADERS = [
     'Date', 'Invoice No', 'Invoice Time', 'BARCODE', 'SAL_BARCODE',
     'NAME', 'Style Code', 'Colour', 'Size', 'MRP',
     'SQTY', 'RQTY', 'EXG QTY', 'SUB TOTAL', 'DISC (%)',
     'DISC AMT', 'VAT (%)', 'VAT AMT', 'ADJ AMT', 'NET AMT'
 ];
-
-/* Indices of columns that hold numeric values (for sort) */
-const NUMERIC_COLS = new Set([9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
-
-const COL_LETTERS = 'ABCDEFGHIJKLMNOPQRSTU'.split('');
-
 const PAGE_SIZE = 50;
+let allData = [];
+let filteredData = [];
+let currentPage = 0;
+let dashboardCharts = {};
 
-/* Regex patterns */
-const RE_DATE = /^\d{1,2}-[A-Za-z]+-\d{4}$/;
-const RE_INVOICE = /^(\d+)\tInvoice Time:\s*(.+)$/;
+/* Configure Chart.js Defaults for Dark Theme */
+Chart.defaults.color = '#8890a8';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.scale.grid.color = 'rgba(255,255,255,0.05)';
+Chart.defaults.scale.ticks.color = '#8890a8';
 
-/* ============================================================
-   APPLICATION STATE
-   ============================================================ */
+/* Formatters */
+const fmtNum = (n) => new Intl.NumberFormat('en-IN').format(Math.round(n));
+const fmtCur = (n) => 'BDT ' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(n));
+const fmtLakh = (n) => 'BDT ' + (n / 100000).toFixed(2) + 'L';
 
-let allData = [];        // Full parsed dataset (array of arrays)
-let filteredData = [];   // After search filtering
-let sortCol = -1;        // Current sort column index (-1 = none)
-let sortDir = 'asc';     // 'asc' or 'desc'
-let currentPage = 0;     // Current page index
-let searchQuery = '';     // Current search string
-let uniqueInvoices = new Set(); // Track unique invoice numbers
-
-/* ============================================================
-   DOM REFERENCES
-   ============================================================ */
-
-const $rawData    = document.getElementById('rawData');
-const $processBtn = document.getElementById('processBtn');
-const $clearBtn   = document.getElementById('clearBtn');
-const $statsSection = document.getElementById('statsSection');
-const $statInvoices = document.getElementById('statInvoices');
-const $statProducts = document.getElementById('statProducts');
-const $statTime    = document.getElementById('statTime');
-const $outputSection = document.getElementById('outputSection');
-const $searchInput = document.getElementById('searchInput');
-const $resultsInfo = document.getElementById('resultsInfo');
-const $tableHead   = document.getElementById('tableHead');
-const $tableBody   = document.getElementById('tableBody');
-const $emptyState  = document.getElementById('emptyState');
-const $pagination  = document.getElementById('pagination');
-const $copyBtn     = document.getElementById('copyBtn');
-const $csvBtn      = document.getElementById('csvBtn');
-const $xlsxBtn     = document.getElementById('xlsxBtn');
-const $loading     = document.getElementById('loadingOverlay');
-const $loadingText = document.getElementById('loadingText');
-
-/* ============================================================
-   UTILITY FUNCTIONS
-   ============================================================ */
-
-/** Escape HTML special characters for safe insertion */
-function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-/** Escape XML special characters for XLSX generation */
-function escapeXml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-              .replace(/'/g, '&apos;');
-}
-
-/** Clean a numeric string: remove commas, strip trailing .00 */
-function cleanNum(val) {
-    val = val.trim().replace(/,/g, '');
-    if (val.endsWith('.00')) val = val.slice(0, -3);
-    return val;
-}
-
-/** Escape a value for CSV (wrap in quotes if it contains comma/quote/newline) */
-function csvEscape(val) {
-    if (val.includes(',') || val.includes('"') || val.includes('\n')) {
-        return '"' + val.replace(/"/g, '""') + '"';
-    }
-    return val;
-}
-
-/** Convert column index (0-based) to Excel letter(s): 0→A, 25→Z, 26→AA */
-function colLetter(i) {
-    let s = '';
-    i++;
-    while (i > 0) {
-        i--;
-        s = String.fromCharCode(65 + (i % 26)) + s;
-        i = Math.floor(i / 26);
-    }
-    return s;
-}
-
-/** Format large numbers with commas for display */
-function formatNumber(n) {
-    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-/* ============================================================
-   PARSING ENGINE
-   ============================================================ */
-
-/**
- * Parse raw tab-delimited sales text into structured rows.
- * Uses a state machine to track current date, invoice number, and time.
- * Returns { rows: Array<Array<string>>, invoices: Set<string> }
- */
 function parseData(rawText) {
     const lines = rawText.split(/\r?\n/);
     const rows = [];
     const invoices = new Set();
-
-    let currentDate = '';
-    let currentInvoice = '';
-    let currentTime = '';
+    let currentDate = '', currentInvoice = '', currentTime = '';
 
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const trimmed = line.trim();
+        const line = lines[i], trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('CODE') || trimmed.startsWith('Invoice Total')) continue;
 
-        /* Skip blank lines */
-        if (!trimmed) continue;
+        if (/^\d{1,2}-[A-Za-z]+-\d{4}$/.test(trimmed)) { currentDate = trimmed; continue; }
 
-        /* Skip header row (starts with "CODE") */
-        if (trimmed.startsWith('CODE')) continue;
-
-        /* Skip invoice total rows */
-        if (trimmed.startsWith('Invoice Total')) continue;
-
-        /* Detect date line: e.g. "04-June-2026" */
-        if (RE_DATE.test(trimmed)) {
-            currentDate = trimmed;
-            continue;
-        }
-
-        /* Detect invoice header: e.g. "0100040003076\tInvoice Time: 3:06:25 pm" */
-        const invMatch = trimmed.match(RE_INVOICE);
+        const invMatch = trimmed.match(/^(\d+)\tInvoice Time:\s*(.+)$/);
         if (invMatch) {
-            currentInvoice = invMatch[1];
-            currentTime = invMatch[2].trim();
-            invoices.add(currentInvoice);
-            continue;
+            currentInvoice = invMatch[1]; currentTime = invMatch[2].trim();
+            invoices.add(currentInvoice); continue;
         }
 
-        /* Attempt to parse as a product row (tab-separated, 14+ fields) */
         const fields = line.split('\t');
         if (fields.length < 14) continue;
-
-        /* Validate: field[3] (DISPLAY NAME) should contain at least one comma */
         const displayName = fields[3] ? fields[3].trim() : '';
         if (!displayName.includes(',')) continue;
-
-        /* Split DISPLAY NAME into NAME, Style Code, Colour, Size */
         const nameParts = displayName.split(',').map(p => p.trim());
 
-        /* Build the output row */
-        const row = [
-            currentDate,                     // Date
-            currentInvoice,                  // Invoice No
-            currentTime,                     // Invoice Time
-            fields[0].trim(),                // BARCODE
-            fields[1].trim(),                // SAL_BARCODE
-            nameParts[0] || '',              // NAME
-            nameParts[1] || '',              // Style Code
-            nameParts[2] || '',              // Colour
-            nameParts[3] || '',              // Size
-            cleanNum(fields[4]),             // MRP
-            cleanNum(fields[5]),             // SQTY
-            cleanNum(fields[6]),             // RQTY
-            cleanNum(fields[7]),             // EXG QTY
-            cleanNum(fields[8]),             // SUB TOTAL
-            cleanNum(fields[9]),             // DISC (%)
-            cleanNum(fields[10]),            // DISC AMT
-            cleanNum(fields[11]),            // VAT (%)
-            cleanNum(fields[12]),            // VAT AMT
-            cleanNum(fields[13]),            // ADJ AMT
-            cleanNum(fields[14] || '0')      // NET AMT
-        ];
+        const clean = (val) => {
+            if(!val) return '0';
+            let v = val.trim().replace(/,/g, '');
+            if (v.endsWith('.00')) v = v.slice(0, -3);
+            return v;
+        };
 
-        rows.push(row);
+        rows.push([
+            currentDate, currentInvoice, currentTime,
+            fields[0].trim(), fields[1].trim(),
+            nameParts[0] || 'Unknown', nameParts[1] || 'Unknown', nameParts[2] || '', nameParts[3] || '',
+            clean(fields[4]), clean(fields[5]), clean(fields[6]), clean(fields[7]), clean(fields[8]),
+            clean(fields[9]), clean(fields[10]), clean(fields[11]), clean(fields[12]), clean(fields[13]),
+            clean(fields[14] || '0')
+        ]);
     }
-
     return { rows, invoices };
 }
 
-/* ============================================================
-   TABLE RENDERING
-   ============================================================ */
-
-/** Build the table header with sort indicators */
-function buildTableHeader() {
-    let html = '<tr>';
-    for (let i = 0; i < HEADERS.length; i++) {
-        const isSorted = sortCol === i;
-        const iconClass = isSorted
-            ? (sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down')
-            : 'fa-sort';
-        html += `<th class="${isSorted ? 'sorted' : ''}" data-col="${i}">`
-              + `${escapeHtml(HEADERS[i])}`
-              + `<i class="fas ${iconClass} sort-icon"></i>`
-              + `</th>`;
-    }
-    html += '</tr>';
-    $tableHead.innerHTML = html;
-}
-
-/** Render only the current page of rows into the table body */
-function renderTablePage() {
-    const total = filteredData.length;
+function renderTable() {
+    document.getElementById('tableHead').innerHTML = `<tr>${HEADERS.map(h => `<th>${h}</th>`).join('')}</tr>`;
+    
     const start = currentPage * PAGE_SIZE;
-    const end = Math.min(start + PAGE_SIZE, total);
-
-    if (total === 0) {
-        $tableBody.innerHTML = '';
-        $emptyState.classList.remove('hidden');
-        $resultsInfo.innerHTML = '';
-        return;
-    }
-
-    $emptyState.classList.add('hidden');
-    $resultsInfo.innerHTML = `Showing <span>${formatNumber(start + 1)}</span>–<span>${formatNumber(end)}</span> of <span>${formatNumber(total)}</span> results`;
-
-    const pageRows = filteredData.slice(start, end);
+    const pageRows = filteredData.slice(start, start + PAGE_SIZE);
+    
     let html = '';
-    for (let r = 0; r < pageRows.length; r++) {
-        html += '<tr>';
-        const row = pageRows[r];
-        for (let c = 0; c < row.length; c++) {
-            html += `<td>${escapeHtml(row[c])}</td>`;
-        }
-        html += '</tr>';
+    pageRows.forEach(row => {
+        html += `<tr>${row.map(c => `<td>${c}</td>`).join('')}</tr>`;
+    });
+    document.getElementById('tableBody').innerHTML = html;
+
+    // Pagination
+    const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+    let pagHtml = '';
+    for(let i=0; i<Math.min(totalPages, 7); i++) {
+        pagHtml += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goToPage(${i})">${i+1}</button>`;
     }
-    $tableBody.innerHTML = html;
+    document.getElementById('pagination').innerHTML = pagHtml;
 }
+function goToPage(p) { currentPage = p; renderTable(); }
 
-/** Full render: header + page + pagination */
-function renderAll() {
-    buildTableHeader();
-    renderTablePage();
-    renderPagination();
-}
+function generateDashboard(data) {
+    let totalNet = 0, totalQty = 0, totalDiscount = 0, totalVAT = 0, totalMRP = 0;
+    const invoices = new Set();
+    const dailyData = {};
+    const productData = {};
+    const styleData = {};
+    const dates = [];
+    
+    // New structures for Section 12, 13, 14, 15
+    const monthlyStats = {};
+    const quarterlyStats = {};
 
-/* ============================================================
-   SORTING
-   ============================================================ */
+    // Aggregate Data
+    data.forEach(row => {
+        const dateStr = row[0];
+        const inv = row[1];
+        const prod = row[5];
+        const style = row[6];
+        const qty = parseFloat(row[10]) || 0;
+        const mrpSub = parseFloat(row[13]) || 0;
+        const disc = parseFloat(row[15]) || 0;
+        const vat = parseFloat(row[17]) || 0;
+        const net = parseFloat(row[19]) || 0;
+        const discPct = parseFloat(row[14]) || 0;
 
-/** Sort filteredData by the given column */
-function sortByColumn(colIndex) {
-    if (sortCol === colIndex) {
-        /* Toggle direction if same column */
-        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortCol = colIndex;
-        sortDir = 'asc';
-    }
+        totalNet += net; totalQty += qty; totalDiscount += disc; totalVAT += vat; totalMRP += mrpSub;
+        if(inv) invoices.add(inv);
+        if(dateStr && !dates.includes(dateStr)) dates.push(dateStr);
 
-    filteredData.sort((a, b) => {
-        let va = a[colIndex];
-        let vb = b[colIndex];
+        // Daily
+        if(!dailyData[dateStr]) dailyData[dateStr] = { net: 0, dateObj: new Date(dateStr) };
+        dailyData[dateStr].net += net;
 
-        if (NUMERIC_COLS.has(colIndex)) {
-            va = parseFloat(va) || 0;
-            vb = parseFloat(vb) || 0;
-            return sortDir === 'asc' ? va - vb : vb - va;
+        // Product
+        if(!productData[prod]) productData[prod] = { net: 0, qty: 0, disc: 0 };
+        productData[prod].net += net; productData[prod].qty += qty; productData[prod].disc += disc;
+
+        // Style
+        if(!styleData[style]) styleData[style] = { net: 0, qty: 0 };
+        styleData[style].net += net; styleData[style].qty += qty;
+
+        // NEW: Monthly & Quarterly Aggregation
+        if(dateStr) {
+            const d = new Date(dateStr);
+            if(!isNaN(d)) {
+                // Monthly Key
+                const mKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0');
+                const mLabel = d.toLocaleString('en-us', {month: 'short'}) + '-' + d.getFullYear().toString().slice(-2);
+                
+                // Quarterly Logic (Fiscal Year: July-June) matching Image FY Format
+                const month = d.getMonth(); 
+                let fyQNum, fyYear = d.getFullYear();
+                let fyQName = "";
+                
+                if (month >= 6 && month <= 8) { fyQNum = 1; fyQName = "Jul-Sep"; }
+                else if (month >= 9 && month <= 11) { fyQNum = 2; fyQName = "Oct-Dec"; }
+                else if (month >= 0 && month <= 2) { fyQNum = 3; fyQName = "Jan-Mar"; fyYear -= 1; }
+                else if (month >= 3 && month <= 5) { fyQNum = 4; fyQName = "Apr-Jun"; fyYear -= 1; }
+
+                const fyYearShort = (fyYear+1).toString().slice(-2);
+                const qKey = fyYear + '-Q' + fyQNum;
+                const qLabel = `Q${fyQNum} (${fyQName} ${fyYearShort})`;
+
+                if(!monthlyStats[mKey]) monthlyStats[mKey] = { label: mLabel, net: 0, qty: 0, invs: new Set() };
+                monthlyStats[mKey].net += net;
+                monthlyStats[mKey].qty += qty;
+                if(inv) monthlyStats[mKey].invs.add(inv);
+
+                if(!quarterlyStats[qKey]) quarterlyStats[qKey] = { label: qLabel, net: 0, invs: new Set() };
+                quarterlyStats[qKey].net += net;
+                if(inv) quarterlyStats[qKey].invs.add(inv);
+            }
         }
-
-        va = va.toLowerCase();
-        vb = vb.toLowerCase();
-        if (va < vb) return sortDir === 'asc' ? -1 : 1;
-        if (va > vb) return sortDir === 'asc' ? 1 : -1;
-        return 0;
     });
 
-    currentPage = 0;
-    renderAll();
-}
+    const invCount = invoices.size || 1;
+    const aiv = totalNet / invCount;
+    const asp = totalNet / (totalQty || 1);
 
-/* ============================================================
-   SEARCH & FILTER
-   ============================================================ */
-
-/** Apply search query to filter allData into filteredData */
-function applySearch() {
-    const q = searchQuery.toLowerCase();
-    if (!q) {
-        filteredData = allData.slice(); // Shallow copy
-    } else {
-        filteredData = allData.filter(row =>
-            row.some(cell => cell.toLowerCase().includes(q))
-        );
-    }
-    /* Re-apply current sort */
-    if (sortCol >= 0) {
-        filteredData.sort((a, b) => {
-            let va = a[sortCol], vb = b[sortCol];
-            if (NUMERIC_COLS.has(sortCol)) {
-                va = parseFloat(va) || 0;
-                vb = parseFloat(vb) || 0;
-                return sortDir === 'asc' ? va - vb : vb - va;
-            }
-            va = va.toLowerCase(); vb = vb.toLowerCase();
-            if (va < vb) return sortDir === 'asc' ? -1 : 1;
-            if (va > vb) return sortDir === 'asc' ? 1 : -1;
-            return 0;
-        });
-    }
-    currentPage = 0;
-    renderAll();
-}
-
-/* ============================================================
-   PAGINATION
-   ============================================================ */
-
-/** Render pagination controls */
-function renderPagination() {
-    const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
-    if (totalPages <= 1) {
-        $pagination.innerHTML = '';
-        return;
+    // Update Report Period
+    if(dates.length > 0) {
+        dates.sort((a,b) => new Date(a) - new Date(b));
+        document.getElementById('reportPeriod').innerHTML = `All values calculated from <strong>${data.length}</strong> records | <strong>${invCount}</strong> unique invoices | Period: <strong>${dates[0]}</strong> to <strong>${dates[dates.length-1]}</strong>`;
     }
 
-    let html = '';
+    // Existing Exec Summary (Section 2, 3, 4)
+    document.getElementById('kpi-mrp').textContent = fmtCur(totalMRP);
+    document.getElementById('kpi-net').textContent = fmtCur(totalNet);
+    document.getElementById('kpi-qty').textContent = fmtNum(totalQty);
+    document.getElementById('kpi-vat').textContent = fmtCur(totalVAT);
+    document.getElementById('kpi-disc').textContent = fmtCur(totalDiscount);
+    document.getElementById('kpi-inv').textContent = fmtNum(invCount);
+    document.getElementById('kpi-aiv').textContent = fmtCur(aiv);
+    document.getElementById('kpi-asp').textContent = fmtCur(asp);
 
-    /* Previous button */
-    html += `<button class="page-btn" data-page="prev" ${currentPage === 0 ? 'disabled' : ''}>`
-          + `<i class="fas fa-chevron-left"></i></button>`;
+    const sortedDays = Object.keys(dailyData).sort((a,b) => dailyData[a].dateObj - dailyData[b].dateObj);
+    const dayLabels = sortedDays.map(d => { const parts = d.split('-'); return `${parts[0]}-${parts[1]}`; });
+    const dayRevs = sortedDays.map(d => dailyData[d].net);
+    
+    let peakRev = 0, peakDate = '', lowRev = Infinity, lowDate = '';
+    sortedDays.forEach(d => {
+        if(dailyData[d].net > peakRev) { peakRev = dailyData[d].net; peakDate = d; }
+        if(dailyData[d].net < lowRev) { lowRev = dailyData[d].net; lowDate = d; }
+    });
 
-    /* Page numbers with ellipsis logic */
-    const pages = buildPageNumbers(currentPage, totalPages);
-    for (const p of pages) {
-        if (p === '...') {
-            html += `<span class="page-ellipsis">...</span>`;
-        } else {
-            html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p + 1}</button>`;
+    const prodArr = Object.keys(productData).map(k => ({
+        name: k, net: productData[k].net, qty: productData[k].qty, 
+        asp: productData[k].qty > 0 ? productData[k].net / productData[k].qty : 0,
+        disc: productData[k].disc
+    }));
+    const topProdNet = [...prodArr].sort((a,b) => b.net - a.net).slice(0, 10);
+    const botProdNet = [...prodArr].sort((a,b) => a.net - b.net).slice(0, 10);
+    const topProdQty = [...prodArr].sort((a,b) => b.qty - a.qty).slice(0, 10);
+    const topProdDisc= [...prodArr].sort((a,b) => b.disc - a.disc).slice(0, 10);
+
+    const styleArr = Object.keys(styleData).map(k => ({
+        name: k, net: styleData[k].net, qty: styleData[k].qty,
+        asp: styleData[k].qty > 0 ? styleData[k].net / styleData[k].qty : 0
+    })).sort((a,b) => b.net - a.net).slice(0, 10);
+
+
+    document.getElementById('aiv-large').textContent = fmtCur(aiv);
+    document.getElementById('aiv-net').textContent = fmtCur(totalNet);
+    document.getElementById('aiv-inv').textContent = fmtNum(invCount);
+    document.getElementById('aiv-val2').textContent = fmtCur(aiv);
+    document.getElementById('aiv-peak').textContent = fmtCur(peakRev);
+
+    document.getElementById('asp-large').textContent = fmtCur(asp);
+    let aspTbody = '';
+    topProdNet.forEach(p => { aspTbody += `<tr><td><strong>${p.name}</strong></td><td>${fmtNum(p.qty)}</td><td>${fmtCur(p.net)}</td><td style="color:var(--chart-4); font-weight:bold;">${fmtCur(p.asp)}</td></tr>`; });
+    document.getElementById('aspTable').querySelector('tbody').innerHTML = aspTbody;
+
+    document.getElementById('trend-peak-date').innerHTML = `${peakDate}<br><span style="font-size:0.8rem; color:var(--text-3)">${fmtCur(peakRev)}</span>`;
+    document.getElementById('trend-low-date').innerHTML = `${lowDate}<br><span style="font-size:0.8rem; color:var(--text-3)">${fmtCur(lowRev)}</span>`;
+    document.getElementById('trend-days').textContent = sortedDays.length;
+    document.getElementById('trend-avg').textContent = fmtCur(totalNet / (sortedDays.length||1));
+
+    let tpTbody = '';
+    topProdNet.forEach((p,i) => { tpTbody += `<tr><td>${i+1}</td><td>${p.name}</td><td>${fmtCur(p.net)}</td><td class="text-accent">${((p.net/totalNet)*100).toFixed(1)}%</td></tr>`; });
+    document.getElementById('topProdTable').querySelector('tbody').innerHTML = tpTbody;
+
+    let bpTbody = '';
+    botProdNet.forEach((p,i) => { bpTbody += `<tr><td>${i+1}</td><td>${p.name}</td><td>${fmtCur(p.net)}</td><td>${fmtNum(p.qty)}</td></tr>`; });
+    document.getElementById('botProdTable').querySelector('tbody').innerHTML = bpTbody;
+
+    let stTbody = '';
+    styleArr.forEach((s,i) => { stTbody += `<tr><td>#${i+1}</td><td><strong>${s.name}</strong></td><td>${fmtCur(s.net)}</td><td>${fmtNum(s.qty)}</td><td>${fmtCur(s.asp)}</td></tr>`; });
+    document.getElementById('styleTable').querySelector('tbody').innerHTML = stTbody;
+
+    document.getElementById('disc-total').textContent = fmtCur(totalDiscount);
+    document.getElementById('disc-pct').textContent = ((totalDiscount / (totalMRP||1))*100).toFixed(1) + '%';
+    
+    let rev0 = 0, rev10 = 0, revOther = 0;
+    data.forEach(row => {
+        const dPct = parseFloat(row[14]) || 0;
+        const net = parseFloat(row[19]) || 0;
+        if(dPct === 0) rev0 += net;
+        else if (dPct <= 10) rev10 += net;
+        else revOther += net;
+    });
+    document.getElementById('disc-rev0').textContent = fmtCur(rev0);
+    document.getElementById('disc-rev10').textContent = fmtCur(rev10 + revOther);
+
+
+    // --- SECTION 12: QUARTERLY LOGIC ---
+    const qKeys = Object.keys(quarterlyStats).sort();
+    let bestQKey = '', maxQNet = 0;
+    let qTbody = '';
+    const qLabelsChart = [];
+    const qNetChart = [];
+
+    qKeys.forEach(k => {
+        const q = quarterlyStats[k];
+        if(q.net > maxQNet) { maxQNet = q.net; bestQKey = k; }
+        const share = ((q.net / totalNet) * 100).toFixed(1) + '%';
+        qTbody += `<tr><td>${q.label}</td><td>${fmtNum(q.invs.size)}</td><td>${fmtCur(q.net)}</td><td class="text-accent">${share}</td></tr>`;
+        qLabelsChart.push(q.label);
+        qNetChart.push(q.net);
+    });
+    
+    document.getElementById('quarterTable').querySelector('tbody').innerHTML = qTbody;
+    if(bestQKey) {
+        document.getElementById('qtr-best-lakh').textContent = fmtLakh(maxQNet);
+        document.getElementById('qtr-best-name').textContent = quarterlyStats[bestQKey].label;
+        document.getElementById('qtr-best-sub').innerHTML = `${fmtNum(maxQNet)} BDT | ${((maxQNet/totalNet)*100).toFixed(1)}% of Annual Revenue`;
+    }
+
+    // --- SECTION 13 & 14: MONTHLY TRENDS LOGIC ---
+    const mKeys = Object.keys(monthlyStats).sort();
+    const mLabelsChart = [];
+    const momData = [];
+    const momColors = [];
+    const aivData = [];
+    const aspData = [];
+
+    let highMom = -Infinity, highMomLbl = '';
+    let dropMom = Infinity, dropMomLbl = '';
+    let highAiv = 0, highAivLbl = '';
+    let lowAiv = Infinity, lowAivLbl = '';
+
+    for(let i=0; i<mKeys.length; i++) {
+        const m = monthlyStats[mKeys[i]];
+        mLabelsChart.push(m.label);
+
+        const mAiv = m.invs.size > 0 ? m.net / m.invs.size : 0;
+        const mAsp = m.qty > 0 ? m.net / m.qty : 0;
+        aivData.push(mAiv);
+        aspData.push(mAsp);
+
+        if(mAiv > highAiv) { highAiv = mAiv; highAivLbl = m.label; }
+        if(mAiv < lowAiv) { lowAiv = mAiv; lowAivLbl = m.label; }
+
+        let mom = 0;
+        if(i > 0) {
+            const prevNet = monthlyStats[mKeys[i-1]].net;
+            mom = prevNet > 0 ? ((m.net - prevNet) / prevNet) * 100 : 0;
         }
+        momData.push(mom);
+        momColors.push(mom >= 0 ? '#10b981' : '#f06060');
+
+        if(i > 0 && mom > highMom) { highMom = mom; highMomLbl = m.label; }
+        if(i > 0 && mom < dropMom) { dropMom = mom; dropMomLbl = m.label; }
     }
 
-    /* Next button */
-    html += `<button class="page-btn" data-page="next" ${currentPage === totalPages - 1 ? 'disabled' : ''}>`
-          + `<i class="fas fa-chevron-right"></i></button>`;
+    document.getElementById('mom-high-val').textContent = highMom !== -Infinity ? `+${highMom.toFixed(1)}%` : '0%';
+    document.getElementById('mom-high-lbl').textContent = highMomLbl || '-';
+    document.getElementById('mom-drop-val').textContent = dropMom !== Infinity ? `${dropMom.toFixed(1)}%` : '0%';
+    document.getElementById('mom-drop-lbl').textContent = dropMomLbl || '-';
 
-    $pagination.innerHTML = html;
+    document.getElementById('trend-high-aiv').textContent = highAivLbl || '-';
+    document.getElementById('trend-high-aiv-val').textContent = fmtCur(highAiv);
+    document.getElementById('trend-low-aiv').textContent = lowAivLbl || '-';
+    document.getElementById('trend-low-aiv-val').textContent = fmtCur(lowAiv);
+    document.getElementById('trend-ann-aiv').textContent = fmtCur(aiv);
+    document.getElementById('trend-ann-asp').textContent = fmtCur(asp);
+
+    // --- SECTION 15: EXECUTIVE KPI DASHBOARD LOGIC ---
+    const topProd = topProdNet[0] || {name: '-', net: 0};
+    const topStyle = styleArr[0] || {name: '-', net: 0};
+    const topProdShare = ((topProd.net / (totalNet||1)) * 100).toFixed(1);
+
+    document.getElementById('exec-net-lakh').textContent = fmtLakh(totalNet);
+    document.getElementById('exec-net-val').textContent = fmtNum(totalNet);
+    document.getElementById('exec-mrp-lakh').textContent = fmtLakh(totalMRP);
+    document.getElementById('exec-mrp-val').textContent = fmtNum(totalMRP);
+    document.getElementById('exec-qty').textContent = fmtNum(totalQty);
+    document.getElementById('exec-vat-lakh').textContent = fmtLakh(totalVAT);
+    document.getElementById('exec-vat-val').textContent = fmtNum(totalVAT);
+    document.getElementById('exec-disc-lakh').textContent = fmtLakh(totalDiscount);
+    document.getElementById('exec-disc-val').textContent = fmtNum(totalDiscount);
+    document.getElementById('exec-inv').textContent = fmtNum(invCount);
+    document.getElementById('exec-best-prod').textContent = topProd.name;
+    document.getElementById('exec-best-prod-val').textContent = fmtCur(topProd.net);
+    document.getElementById('exec-best-cat').textContent = topProd.name; 
+    document.getElementById('exec-best-cat-val').textContent = topProdShare + '% Share';
+    document.getElementById('exec-best-style').textContent = topStyle.name;
+    document.getElementById('exec-best-style-val').textContent = fmtCur(topStyle.net);
+    document.getElementById('exec-aiv').textContent = fmtCur(aiv);
+    document.getElementById('exec-asp').textContent = fmtCur(asp);
+    document.getElementById('exec-days').textContent = sortedDays.length + ' Days';
+
+
+    // --- RENDERING CHARTS ---
+    const makeChart = (id, config) => {
+        if(dashboardCharts[id]) dashboardCharts[id].destroy();
+        dashboardCharts[id] = new Chart(document.getElementById(id), config);
+    };
+
+    makeChart('aivChart', { type: 'line', data: { labels: dayLabels, datasets: [{ label: 'Daily Revenue', data: dayRevs, borderColor: '#e8a020', backgroundColor: 'rgba(232,160,32,0.1)', tension: 0.3, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+    makeChart('aspChart', { type: 'bar', data: { labels: topProdNet.map(p=>p.name), datasets: [{ label: 'ASP (BDT)', data: topProdNet.map(p=>p.asp), backgroundColor: ['#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b'] }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+    makeChart('trendChart', { type: 'line', data: { labels: dayLabels, datasets: [{ label: 'Net Sales', data: dayRevs, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.4, fill: true, pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false } });
+    makeChart('topProdChart', { type: 'bar', data: { labels: topProdNet.map(p=>p.name), datasets: [{ label: 'Revenue', data: topProdNet.map(p=>p.net), backgroundColor: '#10b981' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
+    makeChart('botProdChart', { type: 'bar', data: { labels: botProdNet.map(p=>p.name), datasets: [{ label: 'Revenue', data: botProdNet.map(p=>p.net), backgroundColor: '#f06060' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
+    makeChart('fastChart', { type: 'bar', data: { labels: topProdQty.map(p=>p.name), datasets: [{ label: 'Units Sold', data: topProdQty.map(p=>p.qty), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+    makeChart('styleChart', { type: 'bar', data: { labels: styleArr.map(p=>p.name), datasets: [{ label: 'Value', data: styleArr.map(p=>p.net), backgroundColor: '#e8a020' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
+    makeChart('discBarChart', { type: 'bar', data: { labels: topProdDisc.map(p=>p.name), datasets: [{ label: 'Discount Given', data: topProdDisc.map(p=>p.disc), backgroundColor: '#ec4899' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
+    makeChart('discPieChart', { type: 'doughnut', data: { labels: ['0% Disc', '<=10% Disc', '>10% Disc'], datasets: [{ data: [rev0, rev10, revOther], backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'] }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '60%' } });
+
+    // New Charts
+    makeChart('quarterChart', { type: 'bar', data: { labels: qLabelsChart, datasets: [{ label: 'Net Sales', data: qNetChart, backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'] }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
+    makeChart('momChart', { type: 'bar', data: { labels: mLabelsChart, datasets: [{ label: 'MoM %', data: momData, backgroundColor: momColors }] }, options: { responsive: true, maintainAspectRatio: false } });
+    makeChart('aivAspTrendChart', { type: 'line', data: { labels: mLabelsChart, datasets: [ { label: 'AIV', data: aivData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.4 }, { label: 'ASP', data: aspData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.4 } ] }, options: { responsive: true, maintainAspectRatio: false } });
 }
 
-/** Build an array of page indices (and '...' strings) for pagination display */
-function buildPageNumbers(current, total) {
-    if (total <= 7) {
-        return Array.from({ length: total }, (_, i) => i);
-    }
+document.getElementById('processBtn').addEventListener('click', () => {
+    const raw = document.getElementById('rawData').value.trim();
+    if(!raw) return;
 
-    const pages = [];
-    pages.push(0);
-
-    if (current > 2) pages.push('...');
-
-    const start = Math.max(1, current - 1);
-    const end = Math.min(total - 2, current + 1);
-    for (let i = start; i <= end; i++) pages.push(i);
-
-    if (current < total - 3) pages.push('...');
-
-    pages.push(total - 1);
-    return pages;
-}
-
-/** Navigate to a specific page */
-function goToPage(page) {
-    const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
-    if (page < 0 || page >= totalPages) return;
-    currentPage = page;
-    renderTablePage();
-    renderPagination();
-    /* Scroll table to top */
-    document.getElementById('tableWrap').scrollTop = 0;
-}
-
-/* ============================================================
-   EXPORT: CLIPBOARD (TSV)
-   ============================================================ */
-
-async function copyToClipboard() {
-    if (allData.length === 0) {
-        showToast('No data to copy', 'error');
-        return;
-    }
-    showLoading('Copying to clipboard...');
-    /* Use setTimeout to let the overlay render */
-    await new Promise(r => setTimeout(r, 60));
-
-    try {
-        const lines = [HEADERS.join('\t')];
-        for (const row of allData) {
-            lines.push(row.join('\t'));
-        }
-        const text = lines.join('\n');
-        await navigator.clipboard.writeText(text);
-        showToast(`Copied ${formatNumber(allData.length)} rows to clipboard`, 'success');
-    } catch (err) {
-        /* Fallback: create a temporary textarea */
-        try {
-            const ta = document.createElement('textarea');
-            ta.value = [HEADERS.join('\t'), ...allData.map(r => r.join('\t'))].join('\n');
-            ta.style.cssText = 'position:fixed;left:-9999px';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            ta.remove();
-            showToast(`Copied ${formatNumber(allData.length)} rows to clipboard`, 'success');
-        } catch (e2) {
-            showToast('Failed to copy: ' + e2.message, 'error');
-        }
-    }
-    hideLoading();
-}
-
-/* ============================================================
-   EXPORT: CSV
-   ============================================================ */
-
-function downloadCSV() {
-    if (allData.length === 0) {
-        showToast('No data to export', 'error');
-        return;
-    }
-    showLoading('Generating CSV...');
+    document.getElementById('loadingOverlay').classList.add('active');
+    
     setTimeout(() => {
-        try {
-            const lines = [HEADERS.map(csvEscape).join(',')];
-            for (const row of allData) {
-                lines.push(row.map(csvEscape).join(','));
-            }
-            const csv = lines.join('\n');
-            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-            downloadBlob(blob, 'sales_data.csv');
-            showToast(`CSV downloaded: ${formatNumber(allData.length)} rows`, 'success');
-        } catch (err) {
-            showToast('CSV export failed: ' + err.message, 'error');
+        const result = parseData(raw);
+        if(result.rows.length === 0) {
+            document.getElementById('loadingOverlay').classList.remove('active');
+            return;
         }
-        hideLoading();
-    }, 60);
-}
 
-/* ============================================================
-   EXPORT: XLSX (Minimal ZIP-based Implementation)
-   ============================================================ */
+        allData = result.rows;
+        filteredData = [...allData];
+        currentPage = 0;
 
-function downloadXLSX() {
-    if (allData.length === 0) {
-        showToast('No data to export', 'error');
-        return;
-    }
-    showLoading('Generating Excel file...');
-    setTimeout(() => {
-        try {
-            const files = buildXlsxFiles();
-            const zipData = createZip(files);
-            const blob = new Blob([zipData], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            downloadBlob(blob, 'sales_data.xlsx');
-            showToast(`Excel file downloaded: ${formatNumber(allData.length)} rows`, 'success');
-        } catch (err) {
-            showToast('Excel export failed: ' + err.message, 'error');
-            console.error(err);
-        }
-        hideLoading();
-    }, 60);
-}
+        document.getElementById('outputSection').classList.remove('hidden');
+        document.getElementById('dashboardWrap').style.display = 'flex';
 
-/** Build all XML files needed for a valid .xlsx */
-function buildXlsxFiles() {
-    const encoder = new TextEncoder();
+        renderTable();
+        generateDashboard(allData);
 
-    /* [Content_Types].xml */
-    const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
-  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
-</Types>`;
+        document.getElementById('loadingOverlay').classList.remove('active');
+    }, 100); 
+});
 
-    /* _rels/.rels */
-    const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
-</Relationships>`;
+document.getElementById('clearBtn').addEventListener('click', () => {
+    document.getElementById('rawData').value = '';
+    document.getElementById('outputSection').classList.add('hidden');
+    document.getElementById('dashboardWrap').style.display = 'none';
+    allData = []; filteredData = [];
+});
 
-    /* xl/workbook.xml */
-    const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheets>
-    <sheet name="Sales Data" sheetId="1" r:id="rId1"/>
-  </sheets>
-</workbook>`;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    filteredData = q ? allData.filter(r => r.some(c => String(c).toLowerCase().includes(q))) : [...allData];
+    currentPage = 0;
+    renderTable();
+});
 
-    /* xl/_rels/workbook.xml.rels */
-    const wbRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-</Relationships>`;
-
-    /* xl/styles.xml */
-    const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <fonts count="2">
-    <font><sz val="11"/><name val="Calibri"/></font>
-    <font><b/><sz val="11"/><name val="Calibri"/></font>
-  </fonts>
-  <fills count="2">
-    <fill><patternFill patternType="none"/></fill>
-    <fill><patternFill patternType="gray125"/></fill>
-  </fills>
-  <borders count="1">
-    <border><left/><right/><top/><bottom/><diagonal/></border>
-  </borders>
-  <cellStyleXfs count="1">
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
-  </cellStyleXfs>
-  <cellXfs count="2">
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-    <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
-  </cellXfs>
-</styleSheet>`;
-
-    /* xl/worksheets/sheet1.xml — built in chunks for large datasets */
-    const parts = [];
-    parts.push('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>');
-    parts.push('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">');
-    parts.push('<sheetData>');
-
-    /* Header row with bold style (xf=1) */
-    parts.push('<row r="1">');
-    for (let c = 0; c < HEADERS.length; c++) {
-        parts.push(`<c r="${COL_LETTERS[c]}1" t="inlineStr" s="1"><is><t>${escapeXml(HEADERS[c])}</t></is></c>`);
-    }
-    parts.push('</row>');
-
-    /* Data rows */
-    for (let r = 0; r < allData.length; r++) {
-        const row = allData[r];
-        const rowNum = r + 2;
-        let rowStr = `<row r="${rowNum}">`;
-        for (let c = 0; c < row.length; c++) {
-            rowStr += `<c r="${COL_LETTERS[c]}${rowNum}" t="inlineStr"><is><t>${escapeXml(row[c])}</t></is></c>`;
-        }
-        rowStr += '</row>';
-        parts.push(rowStr);
-    }
-
-    parts.push('</sheetData>');
-    parts.push('</worksheet>');
-    const worksheet = parts.join('');
-
-    return [
-        { name: '[Content_Types].xml', data: encoder.encode(contentTypes) },
-        { name: '_rels/.rels', data: encoder.encode(rels) },
-        { name: 'xl/workbook.xml', data: encoder.encode(workbook) },
-        { name: 'xl/_rels/workbook.xml.rels', data: encoder.encode(wbRels) },
-        { name: 'xl/styles.xml', data: encoder.encode(styles) },
-        { name: 'xl/worksheets/sheet1.xml', data: encoder.encode(worksheet) }
-    ];
-}
-
-/* ============================================================
-   ZIP GENERATOR (STORE method — no compression)
-   ============================================================ */
-
-/**
- * Create a ZIP file (Uint8Array) from an array of file entries.
- * Uses STORE method (no compression) for maximum compatibility.
- */
-function createZip(files) {
-    const encoder = new TextEncoder();
-    const localParts = [];   // All local headers + file data
-    const centralParts = []; // All central directory headers
-    let offset = 0;
-
-    for (const file of files) {
-        const nameBytes = encoder.encode(file.name);
-        const crc = crc32(file.data);
-        const size = file.data.length;
-
-        /* --- Local file header (30 bytes + filename) --- */
-        const lh = new Uint8Array(30 + nameBytes.length);
-        const lhV = new DataView(lh.buffer);
-        lhV.setUint32(0, 0x04034b50, true);   // Local file header signature
-        lhV.setUint16(4, 20, true);            // Version needed to extract
-        lhV.setUint16(6, 0, true);             // General purpose flags
-        lhV.setUint16(8, 0, true);             // Compression method: STORE
-        lhV.setUint16(10, 0, true);            // Last mod file time
-        lhV.setUint16(12, 0, true);            // Last mod file date
-        lhV.setUint32(14, crc, true);          // CRC-32
-        lhV.setUint32(18, size, true);         // Compressed size
-        lhV.setUint32(22, size, true);         // Uncompressed size
-        lhV.setUint16(26, nameBytes.length, true); // File name length
-        lhV.setUint16(28, 0, true);            // Extra field length
-        lh.set(nameBytes, 30);
-
-        localParts.push(lh);
-        localParts.push(file.data);
-
-        /* --- Central directory header (46 bytes + filename) --- */
-        const ch = new Uint8Array(46 + nameBytes.length);
-        const chV = new DataView(ch.buffer);
-        chV.setUint32(0, 0x02014b50, true);    // Central dir signature
-        chV.setUint16(4, 20, true);             // Version made by
-        chV.setUint16(6, 20, true);             // Version needed
-        chV.setUint16(8, 0, true);              // Flags
-        chV.setUint16(10, 0, true);             // Compression: STORE
-        chV.setUint16(12, 0, true);             // Mod time
-        chV.setUint16(14, 0, true);             // Mod date
-        chV.setUint32(16, crc, true);           // CRC-32
-        chV.setUint32(20, size, true);          // Compressed size
-        chV.setUint32(24, size, true);          // Uncompressed size
-        chV.setUint16(28, nameBytes.length, true); // Filename length
-        chV.setUint16(30, 0, true);             // Extra field length
-        chV.setUint16(32, 0, true);             // File comment length
-        chV.setUint16(34, 0, true);             // Disk number start
-        chV.setUint16(36, 0, true);             // Internal file attributes
-        chV.setUint32(38, 0, true);             // External file attributes
-        chV.setUint32(42, offset, true);        // Offset of local header
-        ch.set(nameBytes, 46);
-
-        centralParts.push(ch);
-
-        offset += lh.length + file.data.length;
-    }
-
-    /* --- End of central directory record (22 bytes) --- */
-    const cdSize = centralParts.reduce((sum, h) => sum + h.length, 0);
-    const cdOffset = offset;
-    const eocd = new Uint8Array(22);
-    const eV = new DataView(eocd.buffer);
-    eV.setUint32(0, 0x06054b50, true);     // EOCD signature
-    eV.setUint16(4, 0, true);              // Disk number
-    eV.setUint16(6, 0, true);              // Disk with central dir
-    eV.setUint16(8, files.length, true);    // Number of entries on this disk
-    eV.setUint16(10, files.length, true);   // Total number of entries
-    eV.setUint32(12, cdSize, true);         // Size of central directory
-    eV.setUint32(16, cdOffset, true);       // Offset of central directory
-    eV.setUint16(20, 0, true);              // Comment length
-
-    /* --- Assemble the final ZIP --- */
-    const totalSize = offset + cdSize + 22;
-    const result = new Uint8Array(totalSize);
-    let writePos = 0;
-
-    for (const part of localParts) {
-        result.set(part, writePos);
-        writePos += part.length;
-    }
-    for (const part of centralParts) {
-        result.set(part, writePos);
-        writePos += part.length;
-    }
-    result.set(eocd, writePos);
-
-    return result;
-}
-
-/* ============================================================
-   CRC-32 IMPLEMENTATION
-   ============================================================ */
-
-/** Pre-computed CRC-32 lookup table */
-const CRC_TABLE = (function() {
-    const table = new Uint32Array(256);
-    for (let i = 0; i < 256; i++) {
-        let c = i;
-        for (let j = 0; j < 8; j++) {
-            c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-        }
-        table[i] = c;
-    }
-    return table;
-})();
-
-/** Calculate CRC-32 checksum for a Uint8Array */
-function crc32(data) {
-    let crc = 0xFFFFFFFF;
-    for (let i = 0; i < data.length; i++) {
-        crc = CRC_TABLE[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
-    }
-    return (crc ^ 0xFFFFFFFF) >>> 0;
-}
-
-/* ============================================================
-   UI HELPERS
-   ============================================================ */
-
-/** Trigger a file download from a Blob */
-function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
+document.getElementById('csvBtn').addEventListener('click', () => {
+    if(!allData.length) return;
+    const csv = [HEADERS.join(','), ...allData.map(r => r.map(c=> `"${String(c).replace(/"/g,'""')}"`).join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
+    a.href = URL.createObjectURL(blob);
+    a.download = 'sales_data.csv';
     a.click();
-    setTimeout(() => {
-        a.remove();
-        URL.revokeObjectURL(url);
-    }, 100);
-}
-
-/** Show the loading overlay with optional custom text */
-function showLoading(text) {
-    $loadingText.textContent = text || 'Processing data...';
-    $loading.classList.add('active');
-}
-
-/** Hide the loading overlay */
-function hideLoading() {
-    $loading.classList.remove('active');
-}
-
-/** Show a toast notification */
-function showToast(message, type) {
-    type = type || 'info';
-    const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `<i class="fas fa-${icons[type] || icons.info}"></i><span>${escapeHtml(message)}</span>`;
-    document.getElementById('toastContainer').appendChild(toast);
-
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => toast.classList.add('show'));
-    });
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 350);
-    }, 3500);
-}
-
-/* ============================================================
-   EVENT HANDLERS
-   ============================================================ */
-
-/** Process Data button */
- $processBtn.addEventListener('click', () => {
-    const raw = $rawData.value.trim();
-    if (!raw) {
-        showToast('Please paste raw sales data first', 'error');
-        return;
-    }
-
-    showLoading('Processing data...');
-    /* Use setTimeout to allow the loading overlay to render before heavy work */
-    setTimeout(() => {
-        try {
-            const t0 = performance.now();
-            const result = parseData(raw);
-            const t1 = performance.now();
-            const elapsed = Math.round(t1 - t0);
-
-            if (result.rows.length === 0) {
-                hideLoading();
-                showToast('No valid product rows found. Check the input format.', 'error');
-                return;
-            }
-
-            /* Update state */
-            allData = result.rows;
-            uniqueInvoices = result.invoices;
-            sortCol = -1;
-            sortDir = 'asc';
-            searchQuery = '';
-            $searchInput.value = '';
-            currentPage = 0;
-            filteredData = allData.slice();
-
-            /* Update stats */
-            $statInvoices.textContent = formatNumber(uniqueInvoices.size);
-            $statProducts.textContent = formatNumber(allData.length);
-            $statTime.textContent = elapsed + ' ms';
-
-            /* Show sections */
-            $statsSection.classList.remove('hidden');
-            $outputSection.classList.remove('hidden');
-            $outputSection.classList.add('fade-up');
-
-            /* Render table */
-            renderAll();
-
-            hideLoading();
-            showToast(`Processed ${formatNumber(allData.length)} products from ${formatNumber(uniqueInvoices.size)} invoices in ${elapsed}ms`, 'success');
-
-        } catch (err) {
-            hideLoading();
-            showToast('Processing error: ' + err.message, 'error');
-            console.error(err);
-        }
-    }, 80);
 });
-
-/** Clear button */
- $clearBtn.addEventListener('click', () => {
-    $rawData.value = '';
-    allData = [];
-    filteredData = [];
-    uniqueInvoices = new Set();
-    sortCol = -1;
-    searchQuery = '';
-    $searchInput.value = '';
-    currentPage = 0;
-
-    $statsSection.classList.add('hidden');
-    $outputSection.classList.add('hidden');
-    $outputSection.classList.remove('fade-up');
-    $tableHead.innerHTML = '';
-    $tableBody.innerHTML = '';
-    $pagination.innerHTML = '';
-    $resultsInfo.innerHTML = '';
-
-    showToast('Cleared all data', 'info');
-});
-
-/** Search input with debounce */
-let searchTimer = null;
- $searchInput.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-        searchQuery = $searchInput.value.trim();
-        applySearch();
-    }, 250);
-});
-
-/** Keyboard shortcut: Escape to clear search */
- $searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        $searchInput.value = '';
-        searchQuery = '';
-        applySearch();
-        $searchInput.blur();
-    }
-});
-
-/** Table header click — sorting (event delegation) */
- $tableHead.addEventListener('click', (e) => {
-    const th = e.target.closest('th');
-    if (!th) return;
-    const col = parseInt(th.dataset.col, 10);
-    if (!isNaN(col)) sortByColumn(col);
-});
-
-/** Pagination click — navigation (event delegation) */
- $pagination.addEventListener('click', (e) => {
-    const btn = e.target.closest('.page-btn');
-    if (!btn || btn.disabled) return;
-    const page = btn.dataset.page;
-    if (page === 'prev') {
-        goToPage(currentPage - 1);
-    } else if (page === 'next') {
-        goToPage(currentPage + 1);
-    } else {
-        goToPage(parseInt(page, 10));
-    }
-});
-
-/** Copy button */
- $copyBtn.addEventListener('click', copyToClipboard);
-
-/** CSV download button */
- $csvBtn.addEventListener('click', downloadCSV);
-
-/** Excel download button */
- $xlsxBtn.addEventListener('click', downloadXLSX);
-
-/** Keyboard shortcut: Ctrl+Enter to process */
-document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        $processBtn.click();
-    }
-});
-
-/* ============================================================
-   INITIALIZATION
-   ============================================================ */
-
-/* Show empty state in table on load */
- $emptyState.classList.remove('hidden');
-
 </script>
 </body>
 </html>
